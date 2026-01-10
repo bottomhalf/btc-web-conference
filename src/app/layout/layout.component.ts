@@ -9,7 +9,7 @@ import { environment } from '../../environments/environment';
 import { NotificationService } from '../notifications/services/notification.service';
 import { ToastNotificationComponent } from '../notifications/toast-notification/toast-notification.component';
 import { User } from '../models/model';
-import { CallEventService } from '../providers/socket/call-event.service';
+import { ServerEventService } from '../providers/socket/server-event.service';
 import { IncomingCallComponent } from '../notifications/incoming-call/incoming-call.component';
 import { DeviceService } from './device.service';
 import { MeetingService } from '../meeting/meeting.service';
@@ -29,7 +29,7 @@ export class LayoutComponent implements OnInit {
   constructor(private local: LocalService,
     public meetingService: MeetingService,
     private ws: ConfeetSocketService,
-    private callEvents: CallEventService,
+    private serverEvents: ServerEventService,
     private notificationService: NotificationService,
     private router: Router,
     private deviceService: DeviceService
@@ -59,7 +59,7 @@ export class LayoutComponent implements OnInit {
     if (this.user.userId) {
       this.socketHandShake();
       this.notificationService.initialize();
-      this.callEvents.initialize();
+      this.serverEvents.initialize();
     }
   }
 

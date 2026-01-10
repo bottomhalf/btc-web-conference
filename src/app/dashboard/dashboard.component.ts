@@ -11,7 +11,7 @@ import { ConfeetSocketService } from '../providers/socket/confeet-socket.service
 import { MeetingDetail, ResponseModel, User } from '../models/model';
 import { Preview } from '../models/constant';
 import { Router } from '@angular/router';
-import { CallEventService } from '../providers/socket/call-event.service';
+import { ClientEventService } from '../providers/socket/client-event.service';
 import { UserFilter } from '../models/user.filter';
 import { Conversation } from '../components/global-search/search.models';
 import { CallType } from '../models/conference_call/call_model';
@@ -49,7 +49,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private router: Router,
     private http: AjaxService,
-    private callEventService: CallEventService
+    private clientEventService: ClientEventService
   ) {
     const today = new Date();
     this.minPickerDate = {
@@ -204,7 +204,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   joinMeeting(item: Conversation) {
     this.ws.currentConversationId.set(item.id);
-    this.callEventService.joinCall(this.user.userId, item.id);
+    this.clientEventService.joinCall(this.user.userId, item.id);
     this.router.navigate(['/btc/preview'], {
       state: {
         id: item.id,

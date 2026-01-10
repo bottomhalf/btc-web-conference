@@ -1,6 +1,7 @@
 import { Component, effect, inject, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CallEventService } from '../../providers/socket/call-event.service';
+import { ServerEventService } from '../../providers/socket/server-event.service';
+import { ClientEventService } from '../../providers/socket/client-event.service';
 import { CallType } from '../../models/conference_call/call_model';
 import { Router } from '@angular/router';
 import { ConfeetSocketService } from '../../providers/socket/confeet-socket.service';
@@ -13,7 +14,8 @@ import { ConfeetSocketService } from '../../providers/socket/confeet-socket.serv
     styleUrl: './incoming-call.component.scss'
 })
 export class IncomingCallComponent implements OnDestroy {
-    callEventService = inject(CallEventService);
+    serverEventService = inject(ServerEventService);
+    clientEventService = inject(ClientEventService);
     ws = inject(ConfeetSocketService);
     private router = inject(Router);
 
@@ -22,13 +24,13 @@ export class IncomingCallComponent implements OnDestroy {
 
     callDuration = signal(0);
 
-    incomingCall = () => this.callEventService.incomingCall();
+    incomingCall = () => this.serverEventService.incomingCall();
 
     constructor() {
         // Watch for incoming call changes with effect
         // allowSignalWrites: true is needed because startTimer writes to callDuration signal
         effect(() => {
-            const hasIncoming = this.callEventService.hasIncomingCall();
+            const hasIncoming = this.serverEventService.hasIncomingCall();
 
             if (hasIncoming) {
                 // Start ringtone and timer when incoming call starts
@@ -78,7 +80,7 @@ export class IncomingCallComponent implements OnDestroy {
             this.ws.currentConversationId.set(call.conversationId);
             this.stopRingtone();
             this.stopTimer();
-            this.callEventService.acceptCall(call.conversationId, call.callerId);
+            this.clientEventService.acceptCall(call.conversationId, call.callerId);
             this.router.navigate(['/btc/preview'], {
                 state: {
                     id: call.conversationId,
@@ -95,7 +97,7 @@ export class IncomingCallComponent implements OnDestroy {
             this.ws.currentConversationId.set(request.conversationId);
             this.stopRingtone();
             this.stopTimer();
-            this.callEventService.acceptJoiningRequest(request.conversationId, request.callerId);
+            this.clientEventService.acceptJoiningRequest(request.conversationId, request.callerId);
             this.router.navigate(['/btc/preview'], {
                 state: {
                     id: request.conversationId,
@@ -111,13 +113,13 @@ export class IncomingCallComponent implements OnDestroy {
         if (call) {
             this.stopRingtone();
             this.stopTimer();
-            this.callEventService.rejectCall(call.conversationId, call.callerId, 'declined');
+            this.clientEventService.rejectCall(call.conversationId, call.callerId, 'declined');
         }
     }
 
     dismissJoinRequest(): void {
         const call = this.incomingCall();
-        this.callEventService.dismissJoiningRequest(call.conversationId, call.callerId);
+        this.clientEventService.dismissJoiningRequest(call.conversationId, call.callerId);
     }
 
     private startRingtone(): void {

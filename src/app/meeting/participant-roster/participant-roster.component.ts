@@ -42,6 +42,10 @@ export class ParticipantRosterComponent {
     //    @Output() onFilterParticipants = new EventEmitter<Event>();
     @Output() onRequestToJoin = new EventEmitter<InvitedParticipant>();
 
+    raiseJoiningRequest(invited: InvitedParticipant): void {
+        this.meetingService.requestToJoin(invited);
+    }
+
     // filterParticipants(event: Event): void {
     //     this.onFilterParticipants.emit(event);
     // }

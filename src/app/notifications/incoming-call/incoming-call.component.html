@@ -1,5 +1,5 @@
 <!-- Incoming Call Notification (bottom-right, no overlay) -->
-@if (callEventService.hasIncomingCall()) {
+@if (serverEventService.hasIncomingCall()) {
 <div class="notification-container">
     <div class="incoming-call-card" [class.video-call]="isVideoCall()">
         <!-- Animated rings -->
@@ -65,8 +65,8 @@
 }
 
 <!-- Join Call Notification (bottom-right, positioned above incoming call if both shown) -->
-@if (callEventService.hasJoiningRequest()) {
-<div class="notification-container join-request" [class.stacked]="callEventService.hasIncomingCall()">
+@if (serverEventService.hasJoiningRequest()) {
+<div class="notification-container join-request" [class.stacked]="serverEventService.hasIncomingCall()">
     <div class="join-call-card">
         <!-- Join icon with pulse -->
         <div class="join-icon-container">

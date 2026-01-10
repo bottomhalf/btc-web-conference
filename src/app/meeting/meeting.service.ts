@@ -6,10 +6,12 @@ import { LocalVideoTrack, Room } from 'livekit-client';
 import { CameraService } from './../providers/services/camera.service';
 import { VideoBackgroundService } from './../providers/services/video-background.service';
 import { DeviceService } from '../layout/device.service';
-import { CallEventService } from '../providers/socket/call-event.service';
+import { ServerEventService } from '../providers/socket/server-event.service';
+import { ClientEventService } from '../providers/socket/client-event.service';
 import { User } from '../models/model';
 import { Dashboard, Login } from '../models/constant';
 import { CallParticipant, ParticipantStatus } from '../models/conference_call/call_model';
+import { InvitedParticipant } from './meeting.component';
 
 @Injectable({
   providedIn: 'root'
@@ -54,7 +56,8 @@ export class MeetingService {
     private nav: iNavigation,
     private cameraService: CameraService,
     private deviceService: DeviceService,
-    private callEventService: CallEventService,
+    private serverEventService: ServerEventService,
+    private clientEventService: ClientEventService,
     private videoBackgroundService: VideoBackgroundService
   ) { }
 
@@ -75,7 +78,7 @@ export class MeetingService {
 
   // Computed signal - only recalculates when incomingCall or filter changes
   filteredInvitedParticipants(isInRoom: boolean = true): CallParticipant[] {
-    let participants: CallParticipant[] = this.callEventService.participantsInRoom();
+    let participants: CallParticipant[] = this.serverEventService.participantsInRoom();
 
     if (!participants) {
       return [];
@@ -157,6 +160,17 @@ export class MeetingService {
   }
 
   /**
+   * Raise a request to the participant to join the current call
+   */
+
+  async requestToJoin(participant: InvitedParticipant) {
+    // TODO: Implement actual request to join via API/signaling
+    console.log(`Request to join sent to: ${JSON.stringify(participant)}`);
+    alert(`Request to join sent to ${participant.name}`);
+    this.serverEventService.callJoiningRequest$
+  }
+
+  /**
    * Leave the meeting room and cleanup all media resources
    */
   async leaveRoom(isNavigate: boolean = false): Promise<void> {
@@ -195,7 +209,7 @@ export class MeetingService {
     }
 
     // Notify call service
-    this.callEventService.endCall();
+    this.clientEventService.endCall();
   }
 
   // ==================== Media Controls ====================

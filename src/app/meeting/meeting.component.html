@@ -12,7 +12,20 @@
         <div id="room" class="w-100">
             @if(currentScreenTrack != null || isMyshareScreen) {
             <div class="row col-md-12 justify-content-center pt-3">
-                <div class="col-md-2" [@slideFade]="isViewParticipant ? 'visible' : 'hidden'">
+                <!-- Participant Roster - Shared across both views -->
+                @if (isViewParticipant) {
+                <div class="col-md-3" [@slideFade]="isViewParticipant ? 'visible' : 'hidden'">
+                    <app-participant-roster [roomForm]="roomForm" [participantFilter]="participantFilter"
+                        [remoteUsersCount]="remoteUsersCount" [remoteParticipants]="remoteParticipants"
+                        [invitedParticipants]="invitedParticipants" [getColorFromName]="getColorFromName.bind(this)"
+                        [getUserInitiaLetter]="getUserInitiaLetter.bind(this)"
+                        [isParticipantAudioEnabled]="isParticipantAudioEnabled.bind(this)"
+                        [isParticipantCameraEnabled]="isParticipantCameraEnabled.bind(this)"
+                        (onRequestToJoin)="requestToJoin($event)">
+                    </app-participant-roster>
+                </div>
+                }
+                <!-- <div class="col-md-3" [@slideFade]="isViewParticipant ? 'visible' : 'hidden'">
                     <div class="col adjest-p-list">
                         <div class="card participant-list bg-transparent fw-semibold" [attr.data-count]="1">
                             @if (localTrack()) {
@@ -82,8 +95,8 @@
                             }
                         </div>
                     </div>
-                </div>
-                <div class="" [ngClass]="{'col-md-12': !isViewParticipant, 'col-md-10': isViewParticipant, }">
+                </div> -->
+                <div class="" [ngClass]="{'col-md-12': !isViewParticipant, 'col-md-9': isViewParticipant, }">
                     <app-screenshare [isMyshareScreen]="isMyshareScreen" [localScreenTrack]="localScreenTrack"
                         [remoteSharescreenTrack]="remoteSharescreenTrack">
                     </app-screenshare>
@@ -91,7 +104,7 @@
             </div>
             } @else {
             <div class="row col-md-12 justify-content-center pt-3">
-                <div class="col-md-2" [@slideFade]="isViewParticipant ? 'visible' : 'hidden'">
+                <!-- <div class="col-md-3" [@slideFade]="isViewParticipant ? 'visible' : 'hidden'">
                     <div class="col adjest-p-list">
                         <div class="card participant-list bg-transparent fw-semibold" [attr.data-count]="1">
                             @if (localTrack()) {
@@ -162,8 +175,21 @@
                             }
                         </div>
                     </div>
+                </div> -->
+                <!-- Participant Roster - Shared across both views -->
+                @if (isViewParticipant) {
+                <div class="col-md-3" [@slideFade]="isViewParticipant ? 'visible' : 'hidden'">
+                    <app-participant-roster [roomForm]="roomForm" [participantFilter]="participantFilter"
+                        [remoteUsersCount]="remoteUsersCount" [remoteParticipants]="remoteParticipants"
+                        [invitedParticipants]="invitedParticipants" [getColorFromName]="getColorFromName.bind(this)"
+                        [getUserInitiaLetter]="getUserInitiaLetter.bind(this)"
+                        [isParticipantAudioEnabled]="isParticipantAudioEnabled.bind(this)"
+                        [isParticipantCameraEnabled]="isParticipantCameraEnabled.bind(this)"
+                        (onRequestToJoin)="requestToJoin($event)">
+                    </app-participant-roster>
                 </div>
-                <div class="col-md-10 ps-4 pe-3">
+                }
+                <div class="col-md-9 ps-4 pe-3">
                     <!-- <div class="meet-container">
                         <div class="grid-container" [attr.data-count]="remoteUsersCount + 1">
                             @if (localTrack()) {
@@ -456,7 +482,7 @@
             }
             <span class="mx-3">|</span>
             <a href="javascript:void(0)" class="text-decoration-none position-relative" placement="top"
-                ngbTooltip="Participants" (click)="isViewParticipant = !isViewParticipant">
+                ngbTooltip="Participants" (click)="toggleParticipanatsList()">
                 <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
                     fill="#FFFFFF">
                     <path

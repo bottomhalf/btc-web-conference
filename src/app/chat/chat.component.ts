@@ -8,7 +8,7 @@ import { Conversation, Participant, SearchResult, UserDetail } from '../componen
 import { ChatService } from './chat.service';
 import { Router } from '@angular/router';
 import { User } from '../models/model';
-import { CallEventService } from '../providers/socket/call-event.service';
+import { ClientEventService } from '../providers/socket/client-event.service';
 import { NotificationService } from '../notifications/services/notification.service';
 import { CallType } from '../models/conference_call/call_model';
 
@@ -66,7 +66,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
         public chatService: ChatService,
         private router: Router,
         public notificationService: NotificationService,
-        private callEventService: CallEventService
+        private clientEventService: ClientEventService
     ) {
         // React to new messages by scrolling to bottom
         effect(() => {
@@ -356,7 +356,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
 
     startAudioCall() {
-        this.callEventService.initiateAudioCall(this.currentUserId, this.ws.currentConversation().id);
+        this.clientEventService.initiateAudioCall(this.currentUserId, this.ws.currentConversation().id);
         this.router.navigate(['/btc/preview'], {
             state: {
                 id: this.ws.currentConversation().id,

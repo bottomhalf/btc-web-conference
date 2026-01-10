@@ -20,7 +20,7 @@ import { Offcanvas } from 'bootstrap';
 import { User } from '../models/model';
 import { hand_down, hand_raise } from '../models/constant';
 import { MeetingService } from './meeting.service';
-import { CallEventService } from '../providers/socket/call-event.service';
+import { ServerEventService } from '../providers/socket/server-event.service';
 
 import { ParticipantRosterComponent } from './participant-roster/participant-roster.component';
 import { ScreenshareComponent } from './screenshare/screenshare.component';
@@ -120,13 +120,6 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     isViewParticipant: boolean = false;
     participantFilter: string = '';
 
-    // Mock invited participants (not yet in call) - can be connected to real API
-    invitedParticipants: InvitedParticipant[] = [
-        { name: 'John Smith', email: 'john.smith@company.com', invited: true },
-        { name: 'Sarah Johnson', email: 'sarah.j@company.com', invited: true },
-        { name: 'Mike Wilson', email: 'mike.w@company.com', invited: true }
-    ];
-
     // Use signal for participant filter to make it reactive
     private participantFilterSignal = signal('');
 
@@ -160,12 +153,6 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
         this.participantFilterSignal.set(target.value);
     }
 
-    requestToJoin(participant: InvitedParticipant): void {
-        // TODO: Implement actual request to join via API/signaling
-        console.log(`Request to join sent to: ${participant.name}`);
-        alert(`Request to join sent to ${participant.name}`);
-    }
-
     // Getter methods to expose meetingService signals reactively
     get room() { return this.meetingService.room; }
     get localTrack() { return this.meetingService.localTrack; }
@@ -173,7 +160,7 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     constructor(
         private cameraService: CameraService,
         private route: ActivatedRoute,
-        private eventService: CallEventService,
+        private eventService: ServerEventService,
         public roomService: RoomService,
         private nav: iNavigation,
         private router: Router,

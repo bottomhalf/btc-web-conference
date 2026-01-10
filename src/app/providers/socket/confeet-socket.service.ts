@@ -117,7 +117,7 @@ export class ConfeetSocketService {
         });
     }
 
-    // Expose messageSubject for other services (like CallEventService)
+    // Expose messageSubject for other services (like ServerEventService)
     getMessageSubject() {
         return this.messageSubject;
     }
