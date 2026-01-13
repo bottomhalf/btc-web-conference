@@ -48,7 +48,7 @@
                             @for (remoteTrack of remoteTracksMap().values(); track
                             remoteTrack.trackPublication.trackSid; let index=$index) {
                             @if (remoteTrack.trackPublication.kind==='video' ) {
-                            @if(isParticipantCameraEnabled(remoteTrack.participantIdentity)) {
+                            @if(meetingService.isParticipantCameraEnabled(remoteTrack.participantIdentity)) {
                             <div class="mt-3 vh-19 d-flex align-items-center justify-content-center">
                                 <video-component [track]="remoteTrack.trackPublication.videoTrack!"
                                     [participantIdentity]="remoteTrack.participantIdentity"
@@ -126,11 +126,11 @@
                             @for (remoteTrack of remoteTracksMap().values(); track
                             remoteTrack.trackPublication.trackSid; let index=$index) {
                             @if (remoteTrack.trackPublication.kind==='video' ) {
-                            @if(isParticipantCameraEnabled(remoteTrack.participantIdentity)) {
+                            @if(meetingService.isParticipantCameraEnabled(remoteTrack.participantIdentity)) {
                             <div class="mt-3 vh-19 d-flex align-items-center justify-content-center">
                                 <video-component [track]="remoteTrack.trackPublication.videoTrack!"
                                     [participantIdentity]="remoteTrack.participantIdentity"
-                                    [isMute]="!isParticipantAudioEnabled(remoteTrack.participantIdentity!)"></video-component>
+                                    [isMute]="!meetingService.isParticipantAudioEnabled(remoteTrack.participantIdentity!)"></video-component>
                             </div>
                             } @else {
                             <div
@@ -139,7 +139,7 @@
                                     [ngStyle]="{'background-color': meetingService.getColorFromName(remoteTrack.participantIdentity)}">
                                     {{meetingService.getUserInitiaLetter(remoteTrack.participantIdentity!)}}
                                 </div>
-                                @if (!isParticipantAudioEnabled(remoteTrack.participantIdentity!)) {
+                                @if (!meetingService.isParticipantAudioEnabled(remoteTrack.participantIdentity!)) {
                                 <div class="position-absolute user-mute-mic">
                                     <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
                                         width="24px" fill="#000">
@@ -222,10 +222,10 @@
                             @for (remoteTrack of remoteTracksMap().values(); track
                             remoteTrack.trackPublication.trackSid) {
                             @if (remoteTrack.trackPublication.kind === 'video') {
-                            @if (isParticipantCameraEnabled(remoteTrack.participantIdentity)) {
+                            @if (meetingService.isParticipantCameraEnabled(remoteTrack.participantIdentity)) {
                             <video-component [track]="remoteTrack.trackPublication.videoTrack!"
                                 [participantIdentity]="remoteTrack.participantIdentity"
-                                [isMute]="!isParticipantAudioEnabled(remoteTrack.participantIdentity!)"></video-component>
+                                [isMute]="!meetingService.isParticipantAudioEnabled(remoteTrack.participantIdentity!)"></video-component>
                             } @else {
                             <div
                                 class="d-flex align-items-center justify-content-center h-97 bg-light rounded position-relative">
@@ -233,7 +233,7 @@
                                     [ngStyle]="{'background-color': meetingService.getColorFromName(remoteTrack.participantIdentity!)}">
                                     {{meetingService.getUserInitiaLetter(remoteTrack.participantIdentity!)}}
                                 </div>
-                                @if (!isParticipantAudioEnabled(remoteTrack.participantIdentity!)) {
+                                @if (!meetingService.isParticipantAudioEnabled(remoteTrack.participantIdentity!)) {
                                 <div class="position-absolute user-mute-mic">
                                     <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
                                         width="24px" fill="#000">
