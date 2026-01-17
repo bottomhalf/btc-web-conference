@@ -1088,3 +1088,329 @@
 .member-search-item:not(:last-child) {
     border-bottom: 1px solid var(--teams-border);
 }
+
+/* ===== New Chat Popup Modal ===== */
+.new-chat-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease;
+    padding: 20px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.new-chat-popup {
+    background: var(--teams-bg-main);
+    border-radius: var(--teams-radius-large);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
+    overflow: hidden;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 28px;
+    border-bottom: none;
+    background: linear-gradient(135deg, var(--teams-primary) 0%, #6b6fd6 100%);
+    position: relative;
+}
+
+.popup-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.2) 50%,
+            transparent 100%);
+}
+
+.popup-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+    letter-spacing: -0.01em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.popup-close-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.popup-close-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.05);
+}
+
+.popup-close-btn:active {
+    transform: scale(0.95);
+}
+
+.popup-close-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.popup-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Mode Toggle */
+.popup-mode-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 4px;
+    background: var(--teams-bg-sidebar);
+    border-radius: var(--teams-radius);
+    border: 1px solid var(--teams-border);
+}
+
+.mode-toggle-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--teams-text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mode-toggle-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.mode-toggle-btn:hover:not(.active) {
+    background: var(--teams-hover);
+    color: var(--teams-text-primary);
+}
+
+.mode-toggle-btn.active {
+    background: var(--teams-primary);
+    color: white;
+    box-shadow: 0 2px 4px rgba(91, 95, 199, 0.3);
+}
+
+.popup-description {
+    font-size: 14px;
+    color: var(--teams-text-secondary);
+    margin: 0 0 16px 0;
+}
+
+.popup-search-wrapper {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.popup-search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    color: var(--teams-text-muted);
+    pointer-events: none;
+}
+
+.popup-search-input {
+    width: 100%;
+    padding: 12px 14px 12px 44px;
+    border: 2px solid var(--teams-border);
+    border-radius: var(--teams-radius);
+    font-size: 15px;
+    background-color: var(--teams-bg-sidebar);
+    color: var(--teams-text-primary);
+    transition: all 0.2s ease;
+}
+
+.popup-search-input:focus {
+    outline: none;
+    border-color: var(--teams-primary);
+    box-shadow: 0 0 0 3px rgba(91, 95, 199, 0.1);
+    background-color: var(--teams-bg-main);
+}
+
+.popup-search-input::placeholder {
+    color: var(--teams-text-muted);
+}
+
+.popup-results {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.popup-results::-webkit-scrollbar {
+    width: 6px;
+}
+
+.popup-results::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.popup-results::-webkit-scrollbar-thumb {
+    background: var(--teams-border);
+    border-radius: 3px;
+}
+
+.popup-results::-webkit-scrollbar-thumb:hover {
+    background: var(--teams-text-muted);
+}
+
+.popup-result-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: var(--teams-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.popup-result-item:hover {
+    background-color: var(--teams-hover);
+    border-color: var(--teams-border);
+    transform: translateX(4px);
+}
+
+.popup-result-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 16px;
+    color: white;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.popup-result-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.popup-result-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--teams-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.popup-result-email {
+    font-size: 13px;
+    color: var(--teams-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.popup-no-results {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.popup-no-results svg {
+    width: 48px;
+    height: 48px;
+    color: var(--teams-text-muted);
+    opacity: 0.4;
+    margin-bottom: 12px;
+}
+
+.popup-no-results p {
+    font-size: 14px;
+    color: var(--teams-text-secondary);
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .new-chat-popup {
+        max-width: 100%;
+        margin: 0 16px;
+    }
+
+    .popup-header {
+        padding: 16px 20px;
+    }
+
+    .popup-body {
+        padding: 20px;
+    }
+}

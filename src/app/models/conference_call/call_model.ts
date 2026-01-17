@@ -27,7 +27,10 @@ export const CallEvents = {
     CALL_END: 'call:end',
 
     // EventJoiningRequest - Either party ends an ongoing call
-    JOINING_REQUEST: 'call:raise-joining-request'
+    JOINING_REQUEST: 'call:raise-joining-request',
+
+    // EventGroupNotification - Notify group members of call status changes
+    EVENT_GROUP_NOTIFICATION: 'call:group-notification'
 } as const;
 
 // ============================================
@@ -65,8 +68,20 @@ export const CallServerEvents = {
     CALL_BUSY: 'call:busy',
 
     // EventCallError - Notify of call-related errors
-    CALL_ERROR: 'call:error'
+    CALL_ERROR: 'call:error',
+
+    // EventGroupNotification - Notify group members of call status changes
+    CALL_GROUP_NOTIFICATION: 'call:group-notification'
 } as const;
+
+/** CallErrorEvent is sent when a call error occurs */
+export const NotificationEventType = {
+    GN_GROUP_CREATED: "group:created",
+    GN_GROUP_DELETED: "group:deleted",
+    GN_GROUP_RENAMED: "group:renamed",
+    GN_GROUP_MEMBER_ADDED: "group:member_added"
+} as const;
+
 
 // ============================================
 // Call Types
@@ -240,6 +255,13 @@ export interface CallIncomingEvent {
     participants: Record<string, CallParticipant>;
     timeout: number;                // Seconds until timeout
     timestamp: number;              // Unix timestamp
+}
+
+/** GroupNotificationEvent is sent to group members when receiving a notification */
+export interface GroupNotificationEvent {
+    conversationId: string;
+    notificationType: string; // "accept", "reject", "dismiss", "timeout"
+    callerId: string;
 }
 
 /** CallAcceptedEvent is sent to caller when callee accepts */

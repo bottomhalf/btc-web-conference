@@ -17,6 +17,7 @@ export class VideoComponent implements AfterViewInit, OnDestroy {
     participantIdentity = input.required<string>();
     local = input(false);
     isMute = input(false);
+    isScreenShare = input(false);
 
     private attachedElement: HTMLVideoElement | null = null;
 
