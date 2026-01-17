@@ -61,7 +61,7 @@
                                     [ngStyle]="{'background-color': meetingService.getColorFromName(remoteTrack.participantIdentity)}">
                                     {{meetingService.getUserInitiaLetter(remoteTrack.participantIdentity!)}}
                                 </div>
-                                @if (!isParticipantAudioEnabled(remoteTrack.participantIdentity!)) {
+                                @if (!meetingService.isParticipantAudioEnabled(remoteTrack.participantIdentity!)) {
                                 <div class="position-absolute user-mute-mic">
                                     <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
                                         width="24px" fill="#000">
@@ -134,7 +134,7 @@
                             getVideoTrack(participant.identity)) {
                             <video-component [track]="getVideoTrack(participant.identity)!"
                                 [participantIdentity]="participant.identity"
-                                [isMute]="!isParticipantAudioEnabled(participant.identity)"></video-component>
+                                [isMute]="!meetingService.isParticipantAudioEnabled(participant.identity)"></video-component>
                             } @else {
                             <!-- Avatar placeholder for participants without camera or with camera off -->
                             <div
