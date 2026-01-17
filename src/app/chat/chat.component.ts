@@ -41,6 +41,10 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     // searchResults delegated to service
     isSearching: boolean = false;
 
+    // New Chat Popup state
+    showNewChatPopup: boolean = false;
+    popupMode: 'new-chat' | 'create-group' = 'new-chat';
+
     // Members dropdown state
     showMembersDropdown: boolean = false;
     showCreateGroupInput: boolean = false;
@@ -364,6 +368,20 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
                 title: this.ws.currentConversation().conversationName ? this.ws.currentConversation().conversationName : 'NEW'
             }
         });
+    }
+
+    // New Chat Popup Methods
+    toggleNewChatPopup(): void {
+        this.showNewChatPopup = !this.showNewChatPopup;
+    }
+
+    closeNewChatPopup(): void {
+        this.showNewChatPopup = false;
+        this.popupMode = 'new-chat';
+        this.searchQuery = '';
+        this.memberSearchQuery = '';
+        this.newGroupMembers = [];
+        this.newGroupName = '';
     }
 
     // Members Dropdown Methods
