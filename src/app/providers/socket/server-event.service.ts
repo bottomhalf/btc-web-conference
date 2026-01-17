@@ -19,6 +19,7 @@ import {
     CallErrorEvent,
     CallDismissedEvent,
     CallParticipant,
+    GroupNotificationEvent,
 } from '../../models/conference_call/call_model';
 
 @Injectable({
@@ -62,6 +63,9 @@ export class ServerEventService {
     /** Emits when a call joining request is raised */
     callRaisedJoiningRequest$: Observable<CallIncomingEvent>;
 
+    /** Emits when a group notification is received */
+    groupNotification$: Observable<GroupNotificationEvent>;
+
     // =========================================================
     // Call State Management
     // =========================================================
@@ -81,6 +85,9 @@ export class ServerEventService {
     /** Incoming call details */
     public incomingCall = signal<CallIncomingEvent | null>(null);
 
+    /** Incoming call details */
+    public groupNotification = signal<GroupNotificationEvent | null>(null);
+
     private subscriptions = new Subscription();
 
     constructor(
@@ -99,6 +106,7 @@ export class ServerEventService {
         this.callBusy$ = this.onCallEvent<CallBusyEvent>(CallServerEvents.CALL_BUSY);
         this.callError$ = this.onCallEvent<CallErrorEvent>(CallServerEvents.CALL_ERROR);
         this.callRaisedJoiningRequest$ = this.onCallEvent<CallIncomingEvent>(CallServerEvents.CALL_RAISED_REQUEST);
+        this.groupNotification$ = this.onCallEvent<GroupNotificationEvent>(CallServerEvents.CALL_GROUP_NOTIFICATION);
     }
 
     /**
@@ -172,6 +180,14 @@ export class ServerEventService {
                 this.hasJoiningRequest.set(true);
                 this.callStatus.set(CallStatus.JOINING_REQUEST);
                 console.log('Joining request from:', event.callerId);
+            })
+        );
+
+        // Handle joining request (call already in progress, user invited to join)
+        this.subscriptions.add(
+            this.groupNotification$.subscribe(event => {
+                console.log('Group notification:', event);
+                this.groupNotification.set(event);
             })
         );
 

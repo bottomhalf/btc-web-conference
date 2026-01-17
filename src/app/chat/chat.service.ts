@@ -51,6 +51,7 @@ export class ChatService {
             this.searchResults.set((results['users'] as UserDetail[]).map(user => ({
                 avatar: user.avatar,
                 conversationId: user.id,
+                email: user.email,
                 participants: [{
                     userId: user.userId,
                     username: user.username,
@@ -118,8 +119,8 @@ export class ChatService {
         return res; // Keep return for Component to know ID of new chat
     }
 
-    async createGroupConversation(userId: string, groupName: string, participants: Participant[]): Promise<ResponseModel> {
-        const res = await this.http.post(`conversations/create-group/${userId}/${groupName}`, participants);
+    async createGroupConversation(userId: string, groupName: string, conversationId: string, participants: Participant[]): Promise<ResponseModel> {
+        const res = await this.http.post(`conversations/create-group/${userId}/${groupName}/${conversationId}`, participants);
         // If successful, we might want to refresh meeting rooms or add this one
         if (res.IsSuccess) {
             // Optionally refresh list

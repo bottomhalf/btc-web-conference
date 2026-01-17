@@ -6,8 +6,8 @@
         style="width: 100%; border: 2px solid #007bff; border-radius: 8px; height: 86vh;"></video>
     } @else if (remoteSharescreenTrack() != null) {
     <div class="meet-container">
-        <video-component [track]="remoteSharescreenTrack()!.trackPublication.videoTrack!"
-            [participantIdentity]="''"></video-component>
+        <video-component [track]="remoteSharescreenTrack()!.trackPublication.videoTrack!" [participantIdentity]="''"
+            [isScreenShare]="true"></video-component>
     </div>
     }
 </div>

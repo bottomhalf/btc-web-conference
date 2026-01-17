@@ -1,4 +1,4 @@
-<div [id]="'camera-' + participantIdentity()" class="video-container">
+<div [id]="'camera-' + participantIdentity()" class="video-container" [class.screen-share]="isScreenShare()">
     <!-- Video element fills entire container -->
     <video #videoElement [id]="track().sid" [class.video-mirror]="local()"
         [ngClass]="{'vh-25': meetingService.isMinimized()}" [class.video-normal]="!local()"></video>

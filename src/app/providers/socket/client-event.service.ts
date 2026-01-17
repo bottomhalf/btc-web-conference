@@ -18,6 +18,8 @@ import {
     CallTimeoutPayload,
     CallEndPayload,
     CallDismissPayload,
+    GroupNotificationEvent,
+    NotificationEventType,
 } from '../../models/conference_call/call_model';
 import { ServerEventService } from './server-event.service';
 
@@ -127,6 +129,17 @@ export class ClientEventService {
             timeout: CallConfig.DEFAULT_TIMEOUT
         });
         this.callStatus.set(CallStatus.INITIATED);
+    }
+
+    /**
+     * Accept an incoming call
+     */
+    notifyGroupCreated(conversationId: string, callerId: string): void {
+        this.send(CallEvents.EVENT_GROUP_NOTIFICATION, <GroupNotificationEvent>{
+            conversationId: conversationId,
+            notificationType: NotificationEventType.GN_GROUP_CREATED,
+            callerId: callerId
+        });
     }
 
     /**

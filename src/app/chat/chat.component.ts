@@ -7,10 +7,11 @@ import { Subscription } from 'rxjs';
 import { Conversation, Participant, SearchResult, UserDetail } from '../components/global-search/search.models';
 import { ChatService } from './chat.service';
 import { Router } from '@angular/router';
-import { User } from '../models/model';
+import { ResponseModel, User } from '../models/model';
 import { ClientEventService } from '../providers/socket/client-event.service';
 import { NotificationService } from '../notifications/services/notification.service';
 import { CallType } from '../models/conference_call/call_model';
+import { ServerEventService } from '../providers/socket/server-event.service';
 
 @Component({
     selector: 'app-chat',
@@ -70,15 +71,22 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
         public chatService: ChatService,
         private router: Router,
         public notificationService: NotificationService,
+        private serverEventService: ServerEventService,
         private clientEventService: ClientEventService
     ) {
         // React to new messages by scrolling to bottom
         effect(() => {
+            const groupNotification = this.serverEventService.groupNotification();
+            if (groupNotification) {
+                this.chatService.getMeetingRooms();
+                return;
+            }
+
             const messages = this.chatService.messages();
             if (messages.length > 0 && this.pageIndex === 1) {
                 this.shouldScrollToBottom = true;
             }
-        });
+        }, { allowSignalWrites: true });
     }
 
     ngAfterViewChecked() {
@@ -423,9 +431,14 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
 
         // Use the existing search functionality
         this.chatService.searchUsers(this.memberSearchQuery).then(() => {
+            let participants: Participant[] = [];
+            if (this.ws.currentConversation() && this.ws.currentConversation().participants.length > 0) {
+                participants = this.ws.currentConversation().participants;
+            }
+
             // Filter out members who are already in the group
             const existingIds = [
-                ...this.ws.currentConversation().participants.map(p => p.userId),
+                ...participants.map(p => p.userId),
                 ...this.newGroupMembers.map(m => m.userId)
             ];
             this.memberSearchResults = this.chatService.searchResults()
@@ -482,16 +495,27 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
         const groupName = this.newGroupName.trim() || this.getDefaultGroupName();
         const newGroupMembers = this.newGroupMembers.reduce((acc, m) => [...acc, ...m.participants], []);
 
+        let participants: Participant[] = [];
+        if (this.ws.currentConversation() && this.ws.currentConversation().participants.length > 0) {
+            participants = this.ws.currentConversation().participants;
+        }
+
         const allMembers: Participant[] = [
-            ...this.ws.currentConversation().participants,
+            ...participants,
             ...newGroupMembers
         ];
 
         // TODO: Call API to create group
-        this.chatService.createGroupConversation(this.currentUserId, groupName, allMembers).then((res: any) => {
+        this.chatService.createGroupConversation(this.currentUserId, groupName, this.ws.currentConversationId(), allMembers).then((res: ResponseModel) => {
             // Reset state
-            this.cancelCreateGroup();
-            this.showMembersDropdown = false;
+            if (res.IsSuccess && res.ResponseBody) {
+                this.clientEventService.notifyGroupCreated(res.ResponseBody.id, this.currentUserId);
+                this.cancelCreateGroup();
+                this.showMembersDropdown = false;
+                this.closeNewChatPopup();
+            } else {
+                alert("Failed to create group error: " + res.ResponseBody.ResponseBody);
+            }
         });
 
     }

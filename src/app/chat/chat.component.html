@@ -206,7 +206,7 @@
                                     </div>
                                     <div class="member-info">
                                         <span class="member-name">{{ result.name }}</span>
-                                        <span class="member-email">{{ result.designation }}</span>
+                                        <span class="member-email">{{ result.email }}</span>
                                     </div>
                                 </div>
                                 }
@@ -219,6 +219,13 @@
                         <div class="form-group">
                             <label class="form-label">Selected Members ({{ newGroupMembers.length }})</label>
                             <div class="selected-members">
+                                <div class="selected-member-chip new-member">
+                                    <div class="chip-avatar"
+                                        [ngStyle]="{ 'background-color': getColorFromName(user.firstName, null) }">
+                                        {{ getUserInitiaLetter(user.firstName, null) }}
+                                    </div>
+                                    <span>{{ user.firstName }} (me)</span>
+                                </div>
                                 @for (member of newGroupMembers; track member.userId) {
                                 <div class="selected-member-chip new-member">
                                     <div class="chip-avatar"
@@ -236,7 +243,7 @@
                         <div class="create-group-actions">
                             <button class="btn-cancel" (click)="closeNewChatPopup()">Cancel</button>
                             <button class="btn-create" [disabled]="!newGroupName.trim() || newGroupMembers.length === 0"
-                                (click)="createGroup(); closeNewChatPopup()">Create Group</button>
+                                (click)="createGroup()">Create Group</button>
                         </div>
                     </div>
                     }
@@ -390,7 +397,7 @@
                                             </div>
                                             <div class="member-info">
                                                 <span class="member-name">{{ result.name }}</span>
-                                                <span class="member-email">{{ result.designation }}</span>
+                                                <span class="member-email">{{ result.email }}</span>
                                             </div>
                                         </div>
                                         }
