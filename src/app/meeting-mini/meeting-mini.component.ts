@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { MediaPermissions, MediaPermissionsService } from '../providers/services/media-permission.service';
 import { Observable } from 'rxjs';
 import { VideoComponent } from '../video/video.component';
+import { AudioComponent } from '../audio/audio.component';
 import { NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
 import { User } from '../models/model';
 import { MeetingService } from '../meeting/meeting.service';
@@ -12,7 +13,7 @@ import { MeetingService } from '../meeting/meeting.service';
 @Component({
   selector: 'app-meeting-mini',
   standalone: true,
-  imports: [CommonModule, VideoComponent, NgbTooltipModule],
+  imports: [CommonModule, VideoComponent, AudioComponent, NgbTooltipModule],
   templateUrl: './meeting-mini.component.html',
   styleUrl: './meeting-mini.component.css'
 })

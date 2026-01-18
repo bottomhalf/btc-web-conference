@@ -106,5 +106,12 @@
         </svg>
         Click to expand
     </div>
+
+    <!-- Hidden audio components for remote participants -->
+    @for (remoteTrack of meetingService.remoteTracksMap().values(); track remoteTrack.trackPublication.trackSid) {
+    @if (remoteTrack.trackPublication.kind === 'audio') {
+    <audio-component [track]="remoteTrack.trackPublication.audioTrack!" hidden></audio-component>
+    }
+    }
 </div>
 }
