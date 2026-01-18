@@ -13,7 +13,7 @@
             @if(currentScreenTrack != null || isMyshareScreen) {
             <div class="row col-md-12 justify-content-center pt-3">
                 <div class="col-md-3" [@slideFade]="isViewParticipant ? 'visible' : 'hidden'">
-                    <div class="col adjest-p-list">
+                    <!-- <div class="col adjest-p-list">
                         <div class="card participant-list bg-transparent fw-semibold" [attr.data-count]="1">
                             @if (localTrack()) {
                             @if (meetingService.isCameraOn()) {
@@ -81,7 +81,9 @@
                             }
                             }
                         </div>
-                    </div>
+                    </div> -->
+                    <app-participant-roster [roomForm]="roomForm" [invitedParticipants]="invitedParticipants">
+                    </app-participant-roster>
                 </div>
                 <div class="" [ngClass]="{'col-md-12': !isViewParticipant, 'col-md-9': isViewParticipant, }">
                     <app-screenshare [isMyshareScreen]="isMyshareScreen" [localScreenTrack]="localScreenTrack"

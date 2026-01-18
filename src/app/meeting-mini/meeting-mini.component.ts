@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnInit, signal } from '@angular/core';
+import { afterNextRender, AfterViewInit, Component, effect, ElementRef, HostListener, OnInit, signal, ViewChild } from '@angular/core';
 import { Room } from 'livekit-client';
 import { LocalService } from '../providers/services/local.service';
 import { CommonModule } from '@angular/common';
@@ -9,6 +9,7 @@ import { AudioComponent } from '../audio/audio.component';
 import { NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
 import { User } from '../models/model';
 import { MeetingService } from '../meeting/meeting.service';
+import { RoomService } from '../providers/services/room.service';
 
 @Component({
   selector: 'app-meeting-mini',
@@ -17,7 +18,11 @@ import { MeetingService } from '../meeting/meeting.service';
   templateUrl: './meeting-mini.component.html',
   styleUrl: './meeting-mini.component.css'
 })
-export class MeetingMiniComponent implements OnInit {
+export class MeetingMiniComponent implements OnInit, AfterViewInit {
+  // ViewChild references for screen share video elements
+  @ViewChild('remoteScreenVideo') remoteScreenVideoRef?: ElementRef<HTMLVideoElement>;
+  @ViewChild('localScreenVideo') localScreenVideoRef?: ElementRef<HTMLVideoElement>;
+
   // Simple draggable behavior
   private dragging = false;
   private startX = 0;
@@ -31,15 +36,50 @@ export class MeetingMiniComponent implements OnInit {
 
   constructor(private elRef: ElementRef,
     public meetingService: MeetingService,
+    public roomService: RoomService,
     private mediaPerm: MediaPermissionsService,
     private local: LocalService) {
     this.permissions$ = this.mediaPerm.permissions$;
+
+    // Use afterNextRender to ensure ViewChild is available before effect runs
+    afterNextRender(() => {
+      effect(() => {
+        const remoteScreen = this.roomService.remoteSharescreenTrack();
+        if (remoteScreen?.trackPublication?.videoTrack && this.remoteScreenVideoRef?.nativeElement) {
+          console.log('[Mini] Attaching remote screen share', {
+            hasTrack: !!remoteScreen,
+            hasElement: !!this.remoteScreenVideoRef?.nativeElement,
+            participantIdentity: remoteScreen.participantIdentity
+          });
+          remoteScreen.trackPublication.videoTrack.attach(this.remoteScreenVideoRef.nativeElement);
+        } else {
+          console.log('[Mini] Cannot attach screen share yet', {
+            hasTrack: !!remoteScreen,
+            hasElement: !!this.remoteScreenVideoRef?.nativeElement
+          });
+        }
+      });
+    });
   }
 
   ngOnInit() {
     this.user = this.local.getUser();
     this.userName = this.getFullName();
     this.room.set(this.meetingService.room());
+  }
+
+  ngAfterViewInit() {
+    // Attach any screen shares that exist BEFORE component was created
+    const remoteScreen = this.roomService.remoteSharescreenTrack();
+    if (remoteScreen?.trackPublication?.videoTrack && this.remoteScreenVideoRef?.nativeElement) {
+      console.log('[Mini] ngAfterViewInit: Attaching existing screen share');
+      remoteScreen.trackPublication.videoTrack.attach(this.remoteScreenVideoRef.nativeElement);
+    } else {
+      console.log('[Mini] ngAfterViewInit: No screen share to attach', {
+        hasTrack: !!remoteScreen,
+        hasElement: !!this.remoteScreenVideoRef?.nativeElement
+      });
+    }
   }
 
   expand() { this.meetingService.maximize(); }
