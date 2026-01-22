@@ -1,7 +1,8 @@
-import { AfterViewInit, Component, ElementRef, Input, OnChanges, SimpleChanges, ViewChild, Signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, Input, OnChanges, SimpleChanges, ViewChild, Signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LocalVideoTrack, RemoteTrackPublication } from 'livekit-client';
 import { VideoComponent } from '../../video/video.component';
+import { MeetingService } from '../meeting.service';
 
 /**
  * Screen Share View Component
@@ -24,6 +25,9 @@ export class ScreenshareComponent implements AfterViewInit, OnChanges {
     @Input() remoteSharescreenTrack!: Signal<{ participantIdentity: string; trackPublication: RemoteTrackPublication } | null>;
 
     private isViewReady = false;
+
+    // Inject services directly
+    meetingService = inject(MeetingService);
 
     ngAfterViewInit(): void {
         this.isViewReady = true;

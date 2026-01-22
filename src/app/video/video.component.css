@@ -4,14 +4,14 @@
 :host {
     display: block;
     width: 100%;
-    height: 100%;
+    height: 93vh;
     position: relative;
 }
 
 .video-container {
     position: relative;
     width: 100%;
-    height: 100%;
+    height: 93vh;
     background: #1a1a1a;
     border-radius: 12px;
     overflow: hidden;
@@ -29,7 +29,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover !important;
+    object-fit: contain !important;
     border-radius: 12px;
 }
 
@@ -132,10 +132,15 @@
     }
 }
 
-/* Screen Share View */
+/* Screen Share View - contain to show full screen */
 .video-container.screen-share video {
     object-fit: contain !important;
     background: #000;
+}
+
+/* Camera View - cover to fill the box (override default contain) */
+.video-container:not(.screen-share) video {
+    object-fit: cover !important;
 }
 
 /* Loading State */
