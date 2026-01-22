@@ -1,13 +1,16 @@
 <!-- Screen Share View Component -->
 <!-- Only displays screen share content - participant roster is in meeting.component -->
 <div class="screenshare-container">
-    @if (isMyshareScreen) {
-    <video #screenPreview autoplay playsinline muted
-        style="width: 100%; border: 2px solid #007bff; border-radius: 8px; height: 86vh;"></video>
-    } @else if (remoteSharescreenTrack() != null) {
-    <div class="meet-container">
-        <video-component [track]="remoteSharescreenTrack()!.trackPublication.videoTrack!" [participantIdentity]="''"
-            [isScreenShare]="true"></video-component>
+    <!-- Local screen share video - always in DOM, visibility controlled by CSS -->
+    <video #screenPreview autoplay playsinline muted [ngClass]="{'d-none': !isMyshareScreen}"
+        style="width: 100%; border: 2px solid #007bff; border-radius: 8px; height: 100%; object-fit: contain;">
+    </video>
+
+    <!-- Remote screen share - always in DOM, visibility controlled by CSS -->
+    <div class="meet-container" [ngClass]="{'d-none': !(remoteSharescreenTrack() != null)}">
+        <video-component *ngIf="remoteSharescreenTrack() != null"
+            [track]="remoteSharescreenTrack()!.trackPublication.videoTrack!" [participantIdentity]="''"
+            [isScreenShare]="true">
+        </video-component>
     </div>
-    }
 </div>

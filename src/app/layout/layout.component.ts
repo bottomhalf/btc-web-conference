@@ -45,9 +45,9 @@ export class LayoutComponent implements OnInit {
           }
         } else {
           // Any other page → minimize
-          if (this.meetingService.inMeeting()) {
-            this.meetingService.minimize();
-          }
+          // if (this.meetingService.inMeeting()) {
+          //   this.meetingService.minimize();
+          // }
         }
       }
     });

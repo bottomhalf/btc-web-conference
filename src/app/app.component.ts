@@ -42,16 +42,17 @@ export class AppComponent implements OnInit, OnDestroy {
             }
         });
     }
+
     ngOnInit() {
-        // this.router.events
-        // .pipe(filter(event => event instanceof NavigationEnd))
-        // .subscribe((event: any) => {
-        //   // Now we have the correct URL
-        //   if (event.urlAfterRedirects === '/' || event.urlAfterRedirects === '') {
-        //     const randomId = this.generateRandomString();
-        //     this.router.navigate([`/meeting/${randomId}`]);
-        //   }
-        // });
+        this.router.events
+            .pipe(filter(event => event instanceof NavigationEnd))
+            .subscribe((event: any) => {
+                // Now we have the correct URL
+                if (event.urlAfterRedirects === '/' || event.urlAfterRedirects === '') {
+                    const randomId = this.generateRandomString();
+                    this.router.navigate([`/meeting/${randomId}`]);
+                }
+            });
     }
 
     ngOnDestroy(): void {

@@ -21,7 +21,7 @@ export class MeetingService {
   // ==================== State Signals ====================
 
   /** Meeting UI state */
-  private _isMinimized = signal(true);
+  private _isMinimized = signal(false);
   isMinimized = this._isMinimized.asReadonly();
 
   private _inMeeting = signal(false);
