@@ -3,7 +3,7 @@
 <div class="screenshare-container">
     <!-- Local screen share video - always in DOM, visibility controlled by CSS -->
     <video #screenPreview autoplay playsinline muted [ngClass]="{'d-none': !isMyshareScreen}"
-        [ngStyle]="{'height': !meetingService.isMinimized() ? '93vh' : '100%'}"
+        [ngStyle]="{'height': !meetingService.isMinimized() ? 'calc(100vh - 64px)' : '100%'}"
         style="width: 100%; border: 2px solid #007bff; border-radius: 8px; object-fit: contain;">
     </video>
 
