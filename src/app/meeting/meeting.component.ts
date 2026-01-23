@@ -787,6 +787,8 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     // Remove @HostListener since we're using template event binding now
     onMiniDoubleClick(e: MouseEvent) {
         if (this.meetingService.isMinimized() && !this.hasDragged) {
+            let event: any = e.currentTarget;
+            event.removeAttribute('style');
             this.meetingService.maximize();
             e.stopPropagation();
         }
