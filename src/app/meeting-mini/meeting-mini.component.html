@@ -70,6 +70,21 @@
     <!-- Video Preview -->
     <div class="mini-video-container">
         @if (meetingService.isMinimized() && meetingService.inMeeting()) {
+
+        <!-- Priority 1: Show remote screen share if available -->
+        @if (roomService.remoteSharescreenTrack() != null) {
+        <video #remoteScreenVideo autoplay playsinline class="mini-screen-share"></video>
+        <div class="screen-share-label">
+            <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="#FFFFFF"
+                class="me-1">
+                <path
+                    d="M320-400h80v-80q0-17 11.5-28.5T440-520h80v80l120-120-120-120v80h-80q-50 0-85 35t-35 85v80ZM160-240q-33 0-56.5-23.5T80-320v-440q0-33 23.5-56.5T160-840h640q33 0 56.5 23.5T880-760v440q0 33-23.5 56.5T800-240H160Z" />
+            </svg>
+            {{roomService.remoteSharescreenTrack().participantIdentity}} is presenting
+        </div>
+        }
+        <!-- Priority 2: Show local camera/avatar if no screen share -->
+        @else {
         @if (meetingService.localTrack() && meetingService.isCameraOn()) {
         <video-component [track]="meetingService.localTrack()!" [participantIdentity]="userName"
             [isMute]="!meetingService.isMicOn()"></video-component>
@@ -80,6 +95,7 @@
             </div>
             <span class="mini-username">{{userName}}</span>
         </div>
+        }
         }
 
         <!-- Mute indicator -->
@@ -106,5 +122,12 @@
         </svg>
         Click to expand
     </div>
+
+    <!-- Hidden audio components for remote participants -->
+    @for (remoteTrack of meetingService.remoteTracksMap().values(); track remoteTrack.trackPublication.trackSid) {
+    @if (remoteTrack.trackPublication.kind === 'audio') {
+    <audio-component [track]="remoteTrack.trackPublication.audioTrack!" hidden></audio-component>
+    }
+    }
 </div>
 }

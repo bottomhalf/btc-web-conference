@@ -1,12 +1,11 @@
 <!-- meeting-container.component.html -->
-<ng-container *ngIf="meetingService.inMeeting()">
-  <!-- Mini floating window -->
-  <div *ngIf="meetingService.isMinimized()" class="mini-container rounded" >
-    <app-meeting-mini></app-meeting-mini>
-  </div>
-
-  <!-- Full-screen modal style (shown when not minimized) -->
-  <div  class="full-container" [ngClass]="{'w-100': !isLoggedIn}" [@slideFade]="!meetingService.isMinimized() ? 'visible' : 'hidden'">
-    <app-meeting></app-meeting>
-  </div>
+<ng-container *ngIf="logMeetingRender()">
+  <!-- 
+    CRITICAL: Component must stay in DOM to prevent audio interruption.
+    CSS controls positioning via :host.minimized and :host.maximized
+    
+    NOTE: logMeetingRender() is called on every change detection cycle
+    to track when this *ngIf condition changes and impacts <app-meeting>
+  -->
+  <app-meeting></app-meeting>
 </ng-container>

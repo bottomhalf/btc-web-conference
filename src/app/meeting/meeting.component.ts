@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, computed, effect, ElementRef, HostListener, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
+import { afterNextRender, AfterViewInit, Component, computed, effect, ElementRef, HostListener, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { createLocalScreenTracks, LocalTrackPublication, LocalVideoTrack, RemoteVideoTrack, Room, Track } from 'livekit-client';
 import { RoomService } from '../providers/services/room.service';
@@ -36,6 +36,10 @@ import { ScreenshareComponent } from './screenshare/screenshare.component';
         './meeting-view/meeting-view.component.css'
     ],
     providers: [NgbTooltipConfig],
+    host: {
+        '[class.minimized]': 'meetingService.isMinimized()',
+        '[class.maximized]': '!meetingService.isMinimized()'
+    },
     animations: [
         trigger('slideFade', [
             state('hidden', style({ opacity: 0, height: '0px', overflow: 'hidden', width: '0px' })),
@@ -104,6 +108,14 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     meetingUrl = window.location.href;
     whatsappUrl: string = "";
     gmailUrl: string = "";
+
+    // Draggable mini window state
+    private dragging = false;
+    private dragStartX = 0;
+    private dragStartY = 0;
+    private dragOrigLeft = 0;
+    private dragOrigTop = 0;
+    private hasDragged = false; // Track if user actually dragged
     tweetUrl: string = "";
     linkedInUrl: string = "";
     user: User | null = null;
@@ -146,6 +158,7 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
         private recorder: ScreenRecorderService,
         public network: NetworkService,
         public meetingService: MeetingService,
+        private elRef: ElementRef,
         private tooltipConfig: NgbTooltipConfig
     ) {
         // Configure tooltips to only show on hover (prevents unintended click events)
@@ -154,6 +167,7 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
 
         // Initialize virtual background service
         this.videoBackgroundService.initialize().catch(console.error);
+
         effect(() => {
             const list = this.roomService.handChnageStatus();
 
@@ -167,14 +181,23 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
                 }
             });
 
+            // Find newly lowered (in notified but not in current)
+            this.notified.forEach(name => {
+                if (!currentlyRaised.has(name)) {
+                    this.notified.delete(name);
+                }
+            });
+
             // Update our tracking set
             this.notified = currentlyRaised;
         });
     }
 
+
     async ngOnInit() {
         //this.meetingId = this.route.snapshot.paramMap.get('id');
         this.meetingId = this.meetingService.meetingId;
+
         if (!this.local.isValidUser()) {
             this.router.navigate(['/btc/preview'], { queryParams: { meetingid: this.meetingId } });
         }
@@ -321,9 +344,10 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
                 mediaStreamTrackReadyState: audioTrackBefore?.mediaStreamTrack?.readyState
             });
 
-            // Note: audio here is for SYSTEM AUDIO (screen sounds), NOT microphone
+            // FIXED: Set audio to false to prevent system audio from conflicting with microphone
+            // If you want screen audio, you would need to handle it separately and publish it
             const screenTracks = await createLocalScreenTracks({
-                audio: true,
+                audio: false, // Changed from true - prevents mic conflict
                 resolution: { width: 1920, height: 1080 },
             });
 
@@ -698,6 +722,112 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
 
     closeChatOffCanvas() {
         this.chatOffCanvasInstance.hide();
+    }
+
+    // ========================================
+    // DRAGGABLE MINI WINDOW FUNCTIONALITY
+    // ========================================
+
+
+    // Remove @HostListener since we're using template event binding now
+    onMiniMouseDown(e: MouseEvent) {
+        if (!this.meetingService.isMinimized()) return;
+
+        this.dragging = true;
+        this.hasDragged = false; // Reset drag flag
+        const target = e.currentTarget as HTMLElement;
+        const rect = target.getBoundingClientRect();
+        this.dragStartX = e.clientX;
+        this.dragStartY = e.clientY;
+        this.dragOrigLeft = rect.left;
+        this.dragOrigTop = rect.top;
+        e.preventDefault();
+    }
+
+    @HostListener('document:mousemove', ['$event'])
+    onMiniMouseMove(e: MouseEvent) {
+        if (!this.dragging) return;
+
+        const dx = e.clientX - this.dragStartX;
+        const dy = e.clientY - this.dragStartY;
+
+        // Only start dragging if moved more than 5px (prevents accidental drags)
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+            this.hasDragged = true;
+        }
+
+        if (!this.hasDragged) return; // Don't update position until drag threshold is met
+
+        // Get the full-container div element
+        const el = (this.elRef.nativeElement as HTMLElement).querySelector('.full-container') as HTMLElement;
+        if (!el) return;
+
+        const rect = el.getBoundingClientRect();
+
+        // Calculate new position with viewport boundaries
+        const viewportWidth = document.documentElement.clientWidth;
+        const viewportHeight = document.documentElement.clientHeight;
+
+        let newLeft = this.dragOrigLeft + dx;
+        let newTop = this.dragOrigTop + dy;
+
+        // Clamp to viewport
+        newLeft = Math.max(0, Math.min(newLeft, viewportWidth - rect.width));
+        newTop = Math.max(0, Math.min(newTop, viewportHeight - rect.height));
+
+        el.style.left = `${newLeft}px`;
+        el.style.top = `${newTop}px`;
+    }
+
+    @HostListener('document:mouseup')
+    onMiniMouseUp() {
+        this.dragging = false;
+    }
+
+    // Remove @HostListener since we're using template event binding now
+    onMiniDoubleClick(e: MouseEvent) {
+        if (this.meetingService.isMinimized() && !this.hasDragged) {
+            this.meetingService.maximize();
+            e.stopPropagation();
+        }
+    }
+
+    // ========================================
+    // MINI MODE HELPER METHODS
+    // ========================================
+
+    getUserInitiaLetter(): string {
+        const name = this.getFullName();
+        if (!name) return "";
+
+        const words = name.split(' ').slice(0, 2);
+        const initials = words.map(x => {
+            if (x.length > 0) {
+                return x.charAt(0).toUpperCase();
+            }
+            return '';
+        }).join('');
+
+        return initials;
+    }
+
+    getColorFromName(): string {
+        const name = this.getFullName();
+        // Predefined color palette (Google Meet style soft colors)
+        const colors = [
+            "#f28b829f", "#FDD663", "#81C995", "#AECBFA", "#D7AEFB", "#FFB300",
+            "#34A853", "#4285F4", "#FBBC05", "#EA4335", "#9AA0A6", "#F6C7B6"
+        ];
+
+        // Create hash from name
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+
+        // Pick color based on hash
+        const index = Math.abs(hash) % colors.length;
+        return colors[index];
     }
 }
 

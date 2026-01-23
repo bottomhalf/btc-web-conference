@@ -62,32 +62,28 @@
 }
 
 #room {
+    width: 100%;
+    flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
     background: var(--teams-bg-primary);
+    overflow: hidden;
 }
 
-/* =====================================================
-   Conference Section - Main Video Area
-   ===================================================== */
+/* Conference Section - Main Video Area */
 .conference-section {
-    height: 87vh !important;
+    width: 100%;
+    height: 100%;
     background: var(--teams-bg-primary);
     display: flex;
-    justify-content: center;
-    align-items: center;
+    flex-direction: column;
     position: relative;
     overflow: hidden;
 }
 
-/* =====================================================
-   Video Grid Container
-   ===================================================== */
 .meet-container {
     width: 100%;
-    height: 87vh;
+    height: calc(100vh - 64px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -1325,4 +1321,229 @@ textarea:focus {
 /* Active presenting indicator */
 .footer-left a svg[fill="#6264a7"] {
     fill: var(--teams-accent) !important;
+}
+
+/* ========================================
+   MINIMIZED MODE STYLES
+   Append these to the end of meeting.component.css
+   ======================================== */
+/* Host positioning for minimized state */
+:host.minimized {
+    position: fixed !important;
+    bottom: 20px;
+    right: 20px;
+    width: 320px !important;
+    height: auto !important;
+    z-index: 9999;
+    cursor: grab;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+:host.minimized:active {
+    cursor: grabbing;
+}
+
+/* =====================================================
+   CSS-BASED MINI MODE TRANSFORMATION
+   ===================================================== */
+
+/* Meeting-mini-mode: Transform entire UI into floating mini window */
+.meeting-mini-mode {
+    position: fixed !important;
+    bottom: 20px;
+    right: 20px;
+    width: 380px !important;
+    height: 280px !important;
+    z-index: 9999;
+    transform-origin: bottom right;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(98, 100, 167, 0.3);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: move;
+}
+
+.meeting-mini-mode:hover {
+    box-shadow: 0 16px 56px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(98, 100, 167, 0.5);
+}
+
+/* Hide elements in mini mode - CRITICAL: Don't hide screen share container */
+.meeting-mini-mode .participant-roster,
+.meeting-mini-mode .roster-header,
+.meeting-mini-mode .roster-list,
+.meeting-mini-mode .footer-left .btn-group.dropdown:not(:has(.btn-danger)),
+.meeting-mini-mode .footer-left span.mx-3,
+.meeting-mini-mode .footer-left a:not(:has(svg)),
+.meeting-mini-mode .footer-center {
+    display: none !important;
+}
+
+/* Hide participant roster column in mini mode but keep screenshare visible */
+.meeting-mini-mode .row .col-md-3 {
+    display: none !important;
+}
+
+/* Make screen share take full width in mini mode */
+.meeting-mini-mode .row .col-md-9,
+.meeting-mini-mode .row .col-md-12 {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+    padding: 0 !important;
+}
+
+/* Adjust conference section for mini mode */
+.meeting-mini-mode .conference-section {
+    height: calc(100% - 50px) !important;
+}
+
+/* Adjust footer for mini mode */
+.meeting-mini-mode .footer-section {
+    height: 50px !important;
+    padding: 0 12px !important;
+    justify-content: space-between;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.6) 100%);
+}
+
+/* Mini mode controls - show only essential buttons */
+.meeting-mini-mode .footer-left {
+    gap: 6px;
+    justify-content: flex-start;
+}
+
+.meeting-mini-mode .footer-left a,
+.meeting-mini-mode .footer-left .btn {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    padding: 0 !important;
+    margin: 0 4px 0 0 !important;
+}
+
+.meeting-mini-mode .footer-left .btn-danger {
+    width: auto !important;
+    padding: 6px 12px !important;
+    height: 32px !important;
+    font-size: 11px !important;
+}
+
+
+/* Video grid adjustments for mini mode */
+.meeting-mini-mode .grid-container {
+    padding: 4px;
+    gap: 4px;
+    max-height: 100% !important;
+}
+
+.meeting-mini-mode .meet-container {
+    height: 100%;
+    padding: 4px;
+}
+
+/* CRITICAL: Screen share adjustments for mini mode - keep videos visible */
+.meeting-mini-mode .screenshare-container {
+    display: block !important;
+    height: 100% !important;
+}
+
+.meeting-mini-mode .screenshare-container video,
+.meeting-mini-mode .screenshare-container video-component {
+    display: block !important;
+    object-fit: contain !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Ensure the screen share section row is visible */
+.meeting-mini-mode #room .row {
+    display: flex !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Participant name labels in mini mode */
+.meeting-mini-mode .participant-name-label {
+    font-size: 11px !important;
+}
+
+/* User icons in mini mode */
+.meeting-mini-mode .user-name-icon-lg {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 18px !important;
+}
+
+/* Add expand hint on hover in mini mode */
+.meeting-mini-mode::after {
+    content: "Click to expand";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 10000;
+    white-space: nowrap;
+}
+
+.meeting-mini-mode:hover::after {
+    opacity: 1;
+}
+
+/* Ensure video elements remain visible in mini mode */
+.meeting-mini-mode video-component,
+.meeting-mini-mode video,
+.meeting-mini-mode audio-component {
+    display: block !important;
+}
+
+/* Make the entire mini window clickable to expand */
+.meeting-mini-mode {
+    cursor: pointer;
+}
+
+/* Override hover effects on children in mini mode */
+.meeting-mini-mode * {
+    cursor: pointer !important;
+}
+
+/* =====================================================
+   FOOTER SECTION - Full Width
+   ===================================================== */
+
+.footer-section {
+    display: flex;
+    width: 100% !important;
+    position: relative;
+    background: var(--meet-bg-secondary, #1e1e1e);
+    align-items: center;
+    min-height: 60px;
+}
+
+.footer-left {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+
+/* Full meeting container */
+.full-container {
+    width: calc(100% - 4rem);
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--meet-bg-primary);
+    animation: fadeIn 0.2s ease-out;
+    z-index: 20 !important;
+    transition: background-color 0.3s ease;
 }

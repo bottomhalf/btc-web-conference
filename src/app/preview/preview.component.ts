@@ -94,7 +94,9 @@ export class PreviewComponent implements OnDestroy {
 
     ngOnDestroy() {
         // Use centralized cleanup
-        this.meetingService.releaseAllMedia();
+        if (!this.meetingService.inMeeting()) {
+            this.meetingService.releaseAllMedia();
+        }
         this.clearVideoElement();
         this.subscription?.unsubscribe();
         this.destroyPermission();

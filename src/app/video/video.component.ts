@@ -51,7 +51,12 @@ export class VideoComponent implements AfterViewInit, OnDestroy {
     }
 
     ngOnDestroy() {
-        // Only detach from THIS specific element, not all elements
+        // CRITICAL FIX: DO NOT detach tracks on component destroy
+        // When minimize() triggers change detection, *ngIf may recreate this component
+        // Detaching here causes black screens - LiveKit tracks should persist!
+        // The track will be properly cleaned up when the actual meeting ends.
+
+        /* COMMENTED OUT - Causes track loss during minimize()
         if (this.attachedElement) {
             try {
                 this.track()?.detach(this.attachedElement);
@@ -60,5 +65,7 @@ export class VideoComponent implements AfterViewInit, OnDestroy {
             }
             this.attachedElement = null;
         }
+        */
     }
+
 }
