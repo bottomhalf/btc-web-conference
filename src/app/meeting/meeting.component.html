@@ -117,7 +117,8 @@
                     </div>
                 </div>
             </div>
-            <div class="chat-window d-none" id="chatWindow" (click)="toggleChatWindow()">
+            <div class="chat-window py-2 d-none" id="chatWindow" (click)="toggleChatWindow()">
+                <app-chat-container [header]="false" [classes]="'h-100'"></app-chat-container>
             </div>
         </div>
         }

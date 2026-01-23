@@ -74,7 +74,6 @@
 .chat-window {
     width: 30%;
     height: calc(100vh - var(--teams-meeting-footer-size));
-    background: red;
 }
 
 /* Conference Section - Main Video Area */

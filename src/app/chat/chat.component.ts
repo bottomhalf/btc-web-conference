@@ -1,4 +1,4 @@
-import { Component, DestroyRef, effect, ElementRef, inject, OnDestroy, OnInit, signal, ViewChild, AfterViewChecked } from '@angular/core';
+import { Component, DestroyRef, effect, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { LocalService } from '../providers/services/local.service';
@@ -12,24 +12,19 @@ import { ClientEventService } from '../providers/socket/client-event.service';
 import { NotificationService } from '../notifications/services/notification.service';
 import { CallType } from '../models/conference_call/call_model';
 import { ServerEventService } from '../providers/socket/server-event.service';
+import { ChatContainerComponent } from './chat-container/chat-container.component';
 
 @Component({
     selector: 'app-chat',
     standalone: true,
-    imports: [CommonModule, FormsModule],
+    imports: [CommonModule, FormsModule, ChatContainerComponent],
     templateUrl: './chat.component.html',
     styleUrl: './chat.component.css',
 })
-export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
-    @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
-
+export class ChatComponent implements OnInit, OnDestroy {
     // Local state managed by signals in service
-    // meetingRooms and searchResults delegated to service
     isPageReady: boolean = false;
     today: Date = new Date();
-    message: any = signal<string | null>('');
-    // messages delegated to service
-    pageIndex: number = 1;
     recieverId?: string = null;
     filterModal: FilterModal = { pageIndex: 1, pageSize: 20, searchString: '1=1' };
     conn: any = null;
@@ -39,28 +34,20 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     };
 
     searchQuery: string = '';
-    // searchResults delegated to service
     isSearching: boolean = false;
 
     // New Chat Popup state
     showNewChatPopup: boolean = false;
     popupMode: 'new-chat' | 'create-group' = 'new-chat';
 
-    // Members dropdown state
-    showMembersDropdown: boolean = false;
-    showCreateGroupInput: boolean = false;
+    // New Group Members for popup creation
     newGroupName: string = '';
     newGroupMembers: SearchResult[] = [];
     memberSearchQuery: string = '';
     memberSearchResults: SearchResult[] = [];
     memberSearchSelectedIndex: number = -1;
 
-    // typingUsers now comes from NotificationService
     private subscriptions = new Subscription();
-    private shouldScrollToBottom = false;
-    private shouldPreserveScrollPosition = false;
-    private previousScrollHeight = 0;
-
     currentUserId: string = "";
 
     readonly destroyRef = inject(DestroyRef);
@@ -74,35 +61,14 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
         private serverEventService: ServerEventService,
         private clientEventService: ClientEventService
     ) {
-        // React to new messages by scrolling to bottom
+        // React to group notifications
         effect(() => {
             const groupNotification = this.serverEventService.groupNotification();
             if (groupNotification) {
                 this.chatService.getMeetingRooms();
                 return;
             }
-
-            const messages = this.chatService.messages();
-            if (messages.length > 0 && this.pageIndex === 1) {
-                this.shouldScrollToBottom = true;
-            }
         }, { allowSignalWrites: true });
-    }
-
-    ngAfterViewChecked() {
-        if (this.shouldScrollToBottom) {
-            this.scrollToBottom();
-            this.shouldScrollToBottom = false;
-        }
-
-        // Preserve scroll position when older messages are prepended
-        if (this.shouldPreserveScrollPosition && this.messagesContainer) {
-            const container = this.messagesContainer.nativeElement;
-            const newScrollHeight = container.scrollHeight;
-            const scrollDiff = newScrollHeight - this.previousScrollHeight;
-            container.scrollTop = scrollDiff;
-            this.shouldPreserveScrollPosition = false;
-        }
     }
 
     ngOnInit() {
@@ -266,116 +232,11 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     selectChannelForConversation(conversation: Conversation) {
         this.ws.currentConversation.set(conversation);
         this.ws.currentConversationId.set(conversation.id);
-        this.pageIndex = 1;
+
         this.chatService.messages.set([]); // Clear existing messages
 
         // Notify the NotificationService which conversation is now active
         this.notificationService.setActiveConversation(conversation.id);
-
-        this.loadMoreMessages(true); // Pass true to scroll to bottom on first load
-    }
-
-    onScroll(event: any) {
-        const element = event.target;
-        // Load more when scrolled to top (for loading older messages)
-        if (element.scrollTop === 0) {
-            this.loadMoreMessages(false);
-        }
-    }
-
-    loadMoreMessages(scrollToBottom: boolean = false) {
-        if (!this.ws.currentConversation()) return;
-
-        // Save current scroll height before loading older messages
-        if (!scrollToBottom && this.messagesContainer) {
-            this.previousScrollHeight = this.messagesContainer.nativeElement.scrollHeight;
-        }
-
-        this.chatService.getMessages(this.ws.currentConversation().id ?? '', this.pageIndex, 20, this.pageIndex > 1).then(() => {
-            this.pageIndex = this.pageIndex + 1;
-            if (scrollToBottom) {
-                this.shouldScrollToBottom = true;
-            } else {
-                // Flag to preserve scroll position for older messages
-                this.shouldPreserveScrollPosition = true;
-            }
-        });
-    }
-
-    sendMessage() {
-        if (this.ws.currentConversation().id == null) {
-            // call java to insert or create conversation channel
-            this.chatService.createConversation(this.currentUserId, this.ws.currentConversation()).then((res: any) => {
-                console.log("channel created", res);
-                this.send(res);
-            });
-        } else {
-            this.send(this.ws.currentConversation());
-        }
-    }
-
-    private send(response: any) {
-        if (this.message() != null && this.message() != '' && response.id != null) {
-            var event: Message = {
-                conversationId: response.id,
-                messageId: crypto.randomUUID(),
-                senderId: this.currentUserId,
-                recievedId: this.recieverId,
-                type: "text",
-                body: this.message(),
-                fileUrl: null,
-                replyTo: null,
-                mentions: [],
-                reactions: [],
-                clientType: "web",
-                createdAt: new Date(),
-                editedAt: null,
-                status: 1
-            }
-
-            this.chatService.messages.update(msgs => [...msgs, event]);
-            this.ws.sendMessage(event);
-            this.message.set('');
-            this.shouldScrollToBottom = true; // Scroll to bottom after sending
-        }
-    }
-
-    scrollToBottom(): void {
-        try {
-            if (this.messagesContainer) {
-                this.messagesContainer.nativeElement.scrollTop = this.messagesContainer.nativeElement.scrollHeight;
-            }
-        } catch (err) {
-            console.error('Error scrolling to bottom:', err);
-        }
-    }
-
-    formatTime(timestamp: number): string {
-        return new Date(timestamp).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    }
-
-    onTyping(isTyping: boolean): void {
-        if (this.ws.currentConversation().id) {
-            this.ws.sendTyping(this.ws.currentConversation().id, isTyping);
-        }
-    }
-
-    markAsSeen(messageId: string, conversationId: string): void {
-        this.ws.markSeen(messageId, this.currentUserId, conversationId);
-    }
-
-    startAudioCall() {
-        this.clientEventService.initiateAudioCall(this.currentUserId, this.ws.currentConversation().id);
-        this.router.navigate(['/btc/preview'], {
-            state: {
-                id: this.ws.currentConversation().id,
-                type: CallType.AUDIO,
-                title: this.ws.currentConversation().conversationName ? this.ws.currentConversation().conversationName : 'NEW'
-            }
-        });
     }
 
     // New Chat Popup Methods
@@ -390,134 +251,6 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
         this.memberSearchQuery = '';
         this.newGroupMembers = [];
         this.newGroupName = '';
-    }
-
-    // Members Dropdown Methods
-    toggleMembersDropdown(): void {
-        this.showMembersDropdown = !this.showMembersDropdown;
-        if (!this.showMembersDropdown) {
-            this.cancelCreateGroup();
-        }
-    }
-
-    cancelCreateGroup(): void {
-        this.showCreateGroupInput = false;
-        this.newGroupName = '';
-        this.newGroupMembers = [];
-        this.memberSearchQuery = '';
-        this.memberSearchResults = [];
-    }
-
-    getDefaultGroupName(): string {
-        const participants = this.ws.currentConversation()?.participants || [];
-        if (participants.length === 0) return 'New Group';
-
-        // Get first two names
-        const names = participants.slice(0, 2).map(p => p.firstName);
-        const othersCount = participants.length + this.newGroupMembers.length - 2;
-
-        if (othersCount > 0) {
-            return `${names.join(', ')} +${othersCount} others`;
-        }
-        return names.join(', ');
-    }
-
-    onMemberSearch(): void {
-        this.memberSearchSelectedIndex = -1; // Reset selection on new search
-        if (!this.memberSearchQuery || this.memberSearchQuery.length < 2) {
-            this.memberSearchResults = [];
-            return;
-        }
-
-        // Use the existing search functionality
-        this.chatService.searchUsers(this.memberSearchQuery).then(() => {
-            let participants: Participant[] = [];
-            if (this.ws.currentConversation() && this.ws.currentConversation().participants.length > 0) {
-                participants = this.ws.currentConversation().participants;
-            }
-
-            // Filter out members who are already in the group
-            const existingIds = [
-                ...participants.map(p => p.userId),
-                ...this.newGroupMembers.map(m => m.userId)
-            ];
-            this.memberSearchResults = this.chatService.searchResults()
-                .filter(user => !existingIds.includes(user.userId));
-        });
-    }
-
-    onMemberSearchKeydown(event: KeyboardEvent): void {
-        const total = this.memberSearchResults.length;
-        if (total === 0) return;
-
-        switch (event.key) {
-            case 'ArrowDown':
-                event.preventDefault();
-                this.memberSearchSelectedIndex = Math.min(this.memberSearchSelectedIndex + 1, total - 1);
-                break;
-
-            case 'ArrowUp':
-                event.preventDefault();
-                this.memberSearchSelectedIndex = Math.max(this.memberSearchSelectedIndex - 1, -1);
-                break;
-
-            case 'Enter':
-                event.preventDefault();
-                if (this.memberSearchSelectedIndex >= 0 && this.memberSearchSelectedIndex < total) {
-                    this.addMemberToGroup(this.memberSearchResults[this.memberSearchSelectedIndex]);
-                }
-                break;
-
-            case 'Escape':
-                event.preventDefault();
-                this.memberSearchQuery = '';
-                this.memberSearchResults = [];
-                this.memberSearchSelectedIndex = -1;
-                break;
-        }
-    }
-
-    addMemberToGroup(member: SearchResult): void {
-        // Check if already added
-        if (!this.newGroupMembers.find(m => m.conversationId === member.conversationId)) {
-            this.newGroupMembers.push(member);
-        }
-        this.memberSearchQuery = '';
-        this.memberSearchResults = [];
-        this.memberSearchSelectedIndex = -1;
-    }
-
-    removeNewGroupMember(member: SearchResult): void {
-        this.newGroupMembers = this.newGroupMembers.filter(m => m.conversationId !== member.conversationId);
-    }
-
-    createGroup(): void {
-        const groupName = this.newGroupName.trim() || this.getDefaultGroupName();
-        const newGroupMembers = this.newGroupMembers.reduce((acc, m) => [...acc, ...m.participants], []);
-
-        let participants: Participant[] = [];
-        if (this.ws.currentConversation() && this.ws.currentConversation().participants.length > 0) {
-            participants = this.ws.currentConversation().participants;
-        }
-
-        const allMembers: Participant[] = [
-            ...participants,
-            ...newGroupMembers
-        ];
-
-        // TODO: Call API to create group
-        this.chatService.createGroupConversation(this.currentUserId, groupName, this.ws.currentConversationId(), allMembers).then((res: ResponseModel) => {
-            // Reset state
-            if (res.IsSuccess && res.ResponseBody) {
-                this.clientEventService.notifyGroupCreated(res.ResponseBody.id, this.currentUserId);
-                this.cancelCreateGroup();
-                this.showMembersDropdown = false;
-                this.closeNewChatPopup();
-            } else {
-                alert("Failed to create group error: " + res.ResponseBody.ResponseBody);
-            }
-        });
-
     }
 
     ngOnDestroy(): void {
