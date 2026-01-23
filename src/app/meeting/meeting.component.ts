@@ -794,6 +794,11 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
         }
     }
 
+    toggleChatWindow() {
+        let event: any = document.getElementById('chatWindow');
+        event.classList.toggle('d-none');
+    }
+
     // ========================================
     // MINI MODE HELPER METHODS
     // ========================================

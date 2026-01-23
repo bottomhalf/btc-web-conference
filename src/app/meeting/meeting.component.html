@@ -11,7 +11,7 @@
         </div>
         } @else {
         <div id="room" class="h-100">
-            <div class="row h-100 m-0">
+            <div class="row w-100 h-100 m-0">
                 <div class="col-md-3" [@slideFade]="isViewParticipant ? 'visible' : 'hidden'">
                     <app-participant-roster [roomForm]="roomForm" [invitedParticipants]="invitedParticipants">
                     </app-participant-roster>
@@ -116,6 +116,8 @@
                         </div> -->
                     </div>
                 </div>
+            </div>
+            <div class="chat-window d-none" id="chatWindow" (click)="toggleChatWindow()">
             </div>
         </div>
         }
@@ -251,9 +253,8 @@
                         {{meetingService.remoteUsersCount + 1}}
                     </span>
                 </a>
-                <a href="javascript:void(0)" class="text-decoration-none ms-3" data-bs-toggle="offcanvas"
-                    placement="top" ngbTooltip="Chat with everyone" data-bs-target="#chatOffCanvas"
-                    aria-controls="chatOffCanvas">
+                <a href="javascript:void(0)" class="text-decoration-none ms-3" (click)="toggleChatWindow()"
+                    placement="top" ngbTooltip="Start chat">
                     <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
                         fill="#FFFFFF">
                         <path
@@ -771,7 +772,7 @@
         </div>
 
         <!-- Chat Background Offcanvas -->
-        <div class="offcanvas offcanvas-end" tabindex="-1" id="chatOffCanvas" aria-labelledby="chatOffCanvasLabel">
+        <!-- <div class="offcanvas offcanvas-end" tabindex="-1" id="chatOffCanvas" aria-labelledby="chatOffCanvasLabel">
             <div class="offcanvas-header message-top-box">
                 <h5 class="offcanvas-title" id="chatOffCanvasLabel">In-call messages</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
@@ -819,7 +820,7 @@
                     </a>
                 </div>
             </div>
-        </div>
+        </div> -->
 
 
         <!-- Floating Reactions Layer -->

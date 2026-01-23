@@ -1,0 +1,286 @@
+<!-- ===== Main Chat Area ===== -->
+<main class="teams-chat-main">
+    @if (ws.currentConversation()) {
+    @if (header) {
+    <!-- Chat Header -->
+    <header class="chat-header">
+        <div class="chat-header-left">
+            <div class="avatar-container">
+                <div class="avatar avatar-large"
+                    [ngStyle]="{ 'background-color': getColorFromName(ws.currentConversation().conversationName, '') }">
+                    {{ getCurrentInitiaLetter(ws.currentConversation()) }}
+                </div>
+            </div>
+            <div class="chat-user-info">
+                <span class="chat-user-name">
+                    {{ getConversationName(ws.currentConversation()) }}
+                </span>
+                <span class="chat-user-status">
+                    <span class="status-dot"></span>
+                    Available
+                </span>
+            </div>
+        </div>
+
+        <div class="chat-header-actions">
+            <button class="header-action-btn" title="Video call">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="23 7 16 12 23 17 23 7" />
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                </svg>
+            </button>
+            <button class="header-action-btn" title="Audio call" (click)="startAudioCall()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                </svg>
+            </button>
+            <!-- Members Button with Dropdown -->
+            <div class="members-dropdown-container" [class.open]="showMembersDropdown">
+                <button class="header-action-btn" title="Members" (click)="toggleMembersDropdown()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                </button>
+                <!-- Dropdown Panel -->
+                @if (showMembersDropdown) {
+                <div class="members-dropdown-panel" (click)="$event.stopPropagation()">
+                    <!-- Members Section -->
+                    <div class="dropdown-section">
+                        <h4 class="dropdown-section-title">Members ({{
+                            ws.currentConversation()?.participants?.length || 0
+                            }})</h4>
+                        <div class="members-list">
+                            @for (member of ws.currentConversation()?.participants; track member.userId) {
+                            <div class="member-item">
+                                <div class="member-avatar"
+                                    [ngStyle]="{ 'background-color': getColorFromName(member.firstName, member.lastName) }">
+                                    {{ getUserInitiaLetter(member.firstName, member.lastName) }}
+                                </div>
+                                <div class="member-info">
+                                    <span class="member-name">{{ member.firstName }} {{ member.lastName }}</span>
+                                    <span class="member-email">{{ member.email }}</span>
+                                </div>
+                            </div>
+                            }
+                        </div>
+                    </div>
+                    <!-- Divider -->
+                    <div class="dropdown-divider"></div>
+                    <!-- Create Group Section -->
+                    <div class="dropdown-section">
+                        @if (!showCreateGroupInput) {
+                        <button class="create-group-btn" (click)="showCreateGroupInput = true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 5v14M5 12h14" />
+                            </svg>
+                            <span>Create a Group</span>
+                        </button>
+                        } @else {
+                        <div class="create-group-form">
+                            <!-- Auto-generated Group Name -->
+                            <div class="form-group">
+                                <label class="form-label">Group Name</label>
+                                <input type="text" class="group-name-input" [(ngModel)]="newGroupName"
+                                    [placeholder]="getDefaultGroupName()" />
+                            </div>
+
+                            <!-- Selected Members -->
+                            <div class="form-group">
+                                <label class="form-label">Members</label>
+                                <div class="selected-members">
+                                    @for (member of ws.currentConversation()?.participants; track member.userId) {
+                                    <div class="selected-member-chip">
+                                        <div class="chip-avatar"
+                                            [ngStyle]="{ 'background-color': getColorFromName(member.firstName, member.lastName) }">
+                                            {{ getUserInitiaLetter(member.firstName, member.lastName) }}
+                                        </div>
+                                        <span>{{ member.firstName }}</span>
+                                    </div>
+                                    }
+                                    @for (member of newGroupMembers; track member.userId) {
+                                    <div class="selected-member-chip new-member">
+                                        <div class="chip-avatar"
+                                            [ngStyle]="{ 'background-color': getColorFromName(member.name, null) }">
+                                            {{ getUserInitiaLetter(member.name, null) }}
+                                        </div>
+                                        <span>{{ member.name.split(' ')[0] }}</span>
+                                        <button class="remove-member-btn"
+                                            (click)="removeNewGroupMember(member)">×</button>
+                                    </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Add Members Search -->
+                            <div class="form-group">
+                                <label class="form-label">Add Members</label>
+                                <div class="add-member-search">
+                                    <svg class="search-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <circle cx="11" cy="11" r="8" />
+                                        <path d="M21 21l-4.35-4.35" />
+                                    </svg>
+                                    <input type="text" class="member-search-input" placeholder="Search users to add..."
+                                        [(ngModel)]="memberSearchQuery" (input)="onMemberSearch()"
+                                        (keydown)="onMemberSearchKeydown($event)" />
+                                </div>
+                                <!-- Search Results -->
+                                @if (memberSearchResults.length > 0) {
+                                <div class="member-search-results">
+                                    @for (result of memberSearchResults; track result.conversationId; let idx =
+                                    $index) {
+                                    <div class="member-search-item" [class.selected]="memberSearchSelectedIndex === idx"
+                                        (click)="addMemberToGroup(result)"
+                                        (mouseenter)="memberSearchSelectedIndex = idx">
+                                        <div class="member-avatar"
+                                            [ngStyle]="{ 'background-color': getColorFromName(result.name, null) }">
+                                            {{ getUserInitiaLetter(result.name, null) }}
+                                        </div>
+                                        <div class="member-info">
+                                            <span class="member-name">{{ result.name }}</span>
+                                            <span class="member-email">{{ result.email }}</span>
+                                        </div>
+                                    </div>
+                                    }
+                                </div>
+                                }
+                            </div>
+
+                            <div class="create-group-actions">
+                                <button class="btn-cancel" (click)="cancelCreateGroup()">Cancel</button>
+                                <button class="btn-create" (click)="createGroup()">Create</button>
+                            </div>
+                        </div>
+                        }
+                    </div>
+                </div>
+                }
+            </div>
+            <button class="header-action-btn" title="More options">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <circle cx="12" cy="19" r="2" />
+                </svg>
+            </button>
+        </div>
+    </header>
+    }
+
+    <!-- Messages Container -->
+    <div class="messages-container" #messagesContainer (scroll)="onScroll($event)">
+        @for (msg of chatService.messages(); track $index) {
+        @if (msg.senderId == currentUserId) {
+        <!-- Sent Message -->
+        <div class="message-wrapper sent">
+            <div class="message-bubble sent">
+                <div class="message-content">{{ msg.body }}</div>
+                <div class="message-meta">
+                    <span class="message-time">{{ msg.createdAt | date: 'h:mm a' }}</span>
+                    <span class="message-status">
+                        <ng-container [ngSwitch]="msg.status">
+                            <!-- SENT (single tick) -->
+                            <svg *ngSwitchCase="0" viewBox="0 0 16 16">
+                                <path fill="#9e9e9e" d="M6.003 11.803L2.2 8l1.4-1.4 2.403 2.397 5.397-5.397 1.4 1.4z" />
+                            </svg>
+
+                            <!-- DELIVERED (double grey tick) -->
+                            <svg *ngSwitchCase="1" viewBox="0 0 20 16">
+                                <path fill="#9e9e9e" d="M6.003 11.803L2.2 8l1.4-1.4 2.403 2.397 5.397-5.397 1.4 1.4z" />
+                                <path fill="#9e9e9e" transform="translate(4,0)"
+                                    d="M6.003 11.803L2.2 8l1.4-1.4 2.403 2.397 5.397-5.397 1.4 1.4z" />
+                            </svg>
+
+                            <!-- SEEN (blue double tick) -->
+                            <svg *ngSwitchCase="2" viewBox="0 0 20 16">
+                                <path fill="#5b5fc7" d="M6.003 11.803L2.2 8l1.4-1.4 2.403 2.397 5.397-5.397 1.4 1.4z" />
+                                <path fill="#5b5fc7" transform="translate(4,0)"
+                                    d="M6.003 11.803L2.2 8l1.4-1.4 2.403 2.397 5.397-5.397 1.4 1.4z" />
+                            </svg>
+                        </ng-container>
+                    </span>
+                </div>
+            </div>
+        </div>
+        } @else {
+        <!-- Received Message -->
+        <div class="message-wrapper received">
+            <div class="message-bubble received">
+                <div class="message-content">{{ msg.body }}</div>
+                <div class="message-meta">
+                    <span class="message-time">{{ msg.createdAt | date: 'h:mm a' }}</span>
+                </div>
+            </div>
+        </div>
+        }
+        }
+    </div>
+
+    <!-- Message Input Area -->
+    <div class="message-input-container">
+        <div class="message-input-wrapper">
+            <div class="input-actions-left">
+                <button class="input-action-btn" title="Format">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 7V4h16v3" />
+                        <path d="M9 20h6" />
+                        <path d="M12 4v16" />
+                    </svg>
+                </button>
+                <button class="input-action-btn" title="Attach file">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                    </svg>
+                </button>
+                <button class="input-action-btn" title="Emoji">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                        <line x1="9" y1="9" x2="9.01" y2="9" />
+                        <line x1="15" y1="9" x2="15.01" y2="9" />
+                    </svg>
+                </button>
+                <button class="input-action-btn" title="GIF">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <path d="M9 12h2" />
+                        <path d="M9 9v6" />
+                        <path d="M15 12v3" />
+                        <path d="M15 9v.01" />
+                    </svg>
+                </button>
+            </div>
+
+            <input type="text" class="message-input" [disabled]="!ws.currentConversation()" [value]="message()"
+                (input)="message.set($event.target.value)" (keyup.enter)="sendMessage()"
+                placeholder="Type a new message" />
+
+            <div class="input-actions-right">
+                <button class="send-btn" [disabled]="!ws.currentConversation() || !message()" (click)="sendMessage()"
+                    title="Send message">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    } @else {
+    <!-- Empty State -->
+    <div class="empty-chat-state">
+        <svg class="empty-chat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path
+                d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+        </svg>
+        <h3 class="empty-chat-title">Select a conversation</h3>
+        <p class="empty-chat-description">
+            Choose a chat from the left sidebar to start messaging with your team members.
+        </p>
+    </div>
+    }
+</main>
