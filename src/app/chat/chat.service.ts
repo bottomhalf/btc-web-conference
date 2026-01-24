@@ -17,8 +17,16 @@ export class ChatService {
     public searchResults = signal<SearchResult[]>([]);
     public userSearchResults = signal<UserDetail[]>([]);
     public isLoading = signal<boolean>(false);
+    private _isChatActive = signal<boolean>(false);
+    readonly isChatActive = this._isChatActive.asReadonly();
+
 
     constructor(private http: HttpService) { }
+
+    setIsChatStatus(isActive: boolean, requestFrom: string = 'Auto') {
+        console.log('[IsChatStatus changed from: ' + requestFrom + '] ------------------------: ', isActive);
+        this._isChatActive.set(isActive);
+    }
 
     // HTTP Methods
     async getMeetingRooms(): Promise<void> {

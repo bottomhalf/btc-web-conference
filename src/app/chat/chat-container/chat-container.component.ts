@@ -62,6 +62,7 @@ export class ChatContainerComponent implements AfterViewChecked {
         // Reset page index and load first page of messages
         this.pageIndex = 1;
         this.loadMoreMessages(true); // true = scroll to bottom
+        this.chatService.setIsChatStatus(true, 'Chat container');
       }
     }, { allowSignalWrites: true });
   }

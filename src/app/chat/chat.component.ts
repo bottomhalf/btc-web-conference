@@ -257,6 +257,7 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.subscriptions.unsubscribe();
         // Clear active conversation when leaving chat page
         this.notificationService.setActiveConversation(null);
+        this.chatService.setIsChatStatus(false);
     }
 }
 

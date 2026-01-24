@@ -134,6 +134,7 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     private notified = new Set<string>(); // tracks who is already raised
     isViewParticipant: boolean = false;
     participantFilter: string = '';
+    isChatEnabled: boolean = false;
 
     // Use signal for participant filter to make it reactive
     private participantFilterSignal = signal('');
@@ -251,6 +252,15 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
             window.addEventListener('popstate', this.popStateListener);
         }
 
+    }
+
+    toggleChatWindow() {
+        this.isChatEnabled = !this.isChatEnabled;
+        if (this.isChatEnabled) {
+            this.enableChat();
+        } else {
+            this.chatService.setIsChatStatus(this.isChatEnabled, 'Meeting component');
+        }
     }
 
     enableChat() {
@@ -826,12 +836,6 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
             this.meetingService.maximize();
             e.stopPropagation();
         }
-    }
-
-    toggleChatWindow() {
-        let event: any = document.getElementById('chatWindow');
-        event.classList.toggle('d-none');
-        this.enableChat();
     }
 
     // ========================================
