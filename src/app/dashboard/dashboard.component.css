@@ -18,7 +18,7 @@
 /* Main Container */
 .main-container {
     background: var(--dash-bg-primary);
-    min-height: 100vh;
+    min-height: calc(100vh - var(--teams-meeting-header-size));
     transition: background-color 0.3s ease;
 }
 

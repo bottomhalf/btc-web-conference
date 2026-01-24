@@ -251,21 +251,21 @@
     box-shadow: var(--shadow-md);
 }
 
-.btn-success {
+/* .btn-success {
     background: linear-gradient(135deg, var(--success-color) 0%, var(--success-hover) 100%);
     color: white;
     border: 2px solid transparent;
     box-shadow: 0 4px 12px rgba(6, 211, 98, 0.3);
-}
+} */
 
-.btn-success:hover {
+/* .btn-success:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(6, 211, 98, 0.4);
 }
 
 .btn-success:active {
     transform: translateY(0);
-}
+} */
 
 .btn:disabled {
     opacity: 0.6;
@@ -693,24 +693,24 @@ select option {
 .settings-footer-icon svg {
     width: 28px;
     height: 28px;
-    color: white;
+    color: var(--theme-text-primary);
 }
 
 .settings-footer-text {
     flex: 1;
-    color: white;
+    color: var(--theme-text-primary);
 }
 
 .settings-footer-text h3 {
     margin: 0;
     font-size: 18px;
     font-weight: 600;
-    color: white;
+    color: var(--theme-text-primary);
 }
 
 .settings-footer-text p {
     margin: 4px 0 0 0;
     font-size: 13px;
     opacity: 0.9;
-    color: white;
+    color: var(--theme-text-primary);
 }
