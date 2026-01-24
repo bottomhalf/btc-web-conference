@@ -51,6 +51,11 @@ export class PreviewComponent implements OnDestroy {
     isSubmitted: boolean = false;
     isValidMeetingId: boolean = false;
 
+    // Permission Modal State
+    showPermissionDeniedModal: boolean = false;
+    selectedBrowser: string = 'chrome'; // Default to chrome
+    accessToken: string = "";
+
     constructor(
         private nav: iNavigation,
         private route: ActivatedRoute,
@@ -63,7 +68,7 @@ export class PreviewComponent implements OnDestroy {
     ) {
         this.isLoggedIn = local.isLoggedIn();
         this.route.queryParamMap.subscribe(params => {
-            this.meetingId = params.get(MeetingId);
+            this.accessToken = params.get('access_token');
         });
     }
 
@@ -85,6 +90,28 @@ export class PreviewComponent implements OnDestroy {
         }
     }
 
+    /** Validate meeting ID for non-logged-in users */
+    async validatMeetingId() {
+        if (!this.accessToken) {
+            this.isValidMeetingId = false;
+            return;
+        }
+
+        try {
+            const res: ResponseModel = await this.http.get('meeting/validateMeeting?access_token=' + this.accessToken);
+
+            if (res.ResponseBody && res.ResponseBody.id) {
+                this.isValidMeetingId = true;
+                this.meetingId = res.ResponseBody.id;
+                this.meetingTitle = res.ResponseBody.conversationName || "Unverified Meeting";
+                await this.initializeMediaStream();
+                this.subscribeToPermissions();
+            }
+        } catch (e) {
+            this.isValidMeetingId = false;
+        }
+    }
+
     destroyPermission() {
         this.permissions = {
             camera: 'unknown',
@@ -101,6 +128,44 @@ export class PreviewComponent implements OnDestroy {
         this.subscription?.unsubscribe();
         this.destroyPermission();
         this.mediaPerm.destroy();
+    }
+
+    // ==================== Permission Modal Methods ====================
+
+    /** Detect browser type */
+    private detectBrowser(): void {
+        const userAgent = navigator.userAgent.toLowerCase();
+        if (userAgent.includes('edg/')) {
+            this.selectedBrowser = 'edge';
+        } else if (userAgent.includes('firefox')) {
+            this.selectedBrowser = 'firefox';
+        } else if (userAgent.includes('chrome') || userAgent.includes('crios')) {
+            this.selectedBrowser = 'chrome';
+        }
+    }
+
+    /** Show permission denied modal */
+    showPermissionModal(): void {
+        this.detectBrowser();
+        this.showPermissionDeniedModal = true;
+    }
+
+    /** Close permission modal */
+    closePermissionModal(): void {
+        this.showPermissionDeniedModal = false;
+    }
+
+    /** Check permissions again after user fixes them */
+    async checkPermissionsAgain(): Promise<void> {
+        await this.mediaPerm.forceCheck();
+
+        // If permissions are now granted, close the modal and start preview
+        if (this.permissions.camera === 'granted' && this.permissions.microphone === 'granted') {
+            this.closePermissionModal();
+            await this.initializeMediaStream();
+        } else {
+            alert('Permissions are still blocked. Please follow the instructions above to enable them.');
+        }
     }
 
     // ==================== Call Type Helpers ====================
@@ -172,34 +237,6 @@ export class PreviewComponent implements OnDestroy {
         }
     }
 
-    /** Validate meeting ID for non-logged-in users */
-    async validatMeetingId() {
-        if (!this.meetingId) {
-            this.isValidMeetingId = false;
-            return;
-        }
-
-        const match = this.meetingId.match(/_(\d+)$/);
-        const meetingDetailId = match ? +match[1] : null;
-        const updatedId = this.meetingId.replace(/_\d+$/, "");
-
-        try {
-            const res: ResponseModel = await this.http.post('meeting/validateMeeting', {
-                meetingId: updatedId,
-                meetingDetailId
-            });
-
-            if (res.ResponseBody) {
-                this.isValidMeetingId = true;
-                this.meetingTitle = res.ResponseBody.title;
-                await this.initializeMediaStream();
-                this.subscribeToPermissions();
-            }
-        } catch (e) {
-            this.isValidMeetingId = false;
-        }
-    }
-
     private subscribeToPermissions() {
         this.subscription = this.mediaPerm.permissions$.subscribe(permissions => {
             this.permissions = permissions;
@@ -208,11 +245,45 @@ export class PreviewComponent implements OnDestroy {
                 ? permissions.microphone === 'granted'
                 : permissions.camera === 'granted' && permissions.microphone === 'granted';
 
-            if (hasRequiredPermissions) {
-                this.joinRoom();
+            // Auto-show permission modal if permissions are denied
+            if (permissions.camera === 'denied' || permissions.microphone === 'denied') {
+                setTimeout(() => this.showPermissionModal(), 500);
+            }
+            // Auto-select first device when permissions are granted
+            else if (permissions.camera === 'granted' && permissions.microphone === 'granted') {
+                setTimeout(() => this.autoSelectDevices(), 500);
             }
         });
     }
+
+    /** Auto-select first available device for camera, mic, and speaker */
+    private autoSelectDevices() {
+        // Auto-select first camera if not already selected
+        const cameras = this.deviceService.cameras();
+        if (cameras && cameras.length > 0 && !this.selectedCamera) {
+            this.selectedCamera = cameras[0].deviceId;
+            this.deviceService.selectedCamera.set(cameras[0].deviceId);
+        }
+
+        // Auto-select first microphone if not already selected
+        const microphones = this.deviceService.microphones();
+        if (microphones && microphones.length > 0 && !this.selectedMic) {
+            this.selectedMic = microphones[0].deviceId;
+            this.deviceService.selectedMic.set(microphones[0].deviceId);
+        }
+
+        // Auto-select first speaker if not already selected
+        const speakers = this.deviceService.speakers();
+        if (speakers && speakers.length > 0 && !this.selectedSpeaker) {
+            this.selectedSpeaker = speakers[0].deviceId;
+            this.deviceService.selectedSpeaker.set(speakers[0].deviceId);
+        }
+    }
+
+    private popStateListener = (event: PopStateEvent) => {
+        history.pushState(null, '', window.location.href); // push state back
+        alert('You cannot navigate back.');
+    };
 
     // ==================== Media Stream Management ====================
 

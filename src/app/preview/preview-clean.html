@@ -1,0 +1,110 @@
+<!-- Settings Section -->
+<div class="col-md-6">
+    <div class="settings-card">
+        <!-- Guest Name Input -->
+        @if (!isLoggedIn) {
+        <div class="mb-3">
+            <label class="form-label">Your Name <span class="text-danger">*</span></label>
+            <input class="form-control" [(ngModel)]="userName" placeholder="Enter your name" type="text"
+                [ngClass]="{'error-field': isSubmitted && userName== ''}" (keyup.enter)="joinRoom()" />
+        </div>
+        }
+
+        <!-- Device Selectors -->
+        <div [class.mb-3]="!isLoggedIn">
+            <div class="device-selector">
+                <svg fill="currentColor" class="video-icon" viewBox="0 -4 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M1450,258l-5-2v2a2,2,0,0,1-2,2h-13a2,2,0,0,1-2-2V246a2,2,0,0,1,2-2h13a2,2,0,0,1,2,2v2l5-2a2,2,0,0,1,2,2v8A2,2,0,0,1,1450,258Zm-7-4v-8h-13v12h13v-4Zm7-6-5,2v4l5,2v-8Z"
+                        transform="translate(-1428 -244)"></path>
+                </svg>
+                <select [(ngModel)]="selectedCamera" class="flex-grow-1" (change)="onCameraChange($event)">
+                    @for (cam of deviceService.cameras(); track cam.deviceId) {
+                    <option [value]="cam.deviceId">{{ cam.label || "Camera " + ($index + 1) }}</option>
+                    }
+                </select>
+                <svg fill="currentColor" class="drop-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 11.305l-7.997 11.39L8 11.305z"></path>
+                </svg>
+            </div>
+
+            <div class="device-selector">
+                <svg fill="currentColor" class="video-icon" viewBox="0 0 1920 1920" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M960.315 96.818c-186.858 0-338.862 152.003-338.862 338.861v484.088c0 186.858 152.004 338.862 338.862 338.862 186.858 0 338.861-152.004 338.861-338.861V435.68c0-186.858-152.003-338.861-338.861-338.861M427.818 709.983V943.41c0 293.551 238.946 532.497 532.497 532.497 293.55 0 532.496-238.946 532.496-532.497V709.983h96.818V943.41c0 330.707-256.438 602.668-580.9 627.471l-.006 252.301h242.044V1920H669.862v-96.818h242.043l-.004-252.3C587.438 1546.077 331 1274.116 331 943.41V709.983h96.818ZM960.315 0c240.204 0 435.679 195.475 435.679 435.68v484.087c0 240.205-195.475 435.68-435.68 435.68-240.204 0-435.679-195.475-435.679-435.68V435.68C524.635 195.475 720.11 0 960.315 0Z"
+                        fill-rule="evenodd"></path>
+                </svg>
+                <select [(ngModel)]="selectedMic" class="flex-grow-1" (change)="onMicChange($event)">
+                    @for (mic of deviceService.microphones(); track mic.deviceId) {
+                    <option [value]="mic.deviceId">{{ mic.label || "Microphone " + ($index + 1) }}</option>
+                    }
+                </select>
+                <svg fill="currentColor" class="drop-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 11.305l-7.997 11.39L8 11.305z"></path>
+                </svg>
+            </div>
+
+            <div class="device-selector">
+                <svg viewBox="0 0 24 24" class="video-icon" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M16 9C16.5 9.5 17 10.5 17 12C17 13.5 16.5 14.5 16 15M19 6C20.5 7.5 21 10 21 12C21 14 20.5 16.5 19 18M13 3L7 8H5C3.89543 8 3 8.89543 3 10V14C3 15.1046 3.89543 16 5 16H7L13 21V3Z"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                <select [(ngModel)]="selectedSpeaker" class="flex-grow-1" (change)="onSpeakerChange($event)">
+                    @for (sp of deviceService.speakers(); track sp.deviceId) {
+                    <option [value]="sp.deviceId">{{ sp.label || "Speaker " + ($index + 1) }}</option>
+                    }
+                </select>
+                <svg fill="currentColor" class="drop-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 11.305l-7.997 11.39L8 11.305z"></path>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Simple Device Status -->
+        <div class="simple-device-status">
+            <div class="status-row">
+                <span class="status-label">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="status-icon">
+                        <path
+                            d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+                    </svg>
+                    Camera
+                </span>
+                <span class="status-indicator"
+                    [ngClass]="permissions.camera === 'granted' ? 'active' : (permissions.camera === 'denied' ? 'denied' : 'pending')">
+                    {{ permissions.camera === 'granted' ? 'Ready' : (permissions.camera === 'denied' ? 'Blocked' :
+                    'Waiting') }}
+                </span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">
+                    <svg viewBox="0 0 24 24" fill="currentColor" class="status-icon">
+                        <path
+                            d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" />
+                    </svg>
+                    Microphone
+                </span>
+                <span class="status-indicator"
+                    [ngClass]="permissions.microphone === 'granted' ? 'active' : (permissions.microphone === 'denied' ? 'denied' : 'pending')">
+                    {{ permissions.microphone === 'granted' ? 'Ready' : (permissions.microphone === 'denied' ? 'Blocked'
+                    : 'Waiting') }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Permission Alert - Only show if denied -->
+        @if (permissions.camera === 'denied' || permissions.microphone === 'denied') {
+        <div class="permission-alert mt-2">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+            </svg>
+            <div>
+                Permissions blocked. <a href="javascript:void(0)" (click)="showPermissionModal()">Learn how to
+                    enable</a>
+            </div>
+        </div>
+        }
+    </div>
+</div>

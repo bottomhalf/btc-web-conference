@@ -1,212 +1,364 @@
-<div class="vh-100 d-flex align-items-center justify-content-center">
+<div class="preview-container d-flex align-items-center justify-content-center">
     <div class="col-md-10">
         @if (!room() && isValidMeetingId) {
-        <!-- <h3 class="text-center">BottomHalf Meeting</h3> -->
         <div class="row">
-            <div class="text-center my-4 col-md-12 py-2 text-truncate">
-                <span class="border px-3 py-2 fw-semibold rounded">{{meetingTitle}}</span>
+            <!-- Meeting Title -->
+            <div class="text-center my-4 col-md-12 py-2">
+                <span class="meeting-title-badge">{{meetingTitle}}</span>
             </div>
-            <div class="col-md-6 d-flex justify-content-center align-items-center flex-column">
-                <div class="video-preview-container position-relative">
-                    <video #previewVideo autoplay playsinline muted class="camera-box"></video>
-                    @if (permissions.camera != 'granted') {
-                    <div class="text-center position-absolute text-white fw-bold">
-                        Do you want people to see and hear you in the meeting?
-                        @if (permissions.microphone != 'granted' && permissions.camera != 'denied'){
-                        <div class="text-center">Allow microphone</div>
-                        } @else if (permissions.microphone != 'granted') {
-                        <div class="text-center">Allow microphone and camera</div>
-                        } @else {
-                        <div class="text-center">Allow camera</div>
-                        }
-                    </div>
-                    } @else if(!isCameraOn) {
-                    <div class="text-center position-absolute text-white fw-bold">
-                        Camera off
-                    </div>
-                    }
-                    <div class="d-flex align-items-center justify-content-center position-absolute"
-                        style="bottom: 8px;">
-                        @if (permissions.microphone == 'granted') {
-                        <a href="javascript:void(0)"
-                            class="text-decoration-none ms-3 mic-video-button bg-dark rounded-circle shadow"
-                            (click)="toggleMic()" data-bs-toggle="tooltip" data-bs-placement="top"
-                            [attr.title]="isMicOn? 'Turn off microphone' : 'Turn on microphone'">
-                            @if (isMicOn) {
-                            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
-                                fill="#FFFFFF">
-                                <path
-                                    d="M480-400q-50 0-85-35t-35-85v-240q0-50 35-85t85-35q50 0 85 35t35 85v240q0 50-35 85t-85 35Zm0-240Zm-40 520v-123q-104-14-172-93t-68-184h80q0 83 58.5 141.5T480-320q83 0 141.5-58.5T680-520h80q0 105-68 184t-172 93v123h-80Zm40-360q17 0 28.5-11.5T520-520v-240q0-17-11.5-28.5T480-800q-17 0-28.5 11.5T440-760v240q0 17 11.5 28.5T480-480Z" />
-                            </svg>
+
+            <!-- Video Preview Section -->
+            <div class="col-md-6 d-flex justify-content-center align-items-stretch">
+                <div class="preview-wrapper">
+                    <div class="video-preview-container">
+                        <video #previewVideo autoplay playsinline muted class="camera-box"></video>
+
+                        <!-- Permission/Status Overlays -->
+                        @if (permissions.camera != 'granted' || !meetingService.isCameraOn()) {
+                        <div class="video-overlay-message">
+                            @if (permissions.camera === 'denied' || permissions.microphone === 'denied') {
+                            Camera and microphone access required
+                            <small>Click below to enable permissions</small>
+                            } @else if (permissions.camera != 'granted') {
+                            Do you want people to see and hear you?
+                            @if (permissions.microphone != 'granted') {
+                            <small>Allow mic and camera access</small>
                             } @else {
-                            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
-                                fill="#FFFFFF">
-                                <path
-                                    d="m710-362-58-58q14-23 21-48t7-52h80q0 44-13 83.5T710-362ZM480-594Zm112 112-72-72v-206q0-17-11.5-28.5T480-800q-17 0-28.5 11.5T440-760v126l-80-80v-46q0-50 35-85t85-35q50 0 85 35t35 85v240q0 11-2.5 20t-5.5 18ZM440-120v-123q-104-14-172-93t-68-184h80q0 83 57.5 141.5T480-320q34 0 64.5-10.5T600-360l57 57q-29 23-63.5 39T520-243v123h-80Zm352 64L56-792l56-56 736 736-56 56Z" />
-                            </svg>
+                            <small>Allow camera access</small>
                             }
-                        </a>
-                        } @else {
-                        <a #micBtn class="text-decoration-none ms-3 mic-video-button bg-dark rounded-circle shadow"
-                            data-bs-toggle="tooltip" data-bs-placement="top" title="Show more info">
-                            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
-                                fill="#FFFFFF">
-                                <path
-                                    d="M400-400q-50 0-85-35t-35-85v-240q0-50 35-85t85-35q50 0 85 35t35 85v240q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T440-520v-240q0-17-11.5-28.5T400-800q-17 0-28.5 11.5T360-760v240q0 17 11.5 28.5T400-480Zm40 360h-80v-123q-104-14-172-93t-68-184h80q0 83 58.5 141.5T400-320q11 0 20.5-1t19.5-3v204Zm240-40q8 0 14-6t6-14q0-8-6-14t-14-6q-8 0-14 6t-6 14q0 8 6 14t14 6Zm-20-80h40v-160h-40v160Zm20 160q-83 0-141.5-58.5T480-280q0-83 58.5-141.5T680-480q83 0 141.5 58.5T880-280q0 83-58.5 141.5T680-80ZM400-640Z" />
-                            </svg>
-                        </a>
+                            } @else if(!meetingService.isCameraOn()) {
+                            Camera off
+                            }
+                        </div>
                         }
 
-                        @if (permissions.camera == 'granted') {
-                        <a href="javascript:void(0)"
-                            class="text-decoration-none ms-3 mic-video-button bg-dark rounded-circle shadow"
-                            (click)="toggleCamera()">
-                            @if(isCameraOn) {
-                            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
-                                fill="#FFFFFF">
-                                <path
-                                    d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h480q33 0 56.5 23.5T720-720v180l160-160v440L720-420v180q0 33-23.5 56.5T640-160H160Zm0-80h480v-480H160v480Zm0 0v-480 480Z" />
-                            </svg>
+                        <!-- Control Buttons -->
+                        <div class="d-flex align-items-center justify-content-center position-absolute"
+                            style="bottom: 16px; gap: 12px;">
+                            <!-- Microphone Button -->
+                            @if (permissions.microphone == 'granted') {
+                            <a href="javascript:void(0)" class="mic-video-button" (click)="toggleMic()">
+                                @if (meetingService.isMicOn()) {
+                                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
+                                    width="24px" fill="#FFFFFF">
+                                    <path
+                                        d="M480-400q-50 0-85-35t-35-85v-240q0-50 35-85t85-35q50 0 85 35t35 85v240q0 50-35 85t-85 35Zm0-240Zm-40 520v-123q-104-14-172-93t-68-184h80q0 83 58.5 141.5T480-320q83 0 141.5-58.5T680-520h80q0 105-68 184t-172 93v123h-80Zm40-360q17 0 28.5-11.5T520-520v-240q0-17-11.5-28.5T480-800q-17 0-28.5 11.5T440-760v240q0 17 11.5 28.5T480-480Z" />
+                                </svg>
+                                } @else {
+                                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
+                                    width="24px" fill="#FFFFFF">
+                                    <path
+                                        d="m710-362-58-58q14-23 21-48t7-52h80q0 44-13 83.5T710-362ZM480-594Zm112 112-72-72v-206q0-17-11.5-28.5T480-800q-17 0-28.5 11.5T440-760v126l-80-80v-46q0-50 35-85t85-35q50 0 85 35t35 85v240q0 11-2.5 20t-5.5 18ZM440-120v-123q-104-14-172-93t-68-184h80q0 83 57.5 141.5T480-320q34 0 64.5-10.5T600-360l57 57q-29 23-63.5 39T520-243v123h-80Zm352 64L56-792l56-56 736 736-56 56Z" />
+                                </svg>
+                                }
+                            </a>
                             } @else {
-                            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
-                                fill="#FFFFFF">
-                                <path
-                                    d="M880-260 720-420v67l-80-80v-287H353l-80-80h367q33 0 56.5 23.5T720-720v180l160-160v440ZM822-26 26-822l56-56L878-82l-56 56ZM498-575ZM382-464ZM160-800l80 80h-80v480h480v-80l80 80q0 33-23.5 56.5T640-160H160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800Z" />
-                            </svg>
+                            <a class="mic-video-button" (click)="showPermissionModal()">
+                                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
+                                    width="24px" fill="#FFFFFF">
+                                    <path
+                                        d="M400-400q-50 0-85-35t-35-85v-240q0-50 35-85t85-35q50 0 85 35t35 85v240q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T440-520v-240q0-17-11.5-28.5T400-800q-17 0-28.5 11.5T360-760v240q0 17 11.5 28.5T400-480Zm40 360h-80v-123q-104-14-172-93t-68-184h80q0 83 58.5 141.5T400-320q11 0 20.5-1t19.5-3v204Zm240-40q8 0 14-6t6-14q0-8-6-14t-14-6q-8 0-14 6t-6 14q0 8 6 14t14 6Zm-20-80h40v-160h-40v160Zm20 160q-83 0-141.5-58.5T480-280q0-83 58.5-141.5T680-480q83 0 141.5 58.5T880-280q0 83-58.5 141.5T680-80ZM400-640Z" />
+                                </svg>
+                            </a>
                             }
-                        </a>
-                        } @else {
-                        <a href="javascript:void(0)" #micBtn
-                            class="text-decoration-none ms-3 mic-video-button bg-dark rounded-circle shadow"
-                            data-bs-toggle="tooltip" data-bs-placement="top" title="Show more info">
-                            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
-                                fill="#FFFFFF">
-                                <path
-                                    d="M400-480Zm240 320H467q13-18 22.5-38t16.5-42h134v-480H160v131q-22 6-42 15.5T80-551v-169q0-33 23.5-56.5T160-800h480q33 0 56.5 23.5T720-720v180l160-160v440L720-420v180q0 33-23.5 56.5T640-160Zm-400 40q-83 0-141.5-58.5T40-320q0-83 58.5-141.5T240-520q83 0 141.5 58.5T440-320q0 83-58.5 141.5T240-120Zm0-80q8 0 14-6t6-14q0-8-6-14t-14-6q-8 0-14 6t-6 14q0 8 6 14t14 6Zm-20-80h40v-160h-40v160Z" />
-                            </svg>
-                        </a>
-                        }
+
+                            <!-- Camera Button -->
+                            @if (permissions.camera == 'granted') {
+                            <a href="javascript:void(0)" class="mic-video-button" (click)="toggleCamera()">
+                                @if(meetingService.isCameraOn()) {
+                                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
+                                    width="24px" fill="#FFFFFF">
+                                    <path
+                                        d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h480q33 0 56.5 23.5T720-720v180l160-160v440L720-420v180q0 33-23.5 56.5T640-160H160Zm0-80h480v-480H160v480Zm0 0v-480 480Z" />
+                                </svg>
+                                } @else {
+                                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
+                                    width="24px" fill="#FFFFFF">
+                                    <path
+                                        d="M880-260 720-420v67l-80-80v-287H353l-80-80h367q33 0 56.5 23.5T720-720v180l160-160v440ZM822-26 26-822l56-56L878-82l-56 56ZM498-575ZM382-464ZM160-800l80 80h-80v480h480v-80l80 80q0 33-23.5 56.5T640-160H160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800Z" />
+                                </svg>
+                                }
+                            </a>
+                            } @else {
+                            <a class="mic-video-button" (click)="showPermissionModal()">
+                                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
+                                    width="24px" fill="#FFFFFF">
+                                    <path
+                                        d="M400-480Zm240 320H467q13-18 22.5-38t16.5-42h134v-480H160v131q-22 6-42 15.5T80-551v-169q0-33 23.5-56.5T160-800h480q33 0 56.5 23.5T720-720v180l160-160v440L720-420v180q0 33-23.5 56.5T640-160Zm-400 40q-83 0-141.5-58.5T40-320q0-83 58.5-141.5T240-520q83 0 141.5 58.5T440-320q0 83-58.5 141.5T240-120Zm0-80q8 0 14-6t6-14q0-8-6-14t-14-6q-8 0-14 6t-6 14q0 8 6 14t14 6Zm-20-80h40v-160h-40v160Z" />
+                                </svg>
+                            </a>
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card py-3 px-3">
-                    @if (!isLoggedIn) {
-                    <div>
-                        <label class="form-label">Name <span class="text-danger">*</span></label>
-                        <input id="participant-name" class="form-control" [(ngModel)]="userName"
-                            placeholder="Type your name" type="text"
-                            [ngClass]="{'error-field': isSubmitted && userName== ''}" (keyup.enter)="joinRoom()" />
-                    </div>
-                    <!-- <div class="mt-3">
-                            <label class="form-label">Meeting Id <span class="text-danger">*</span></label>
-                            <input [(ngModel)]="meetingId" id="participant-name" class="form-control"
-                                placeholder="Meeting Id" type="text" />
-                        </div> -->
-                    <!-- <div class="mt-3">
-                            <label class="form-label">Pass Code <span class="text-danger">*</span></label>
-                            <input id="participant-name" class="form-control" [(ngModel)]="passCode"
-                                placeholder="Meeting passcode" type="text" [ngClass]="{'error-field': isSubmitted && passCode== ''}"/>
-                        </div> -->
-                    }
-                    <div class="">
-                        <div class="d-flex border ps-2 rounded col-md-12 mt-3">
-                            <svg fill="#000000" class="video-icon" viewBox="0 -4 24 24"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                                <g id="SVGRepo_iconCarrier">
-                                    <defs>
-                                        <style>
-                                            .cls-1 {
-                                                fill-rule: evenodd;
-                                            }
-                                        </style>
-                                    </defs>
-                                    <path id="video-camera" class="cls-1"
+
+            <!-- Settings Section -->
+            <div class="col-md-6 d-flex justify-content-center align-items-stretch">
+                <div class="settings-wrapper">
+                    <div class="settings-card">
+                        <!-- Decorative Header -->
+                        <div class="settings-header">
+                            <div class="settings-header-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                                </svg>
+                            </div>
+                            <div class="settings-header-text">
+                                <h3>Audio & Video Setup</h3>
+                                <p>Configure your devices before joining</p>
+                            </div>
+                        </div>
+
+                        <!-- Guest Name Input -->
+                        @if (!isLoggedIn) {
+                        <div class="mb-3">
+                            <label class="form-label">Your Name <span class="text-danger">*</span></label>
+                            <input class="form-control" [(ngModel)]="userName" placeholder="Enter your name" type="text"
+                                [ngClass]="{'error-field': isSubmitted && userName== ''}" (keyup.enter)="joinRoom()" />
+                        </div>
+                        }
+
+                        <!-- Device Selectors -->
+                        <div [class.mb-3]="!isLoggedIn">
+                            <div class="device-selector">
+                                <svg fill="currentColor" class="video-icon" viewBox="0 -4 24 24"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path
                                         d="M1450,258l-5-2v2a2,2,0,0,1-2,2h-13a2,2,0,0,1-2-2V246a2,2,0,0,1,2-2h13a2,2,0,0,1,2,2v2l5-2a2,2,0,0,1,2,2v8A2,2,0,0,1,1450,258Zm-7-4v-8h-13v12h13v-4Zm7-6-5,2v4l5,2v-8Z"
                                         transform="translate(-1428 -244)"></path>
-                                </g>
-                            </svg>
-                            <select [(ngModel)]="selectedCamera" class="border-0 form-control"
-                                (change)="onCameraChange($event)">
-                                @for (cam of deviceService.cameras(); track cam.deviceId) {
-                                <option [value]="cam.deviceId">{{ cam.label || "Camera" }}</option>
-                                }
-                            </select>
-                            <svg fill="#000000" class="drop-icon" viewBox="0 0 32 32"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                                <g id="SVGRepo_iconCarrier">
+                                </svg>
+                                <select [(ngModel)]="selectedCamera" class="flex-grow-1"
+                                    (change)="onCameraChange($event)">
+                                    @for (cam of deviceService.cameras(); track cam.deviceId) {
+                                    <option [value]="cam.deviceId">{{ cam.label || "Camera " + ($index + 1) }}</option>
+                                    }
+                                </select>
+                                <svg fill="currentColor" class="drop-icon" viewBox="0 0 32 32"
+                                    xmlns="http://www.w3.org/2000/svg">
                                     <path d="M24 11.305l-7.997 11.39L8 11.305z"></path>
-                                </g>
-                            </svg>
-                        </div>
+                                </svg>
+                            </div>
 
-                        <div class="d-flex border ps-2 rounded col-md-12 mt-3">
-                            <svg fill="#000000" class="video-icon" viewBox="0 0 1920 1920"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                                <g id="SVGRepo_iconCarrier">
+                            <div class="device-selector mt-2">
+                                <svg fill="currentColor" class="video-icon" viewBox="0 0 1920 1920"
+                                    xmlns="http://www.w3.org/2000/svg">
                                     <path
-                                        d="M960.315 96.818c-186.858 0-338.862 152.003-338.862 338.861v484.088c0 186.858 152.004 338.862 338.862 338.862 186.858 0 338.861-152.004 338.861-338.862V435.68c0-186.858-152.003-338.861-338.861-338.861M427.818 709.983V943.41c0 293.551 238.946 532.497 532.497 532.497 293.55 0 532.496-238.946 532.496-532.497V709.983h96.818V943.41c0 330.707-256.438 602.668-580.9 627.471l-.006 252.301h242.044V1920H669.862v-96.818h242.043l-.004-252.3C587.438 1546.077 331 1274.116 331 943.41V709.983h96.818ZM960.315 0c240.204 0 435.679 195.475 435.679 435.68v484.087c0 240.205-195.475 435.68-435.68 435.68-240.204 0-435.679-195.475-435.679-435.68V435.68C524.635 195.475 720.11 0 960.315 0Z"
+                                        d="M960.315 96.818c-186.858 0-338.862 152.003-338.862 338.861v484.088c0 186.858 152.004 338.862 338.862 338.862 186.858 0 338.861-152.004 338.861-338.861V435.68c0-186.858-152.003-338.861-338.861-338.861M427.818 709.983V943.41c0 293.551 238.946 532.497 532.497 532.497 293.55 0 532.496-238.946 532.496-532.497V709.983h96.818V943.41c0 330.707-256.438 602.668-580.9 627.471l-.006 252.301h242.044V1920H669.862v-96.818h242.043l-.004-252.3C587.438 1546.077 331 1274.116 331 943.41V709.983h96.818ZM960.315 0c240.204 0 435.679 195.475 435.679 435.68v484.087c0 240.205-195.475 435.68-435.68 435.68-240.204 0-435.679-195.475-435.679-435.68V435.68C524.635 195.475 720.11 0 960.315 0Z"
                                         fill-rule="evenodd"></path>
-                                </g>
-                            </svg>
-                            <select [(ngModel)]="selectedMic" class="border-0 form-control"
-                                (change)="onMicChange($event)">
-                                @for (mic of deviceService.microphones(); track mic.deviceId) {
-                                <option [value]="mic.deviceId">{{ mic.label || "Microphone" }}</option>
-                                }
-                            </select>
-                            <svg fill="#000000" class="drop-icon" viewBox="0 0 32 32"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                                <g id="SVGRepo_iconCarrier">
+                                </svg>
+                                <select [(ngModel)]="selectedMic" class="flex-grow-1" (change)="onMicChange($event)">
+                                    @for (mic of deviceService.microphones(); track mic.deviceId) {
+                                    <option [value]="mic.deviceId">{{ mic.label || "Microphone " + ($index + 1) }}
+                                    </option>
+                                    }
+                                </select>
+                                <svg fill="currentColor" class="drop-icon" viewBox="0 0 32 32"
+                                    xmlns="http://www.w3.org/2000/svg">
                                     <path d="M24 11.305l-7.997 11.39L8 11.305z"></path>
-                                </g>
-                            </svg>
-                        </div>
+                                </svg>
+                            </div>
 
-                        <div class="d-flex border ps-2 rounded col-md-12 mt-3">
-                            <svg viewBox="0 0 24 24" class="video-icon" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                                <g id="SVGRepo_iconCarrier">
+                            <div class="device-selector mt-2">
+                                <svg viewBox="0 0 24 24" class="video-icon" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
                                     <path
                                         d="M16 9C16.5 9.5 17 10.5 17 12C17 13.5 16.5 14.5 16 15M19 6C20.5 7.5 21 10 21 12C21 14 20.5 16.5 19 18M13 3L7 8H5C3.89543 8 3 8.89543 3 10V14C3 15.1046 3.89543 16 5 16H7L13 21V3Z"
-                                        stroke="#000000" stroke-width="1.5" stroke-linecap="round"
+                                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
                                         stroke-linejoin="round"></path>
-                                </g>
-                            </svg>
-                            <select [(ngModel)]="selectedSpeaker" class="border-0 form-control"
-                                (change)="onSpeakerChange($event)">
-                                @for (sp of deviceService.speakers(); track sp.deviceId) {
-                                <option [value]="sp.deviceId">{{ sp.label || "Speaker" }}</option>
-                                }
-                            </select>
-                            <svg fill="#000000" class="drop-icon" viewBox="0 0 32 32"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                                <g id="SVGRepo_iconCarrier">
+                                </svg>
+                                <select [(ngModel)]="selectedSpeaker" class="flex-grow-1"
+                                    (change)="onSpeakerChange($event)">
+                                    @for (sp of deviceService.speakers(); track sp.deviceId) {
+                                    <option [value]="sp.deviceId">{{ sp.label || "Speaker " + ($index + 1) }}</option>
+                                    }
+                                </select>
+                                <svg fill="currentColor" class="drop-icon" viewBox="0 0 32 32"
+                                    xmlns="http://www.w3.org/2000/svg">
                                     <path d="M24 11.305l-7.997 11.39L8 11.305z"></path>
-                                </g>
-                            </svg>
+                                </svg>
+                            </div>
                         </div>
+
+                        <!-- Permission Alert - Only show if denied -->
+                        @if (permissions.camera === 'denied' || permissions.microphone === 'denied') {
+                        <div class="permission-alert mt-3">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                            </svg>
+                            <div>
+                                Permissions blocked. <a href="javascript:void(0)" (click)="showPermissionModal()">Learn
+                                    how to enable</a>
+                            </div>
+                        </div>
+                        } @else {
+                        <!-- Decorative Footer -->
+                        <div class="settings-footer">
+                            <div class="settings-footer-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z" />
+                                </svg>
+                            </div>
+                            <div class="settings-footer-text">
+                                <h3>Welcome to: Confeet Meeting Application</h3>
+                                <p>Develop & maintain by: BottomHalf Pvt. Ltd.</p>
+                            </div>
+                        </div>
+                        }
                     </div>
                 </div>
             </div>
-            <div class="mt-3 text-end">
+
+            <!-- Action Buttons -->
+            <div class="mt-4 text-end">
                 <button class="btn btn-secondary me-2" (click)="navToDahsboard()">Cancel</button>
                 <button class="btn btn-success" (click)="joinRoom()">Join now</button>
             </div>
         </div>
         } @else {
         <h3 class="fw-bold text-center mb-3">Bottom<span class="color-green">Half</span> Meet</h3>
-        <h4 class="text-center fw-bold">Invalid meeting id. Please contact to admin</h4>
+        <h4 class="text-center fw-bold">Invalid meeting id. Please contact admin</h4>
         }
     </div>
+
+    <!-- Permission Denied Modal -->
+    @if (showPermissionDeniedModal) {
+    <div class="permission-modal-overlay" (click)="closePermissionModal()">
+        <div class="permission-modal" (click)="$event.stopPropagation()">
+            <div class="permission-modal-header">
+                <h3 class="permission-modal-title">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                    </svg>
+                    Camera & Microphone Access Required
+                </h3>
+                <p class="permission-modal-subtitle">We need your permission to use these devices for the meeting</p>
+            </div>
+
+            <div class="permission-modal-body">
+                <!-- Browser Tabs -->
+                <div class="browser-tabs">
+                    <button class="browser-tab" [class.active]="selectedBrowser === 'chrome'"
+                        (click)="selectedBrowser = 'chrome'">Chrome</button>
+                    <button class="browser-tab" [class.active]="selectedBrowser === 'edge'"
+                        (click)="selectedBrowser = 'edge'">Edge</button>
+                    <button class="browser-tab" [class.active]="selectedBrowser === 'firefox'"
+                        (click)="selectedBrowser = 'firefox'">Firefox</button>
+                </div>
+
+                <!-- Chrome Instructions -->
+                @if (selectedBrowser === 'chrome') {
+                <div class="permission-modal-section">
+                    <h4 class="permission-modal-section-title">How to Enable Permissions in Chrome:</h4>
+                    <div class="permission-instructions">
+                        <div class="permission-instruction-step">
+                            <span class="step-number">1</span>
+                            <div class="step-text">Click the <strong>lock icon</strong> (🔒) or <strong>tune
+                                    icon</strong> in the address bar (left of the URL)</div>
+                        </div>
+                        <div class="permission-instruction-step">
+                            <span class="step-number">2</span>
+                            <div class="step-text">Find <strong>Camera</strong> and <strong>Microphone</strong> in the
+                                dropdown menu</div>
+                        </div>
+                        <div class="permission-instruction-step">
+                            <span class="step-number">3</span>
+                            <div class="step-text">Change both from <strong>"Block"</strong> to <strong>"Allow"</strong>
+                            </div>
+                        </div>
+                        <div class="permission-instruction-step">
+                            <span class="step-number">4</span>
+                            <div class="step-text">Click <strong>"Reload"</strong> when prompted, or refresh this page
+                                manually</div>
+                        </div>
+                    </div>
+                </div>
+                }
+
+                <!-- Edge Instructions -->
+                @if (selectedBrowser === 'edge') {
+                <div class="permission-modal-section">
+                    <h4 class="permission-modal-section-title">How to Enable Permissions in Edge:</h4>
+                    <div class="permission-instructions">
+                        <div class="permission-instruction-step">
+                            <span class="step-number">1</span>
+                            <div class="step-text">Click the <strong>lock icon</strong> (🔒) in the address bar</div>
+                        </div>
+                        <div class="permission-instruction-step">
+                            <span class="step-number">2</span>
+                            <div class="step-text">Select <strong>"Permissions for this site"</strong> or <strong>"Site
+                                    permissions"</strong></div>
+                        </div>
+                        <div class="permission-instruction-step">
+                            <span class="step-number">3</span>
+                            <div class="step-text">Change <strong>Camera</strong> and <strong>Microphone</strong> to
+                                <strong>"Allow"</strong>
+                            </div>
+                        </div>
+                        <div class="permission-instruction-step">
+                            <span class="step-number">4</span>
+                            <div class="step-text">Refresh this page to apply changes</div>
+                        </div>
+                    </div>
+                </div>
+                }
+
+                <!-- Firefox Instructions -->
+                @if (selectedBrowser === 'firefox') {
+                <div class="permission-modal-section">
+                    <h4 class="permission-modal-section-title">How to Enable Permissions in Firefox:</h4>
+                    <div class="permission-instructions">
+                        <div class="permission-instruction-step">
+                            <span class="step-number">1</span>
+                            <div class="step-text">Click the <strong>camera/microphone icon</strong> or <strong>info
+                                    icon</strong> (ⓘ) in the address bar</div>
+                        </div>
+                        <div class="permission-instruction-step">
+                            <span class="step-number">2</span>
+                            <div class="step-text">Click the <strong>X</strong> next to "Blocked" status to clear it
+                            </div>
+                        </div>
+                        <div class="permission-instruction-step">
+                            <span class="step-number">3</span>
+                            <div class="step-text">Refresh this page - Firefox will ask for permission again</div>
+                        </div>
+                        <div class="permission-instruction-step">
+                            <span class="step-number">4</span>
+                            <div class="step-text">Click <strong>"Allow"</strong> when the permission request appears
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                }
+
+                <!-- Alternative Method -->
+                <div class="permission-modal-section">
+                    <h4 class="permission-modal-section-title">Alternative: Browser Settings</h4>
+                    <div class="permission-instructions">
+                        <div class="permission-instruction-step">
+                            <span class="step-number">·</span>
+                            <div class="step-text">Go to your browser's <strong>Settings</strong> → <strong>Privacy and
+                                    Security</strong> → <strong>Site Settings</strong></div>
+                        </div>
+                        <div class="permission-instruction-step">
+                            <span class="step-number">·</span>
+                            <div class="step-text">Find this site in the <strong>Camera</strong> and
+                                <strong>Microphone</strong> sections and change to "Allow"
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="permission-modal-footer">
+                <button class="btn btn-outline" (click)="checkPermissionsAgain()">Check Again</button>
+                <button class="btn btn-success" (click)="closePermissionModal()">Got It</button>
+            </div>
+        </div>
+    </div>
+    }
+</div>
