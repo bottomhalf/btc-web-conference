@@ -24,11 +24,17 @@ import { ServerEventService } from '../providers/socket/server-event.service';
 
 import { ParticipantRosterComponent } from './participant-roster/participant-roster.component';
 import { ScreenshareComponent } from './screenshare/screenshare.component';
+import { ChatContainerComponent } from '../chat/chat-container/chat-container.component';
+import { ConfeetSocketService } from '../providers/socket/confeet-socket.service';
+import { ChatServerService } from '../providers/services/chat.server.service';
+import { NotificationService } from '../notifications/services/notification.service';
+import { ChatService } from '../chat/chat.service';
+import { Conversation } from '../components/global-search/search.models';
 
 @Component({
     selector: 'app-meeting',
     standalone: true,
-    imports: [FormsModule, ReactiveFormsModule, AudioComponent, VideoComponent, CommonModule, NgbTooltipModule, ParticipantRosterComponent, NgbSlide, ScreenshareComponent],
+    imports: [FormsModule, ReactiveFormsModule, AudioComponent, VideoComponent, CommonModule, NgbTooltipModule, ParticipantRosterComponent, NgbSlide, ScreenshareComponent, ChatContainerComponent],
     templateUrl: './meeting.component.html',
     styleUrls: [
         './meeting.component.css',
@@ -128,6 +134,7 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     private notified = new Set<string>(); // tracks who is already raised
     isViewParticipant: boolean = false;
     participantFilter: string = '';
+    isChatEnabled: boolean = false;
 
     // Use signal for participant filter to make it reactive
     private participantFilterSignal = signal('');
@@ -159,6 +166,9 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
         public network: NetworkService,
         public meetingService: MeetingService,
         private elRef: ElementRef,
+        private ws: ConfeetSocketService,
+        private chatService: ChatService,
+        private notificationService: NotificationService,
         private tooltipConfig: NgbTooltipConfig
     ) {
         // Configure tooltips to only show on hover (prevents unintended click events)
@@ -192,7 +202,6 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
             this.notified = currentlyRaised;
         });
     }
-
 
     async ngOnInit() {
         //this.meetingId = this.route.snapshot.paramMap.get('id');
@@ -243,6 +252,41 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
             window.addEventListener('popstate', this.popStateListener);
         }
 
+    }
+
+    toggleChatWindow() {
+        this.isChatEnabled = !this.isChatEnabled;
+        if (this.isChatEnabled) {
+            this.enableChat();
+        } else {
+            this.chatService.setIsChatStatus(this.isChatEnabled, 'Meeting component');
+        }
+    }
+
+    enableChat() {
+        const conversation: Conversation = {
+            id: this.meetingId,
+            conversationId: this.meetingId,
+            conversationType: 'group',
+            participantIds: [],
+            participants: [],
+            conversationName: this.meetingId,
+            conversationAvatar: '',
+            createdBy: this.user.userId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastMessage: null,
+            lastMessageAt: new Date(),
+            isActive: true,
+            settings: null
+        };
+        this.ws.currentConversation.set(conversation);
+        this.ws.currentConversationId.set(this.meetingId);
+
+        this.chatService.messages.set([]); // Clear existing messages
+
+        // Notify the NotificationService which conversation is now active
+        this.notificationService.setActiveConversation(this.meetingId);
     }
 
     private setInitialDetail() {
@@ -787,6 +831,8 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     // Remove @HostListener since we're using template event binding now
     onMiniDoubleClick(e: MouseEvent) {
         if (this.meetingService.isMinimized() && !this.hasDragged) {
+            let event: any = e.currentTarget;
+            event.removeAttribute('style');
             this.meetingService.maximize();
             e.stopPropagation();
         }

@@ -111,14 +111,14 @@ export class NotificationService {
     private registerGlobalEvents(): void {
         // New message received
         this.subscriptions.add(
-            this.ws.newMessage$.subscribe(message => {
+            this.ws.incomingMessage$.subscribe(message => {
                 this.handleNewMessage(message);
             })
         );
 
         // Message sent confirmation
         this.subscriptions.add(
-            this.ws.messageSent$.subscribe(message => {
+            this.ws.outgoingMessage$.subscribe(message => {
                 this.handleMessageSent(message);
             })
         );
@@ -155,7 +155,7 @@ export class NotificationService {
     private handleNewMessage(message: Message): void {
         const isActiveConversation = this.activeConversationId() === message.conversationId;
 
-        if (isActiveConversation) {
+        if (isActiveConversation && this.chatService.isChatActive()) {
             // Add to current chat view
             this.addMessageToActiveConversation(message);
         } else {
@@ -186,7 +186,7 @@ export class NotificationService {
     private handleMessageSent(message: Message): void {
         const isActiveConversation = this.activeConversationId() === message.conversationId;
 
-        if (isActiveConversation) {
+        if (isActiveConversation && this.chatService.isChatActive()) {
             // Update local message with server-assigned id and timestamp
             this.addMessageToActiveConversation(message);
         }

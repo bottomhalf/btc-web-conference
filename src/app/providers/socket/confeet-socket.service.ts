@@ -11,8 +11,8 @@ export class ConfeetSocketService {
     private messageSubject = new Subject<WsEvent>();
 
     // Exposed observables for each event type
-    newMessage$: Observable<Message>;
-    messageSent$: Observable<Message>;
+    incomingMessage$: Observable<Message>;
+    outgoingMessage$: Observable<Message>;
     delivered$: Observable<MessageDelivered>;
     seen$: Observable<MessageSeen>;
     userTyping$: Observable<TypingIndicator>;
@@ -31,8 +31,8 @@ export class ConfeetSocketService {
 
     constructor() {
         // Setup filtered observables
-        this.newMessage$ = this.onEvent<Message>(WsEvents.NEW_MESSAGE);
-        this.messageSent$ = this.onEvent<Message>(WsEvents.MESSAGE_SENT);
+        this.incomingMessage$ = this.onEvent<Message>(WsEvents.NEW_MESSAGE);
+        this.outgoingMessage$ = this.onEvent<Message>(WsEvents.MESSAGE_SENT);
         this.delivered$ = this.onEvent<MessageDelivered>(WsEvents.DELIVERED);
         this.seen$ = this.onEvent<MessageSeen>(WsEvents.SEEN);
         this.userTyping$ = this.onEvent<TypingIndicator>(WsEvents.USER_TYPING);
