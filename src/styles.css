@@ -67,6 +67,7 @@ body:not([data-theme]) {
 
 :root {
     --teams-meeting-footer-size: 64px;
+    --teams-meeting-header-size: 3rem;
 }
 
 html {

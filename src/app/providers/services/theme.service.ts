@@ -56,8 +56,8 @@ export class ThemeService {
         if (stored !== null) {
             return stored === 'dark';
         }
-        // Default to dark mode (Teams style)
-        return true;
+        // Default to light mode
+        return false;
     }
 
     /**
