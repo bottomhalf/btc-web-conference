@@ -61,8 +61,8 @@ export class RoomService {
       if (environment.production) {
         this.LIVEKIT_URL = 'wss://' + environment.sfuBaseUrl + "/conference";
       } else {
-        // this.LIVEKIT_URL = 'ws://' + environment.sfuBaseUrl + "/conference";
         this.LIVEKIT_URL = 'wss://' + environment.sfuBaseUrl + "/conference";
+        // this.LIVEKIT_URL = 'ws://' + environment.sfuBaseUrl;   // enble this for local sfu testing
       }
     }
   }

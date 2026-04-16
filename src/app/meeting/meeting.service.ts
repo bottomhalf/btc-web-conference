@@ -12,6 +12,7 @@ import { User } from '../models/model';
 import { Dashboard, Login } from '../models/constant';
 import { CallParticipant, ParticipantStatus } from '../models/conference_call/call_model';
 import { InvitedParticipant } from './meeting.component';
+import { HttpService } from '../providers/services/http.service';
 
 @Injectable({
   providedIn: 'root'
@@ -65,8 +66,25 @@ export class MeetingService {
     private deviceService: DeviceService,
     private serverEventService: ServerEventService,
     private clientEventService: ClientEventService,
-    private videoBackgroundService: VideoBackgroundService
+    private videoBackgroundService: VideoBackgroundService,
+    private http: HttpService
   ) { }
+
+  startRecording() {
+    this.http.post("recording/start", { "roomName": this.meetingId }).then(res => {
+      console.log(res);
+    }).catch(err => {
+      console.log(err);
+    });
+  }
+
+  stopRecording() {
+    this.http.post("recording/stop", { "roomName": this.meetingId }).then(res => {
+      console.log(res);
+    }).catch(err => {
+      console.log(err);
+    });
+  }
 
   getUserInitiaLetter(name: string): string {
     if (!name)

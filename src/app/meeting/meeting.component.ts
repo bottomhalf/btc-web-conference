@@ -135,6 +135,7 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     isViewParticipant: boolean = false;
     participantFilter: string = '';
     isChatEnabled: boolean = false;
+    isRecording: boolean = false;
 
     // Use signal for participant filter to make it reactive
     private participantFilterSignal = signal('');
@@ -252,6 +253,16 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
             window.addEventListener('popstate', this.popStateListener);
         }
 
+    }
+
+    toggleRecording() {
+        if (this.isRecording) {
+            this.meetingService.stopRecording();
+            this.isRecording = false;
+        } else {
+            this.meetingService.startRecording();
+            this.isRecording = true;
+        }
     }
 
     toggleChatWindow() {
