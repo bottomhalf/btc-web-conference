@@ -32,3 +32,4 @@ npm start
 
 ## Team members
 1. Animesh
+2. Ali
