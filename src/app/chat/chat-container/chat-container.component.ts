@@ -5,7 +5,8 @@ import { Router } from '@angular/router';
 import { ConfeetSocketService } from '../../providers/socket/confeet-socket.service';
 import { ChatService } from '../chat.service';
 import { LocalService } from '../../providers/services/local.service';
-import { ClientEventService } from '../../providers/socket/client-event.service';
+import { InitiateAudioCallService } from '../../providers/socket/call/initiate-audio-call.service';
+import { NotifyGroupCreatedService } from '../../providers/socket/group/notify-group-created.service';
 import { Conversation, Participant, SearchResult } from '../../components/global-search/search.models';
 import { ResponseModel, User } from '../../models/model';
 import { CallType } from '../../models/conference_call/call_model';
@@ -26,7 +27,8 @@ export class ChatContainerComponent implements AfterViewChecked {
   chatService = inject(ChatService);
   private local = inject(LocalService);
   private router = inject(Router);
-  private clientEventService = inject(ClientEventService);
+  private initiateAudioCallService = inject(InitiateAudioCallService);
+  private notifyGroupCreatedService = inject(NotifyGroupCreatedService);
 
   // User data
   user: User = {
@@ -102,7 +104,7 @@ export class ChatContainerComponent implements AfterViewChecked {
 
   // Audio call
   startAudioCall() {
-    this.clientEventService.initiateAudioCall(this.currentUserId, this.ws.currentConversation().id);
+    this.initiateAudioCallService.execute(this.currentUserId, this.ws.currentConversation().id);
     this.router.navigate(['/btc/preview'], {
       state: {
         id: this.ws.currentConversation().id,
@@ -229,7 +231,7 @@ export class ChatContainerComponent implements AfterViewChecked {
     this.chatService.createGroupConversation(this.currentUserId, groupName, this.ws.currentConversationId(), allMembers).then((res: ResponseModel) => {
       // Reset state
       if (res.IsSuccess && res.ResponseBody) {
-        this.clientEventService.notifyGroupCreated(res.ResponseBody.id, this.currentUserId);
+        this.notifyGroupCreatedService.execute(res.ResponseBody.id, this.currentUserId);
         this.cancelCreateGroup();
         this.showMembersDropdown = false;
       } else {

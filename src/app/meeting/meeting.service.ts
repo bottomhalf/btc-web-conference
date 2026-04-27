@@ -7,7 +7,8 @@ import { CameraService } from './../providers/services/camera.service';
 import { VideoBackgroundService } from './../providers/services/video-background.service';
 import { DeviceService } from '../layout/device.service';
 import { ServerEventService } from '../providers/socket/server-event.service';
-import { ClientEventService } from '../providers/socket/client-event.service';
+import { InitiateAudioJoiningRequestService } from '../providers/socket/call/initiate-audio-joining-request.service';
+import { EndCallService } from '../providers/socket/call/end-call.service';
 import { User } from '../models/model';
 import { Dashboard, Login } from '../models/constant';
 import { CallParticipant, ParticipantStatus } from '../models/conference_call/call_model';
@@ -64,7 +65,8 @@ export class MeetingService {
     private cameraService: CameraService,
     private deviceService: DeviceService,
     private serverEventService: ServerEventService,
-    private clientEventService: ClientEventService,
+    private initiateAudioJoiningRequestService: InitiateAudioJoiningRequestService,
+    private endCallService: EndCallService,
     private videoBackgroundService: VideoBackgroundService
   ) { }
 
@@ -128,7 +130,7 @@ export class MeetingService {
 
   requestToJoin(participant: CallParticipant): void {
     const request = this.serverEventService.incomingCall();
-    this.clientEventService.initiateAudioJoiningRequest(participant.userId, request.conversationId);
+    this.initiateAudioJoiningRequestService.execute(participant.userId, request.conversationId);
   }
 
   get invitedParticipants(): number {
@@ -262,7 +264,7 @@ export class MeetingService {
     }
 
     // Notify call service
-    this.clientEventService.endCall();
+    this.endCallService.execute();
   }
 
   // ==================== Media Controls ====================

@@ -8,7 +8,7 @@ import { Conversation, Participant, SearchResult, UserDetail } from '../componen
 import { ChatService } from './chat.service';
 import { Router } from '@angular/router';
 import { ResponseModel, User } from '../models/model';
-import { ClientEventService } from '../providers/socket/client-event.service';
+
 import { NotificationService } from '../notifications/services/notification.service';
 import { CallType } from '../models/conference_call/call_model';
 import { ServerEventService } from '../providers/socket/server-event.service';
@@ -58,8 +58,7 @@ export class ChatComponent implements OnInit, OnDestroy {
         public chatService: ChatService,
         private router: Router,
         public notificationService: NotificationService,
-        private serverEventService: ServerEventService,
-        private clientEventService: ClientEventService
+        private serverEventService: ServerEventService
     ) {
         // React to group notifications
         effect(() => {
