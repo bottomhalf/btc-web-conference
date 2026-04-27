@@ -564,8 +564,15 @@
 .message-content {
     font-size: 14px;
     line-height: 1.5;
-    color: var(--teams-text-primary);
     word-wrap: break-word;
+}
+
+.message-bubble.sent .message-content {
+    color: #ffffff;
+}
+
+.message-bubble.received .message-content {
+    color: var(--teams-text-primary);
 }
 
 .message-meta {
@@ -578,12 +585,28 @@
 
 .message-time {
     font-size: 11px;
+}
+
+.message-bubble.sent .message-time {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.message-bubble.received .message-time {
     color: var(--teams-text-muted);
 }
 
 .message-status {
     display: flex;
     align-items: center;
+}
+
+.message-bubble.sent .message-status svg path {
+    fill: rgba(255, 255, 255, 0.8) !important;
+}
+
+.message-bubble.sent .message-status svg[ngswitchcase="2"] path,
+.message-bubble.sent .message-status svg[ng-reflect-ng-switch-case="2"] path {
+    fill: #ffffff !important;
 }
 
 .message-status svg {

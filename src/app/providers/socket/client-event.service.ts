@@ -77,7 +77,7 @@ export class ClientEventService {
     }
 
     /**
-     * Initiate a audio call to a user
+     * Initiate an audio call to a user
      */
     initiateVideoJoiningRequest(calleeId: string, conversationId: string): void {
         this.send(CallEvents.JOINING_REQUEST, <CallInitiatePayload>{
@@ -91,7 +91,7 @@ export class ClientEventService {
     }
 
     /**
-     * Initiate a audio call to a user
+     * Initiate an audio call to a user
      */
     initiateAudioCall(calleeId: string, conversationId: string): void {
         this.send(CallEvents.CALL_INITIATE, <CallInitiatePayload>{
