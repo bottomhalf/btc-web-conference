@@ -3,7 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { iNavigation } from '../providers/services/iNavigation';
 import { HttpService } from '../providers/services/http.service';
-import { Dashboard } from '../models/constant';
+import { ChatPage } from '../models/constant';
 
 @Component({
   selector: 'app-login',
@@ -55,7 +55,7 @@ export class LoginComponent implements OnInit {
         } else {
           localStorage.removeItem('creds');
         }
-        this.nav.navigate(Dashboard, null);
+        this.nav.navigate(ChatPage, null);
       }
     }).catch(e => {
       this.isLoading = false;
