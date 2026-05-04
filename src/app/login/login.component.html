@@ -1,156 +1,96 @@
-<div class="login-wrapper">
-    <div class="container-fluid h-100">
-        <div class="row h-100 g-0">
-            <!-- Left Side - Decorative Panel -->
-            <div class="col-lg-7 d-none d-lg-flex left-panel">
-                <div class="overlay-content">
-                    <div class="text-center">
-                        <i class="fas fa-video login-icon mb-4"></i>
-                        <h1 class="display-4 fw-bold mb-3">Welcome to Confeet</h1>
-                        <p class="lead mb-4">Connect, collaborate, and communicate seamlessly</p>
-                        <div class="feature-list">
-                            <div class="feature-item">
-                                <i class="fas fa-check-circle me-2"></i>
-                                <span>HD Video Conferencing</span>
-                            </div>
-                            <div class="feature-item">
-                                <i class="fas fa-check-circle me-2"></i>
-                                <span>Real-time Chat & Collaboration</span>
-                            </div>
-                            <div class="feature-item">
-                                <i class="fas fa-check-circle me-2"></i>
-                                <span>Screen Sharing & Recording</span>
-                            </div>
-                            <div class="feature-item">
-                                <i class="fas fa-check-circle me-2"></i>
-                                <span>Secure & Encrypted Meetings</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="login-page">
+  <!-- ======== ANIMATED BG CANVAS ======== -->
+  <div class="global-bg-animation">
+    <div class="wave wave-1"></div>
+    <div class="wave wave-2"></div>
+    <div class="wave wave-3"></div>
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+    <div class="floating-shape shape-4"></div>
+    <div class="floating-shape shape-5"></div>
+  </div>
 
-            <!-- Right Side - Login Form -->
-            <div class="col-lg-5 d-flex align-items-center justify-content-center right-panel">
-                <div class="login-form-container">
-                    <div class="text-center mb-3">
-                        <div class="logo-circle mb-2">
-                            <i class="fas fa-video-camera"></i>
-                        </div>
-                        <h2 class="fw-bold mb-1" style="font-size: 1.4rem;">Sign In</h2>
-                        <p class="text-muted mb-0" style="font-size: 0.9rem;">Enter your credentials to access your
-                            account</p>
-                    </div>
-
-                    <!-- Social Login Buttons -->
-                    <div class="social-login mb-3">
-                        <button type="button" class="btn btn-social btn-google">
-                            <i class="fab fa-google me-2"></i>
-                            <span>Sign in with Google</span>
-                        </button>
-                        <!-- <button type="button" class="btn btn-social btn-microsoft">
-                            <i class="fab fa-microsoft me-2"></i>
-                            <span>Sign in with Microsoft</span>
-                        </button> -->
-                    </div>
-
-                    <div class="divider">
-                        <span>OR CONTINUE WITH EMAIL</span>
-                    </div>
-
-                    <!-- Email Input -->
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="fas fa-envelope me-2 text-primary"></i>Email Address
-                            <span class="text-danger">*</span>
-                        </label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0">
-                                <i class="fas fa-user text-muted"></i>
-                            </span>
-                            <input type="email" placeholder="Enter your email" class="form-control border-start-0 ps-0"
-                                [(ngModel)]="email" (input)="isValidEmail()"
-                                [ngClass]="{ 'is-invalid': isSubmitted && (email == '' || !isEmailValid) }" />
-                        </div>
-                        <div class="invalid-feedback d-block" *ngIf="isSubmitted && email == ''">Email is required</div>
-                        <div class="invalid-feedback d-block" *ngIf="isSubmitted && email != '' && !isEmailValid">
-                            Please enter a valid email address
-                        </div>
-                    </div>
-
-                    <!-- Password Input -->
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            <i class="fas fa-lock me-2 text-primary"></i>Password
-                            <span class="text-danger">*</span>
-                        </label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0">
-                                <i class="fas fa-key text-muted"></i>
-                            </span>
-                            <input [type]="passwordType" placeholder="Enter your password"
-                                class="form-control border-start-0 border-end-0 ps-0" [(ngModel)]="password"
-                                (keyup.enter)="login()" [ngClass]="{ 'is-invalid': isSubmitted && password == '' }" />
-                            <span class="input-group-text bg-light border-start-0 cursor-pointer"
-                                (click)="viewPassword()">
-                                <i class="fas text-muted" [ngClass]="{
-                                        'fa-eye-slash': passwordType == 'password',
-                                        'fa-eye': passwordType == 'text'
-                                    }"></i>
-                            </span>
-                        </div>
-                        <div class="invalid-feedback d-block" *ngIf="isSubmitted && password == ''">
-                            Password is required
-                        </div>
-                    </div>
-
-                    <!-- Remember Me & Forgot Password -->
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" [(ngModel)]="rememberMe" id="rememberMe" />
-                            <label class="form-check-label text-muted" for="rememberMe"> Remember me </label>
-                        </div>
-                        <a href="javascript:void(0)" class="text-decoration-none fw-semibold forgot-link">
-                            Forgot Password?
-                        </a>
-                    </div>
-
-                    <!-- Login Button -->
-                    <button class="btn btn-login w-100 mb-3" [disabled]="isLoading" (click)="login()">
-                        <span *ngIf="!isLoading"> <i class="fas fa-sign-in-alt me-2"></i>Sign In </span>
-                        <span *ngIf="isLoading"> <i class="fas fa-spinner fa-spin me-2"></i>Signing In... </span>
-                    </button>
-
-                    <!-- <button class="btn btn-success mt-3" [disabled]="isLoading" (click)="login()">
-                        <i
-                            class="fa-solid"
-                            [ngClass]="{ 'fa-spinner fa-spin': isLoading, 'fa-arrow-right-to-bracket': !isLoading }"
-                        ></i>
-                        <span class="ps-2">{{ isLoading ? "Wait" : "Login" }}</span>
-                    </button> -->
-
-                    <!-- Sign Up Link -->
-                    <div class="text-center">
-                        <p class="text-muted mb-0">
-                            Don't have an account?
-                            <a href="javascript:void(0)" class="fw-semibold text-decoration-none signup-link">
-                                Create Account
-                            </a>
-                        </p>
-                    </div>
-
-                    <!-- Footer Links -->
-                    <div class="text-center mt-3 pt-2 border-top">
-                        <small class="text-muted">
-                            <a href="#" class="text-decoration-none me-2">Privacy</a>
-                            <span class="me-2">•</span>
-                            <a href="#" class="text-decoration-none me-2">Terms</a>
-                            <span class="me-2">•</span>
-                            <a href="#" class="text-decoration-none">Help</a>
-                        </small>
-                    </div>
-                </div>
-            </div>
+  <div class="login-container">
+    <div class="login-card reveal revealed">
+      <div class="login-header">
+        <div class="brand-logo mb-3">
+          <svg viewBox="0 0 40 40" fill="none">
+            <rect x="4" y="12" width="22" height="16" rx="3" fill="url(#loginGrad)"/>
+            <polygon points="28,15 36,11 36,29 28,25" fill="url(#loginGrad)" opacity="0.8"/>
+            <circle cx="15" cy="20" r="2.5" fill="#fff" opacity="0.9"/>
+            <defs>
+              <linearGradient id="loginGrad" x1="0" y1="0" x2="40" y2="40">
+                <stop offset="0%" stop-color="#818cf8"/>
+                <stop offset="100%" stop-color="#c084fc"/>
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
+        <h2 class="login-title">Welcome Back</h2>
+        <p class="login-subtitle">Sign in to continue to Confeet</p>
+      </div>
+
+      <div class="social-login">
+        <button type="button" class="btn-social">
+          <i class="fab fa-google"></i>
+          <span>Continue with Google</span>
+        </button>
+      </div>
+
+      <div class="divider">
+        <span>OR</span>
+      </div>
+
+      <div class="login-form">
+        <!-- Email Input -->
+        <div class="form-group">
+          <label>Email Address</label>
+          <div class="input-wrapper">
+            <i class="fas fa-envelope input-icon"></i>
+            <input type="email" placeholder="john@company.com" class="form-control-dark"
+                [(ngModel)]="email" (input)="isValidEmail()"
+                [ngClass]="{ 'is-invalid': isSubmitted && (email == '' || !isEmailValid) }" />
+          </div>
+          <div class="error-msg" *ngIf="isSubmitted && email == ''">Email is required</div>
+          <div class="error-msg" *ngIf="isSubmitted && email != '' && !isEmailValid">Please enter a valid email</div>
+        </div>
+
+        <!-- Password Input -->
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrapper">
+            <i class="fas fa-lock input-icon"></i>
+            <input [type]="passwordType" placeholder="Enter your password"
+                class="form-control-dark" [(ngModel)]="password"
+                (keyup.enter)="login()" [ngClass]="{ 'is-invalid': isSubmitted && password == '' }" />
+            <i class="fas toggle-pwd" [ngClass]="{
+                    'fa-eye-slash': passwordType == 'password',
+                    'fa-eye': passwordType == 'text'
+                }" (click)="viewPassword()"></i>
+          </div>
+          <div class="error-msg" *ngIf="isSubmitted && password == ''">Password is required</div>
+        </div>
+
+        <!-- Remember Me & Forgot Password -->
+        <div class="form-options">
+          <div class="custom-checkbox">
+            <input type="checkbox" [(ngModel)]="rememberMe" id="rememberMe" />
+            <label for="rememberMe">Remember me</label>
+          </div>
+          <a href="javascript:void(0)" class="forgot-link">Forgot Password?</a>
+        </div>
+
+        <!-- Login Button -->
+        <button class="btn-login-primary" [disabled]="isLoading" (click)="login()">
+          <span *ngIf="!isLoading">Sign In</span>
+          <span *ngIf="isLoading"><i class="fas fa-spinner fa-spin me-2"></i>Signing In...</span>
+        </button>
+      </div>
+
+      <div class="login-footer">
+        <p>Don't have an account? <a href="javascript:void(0)">Create one</a></p>
+      </div>
     </div>
+  </div>
 </div>

@@ -30,7 +30,10 @@ export const CallEvents = {
     JOINING_REQUEST: 'call:raise-joining-request',
 
     // EventGroupNotification - Notify group members of call status changes
-    EVENT_GROUP_NOTIFICATION: 'call:group-notification'
+    EVENT_GROUP_NOTIFICATION: 'call:group-notification',
+
+    // EventCallEnd - Either party ends an ongoing call
+    CALL_TEST_SIGNAL: 'call:test-signal',
 } as const;
 
 // ============================================

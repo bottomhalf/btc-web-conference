@@ -1,0 +1,542 @@
+<div class="landing-page" id="landing-top">
+  <!-- ======== ANIMATED BG CANVAS ======== -->
+  <div class="global-bg-animation">
+    <div class="wave wave-1"></div>
+    <div class="wave wave-2"></div>
+    <div class="wave wave-3"></div>
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+    <div class="floating-shape shape-4"></div>
+    <div class="floating-shape shape-5"></div>
+    <div class="floating-shape shape-6"></div>
+    <div class="floating-shape shape-7"></div>
+    <div class="floating-shape shape-8"></div>
+  </div>
+
+  <!-- ======== NAVBAR ======== -->
+  <nav class="navbar" [class.scrolled]="isNavScrolled">
+    <div class="nav-container">
+      <div class="nav-brand" (click)="scrollToSection('landing-top')">
+        <div class="brand-logo">
+          <svg viewBox="0 0 40 40" fill="none">
+            <rect x="4" y="12" width="22" height="16" rx="3" fill="url(#navGrad)"/>
+            <polygon points="28,15 36,11 36,29 28,25" fill="url(#navGrad)" opacity="0.8"/>
+            <circle cx="15" cy="20" r="2.5" fill="#fff" opacity="0.9"/>
+            <defs>
+              <linearGradient id="navGrad" x1="0" y1="0" x2="40" y2="40">
+                <stop offset="0%" stop-color="#818cf8"/>
+                <stop offset="100%" stop-color="#c084fc"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span class="brand-text">Confeet</span>
+      </div>
+
+      <div class="nav-links" [class.mobile-open]="isMobileMenuOpen">
+        <a class="nav-link" (click)="scrollToSection('about-us')">About</a>
+        <a class="nav-link" (click)="scrollToSection('features')">Features</a>
+        <a class="nav-link" (click)="scrollToSection('leadership')">Leadership</a>
+        <a class="nav-link" (click)="scrollToSection('contact-us')">Contact</a>
+        <div class="nav-cta-group mobile-only">
+          <button class="btn-nav-outline" (click)="navigateToLogin()">Sign In</button>
+          <button class="btn-nav-solid" (click)="navigateToRegister()">Get Started Free</button>
+        </div>
+      </div>
+
+      <div class="nav-cta-group desktop-only">
+        <button class="btn-nav-outline" id="nav-login-btn" (click)="navigateToLogin()">Sign In</button>
+        <button class="btn-nav-solid" id="nav-register-btn" (click)="navigateToRegister()">Get Started Free</button>
+      </div>
+
+      <button class="hamburger" (click)="toggleMobileMenu()" [class.active]="isMobileMenuOpen" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ======== HERO ======== -->
+  <section class="hero">
+    <div class="hero-bg-effects">
+      <div class="hero-orb orb-1"></div>
+      <div class="hero-orb orb-2"></div>
+      <div class="hero-orb orb-3"></div>
+      <div class="hero-grid"></div>
+    </div>
+
+    <div class="hero-content">
+      <div class="hero-badge reveal">
+        <i class="fas fa-bolt"></i>
+        <span>Powered by AI</span>
+      </div>
+
+      <h1 class="hero-title reveal">
+        Meetings<br/>
+        <span class="gradient-text">Reimagined</span> with AI
+      </h1>
+
+      <p class="hero-subtitle reveal">
+        HD video conferencing, smart chat, file sharing &amp; AI-powered document
+        assistant — all in one seamless platform.
+      </p>
+
+      <div class="hero-actions reveal">
+        <button class="btn-primary" id="hero-get-started-btn" (click)="navigateToRegister()">
+          <span>Start Free</span>
+          <i class="fas fa-arrow-right"></i>
+        </button>
+        <button class="btn-ghost" (click)="scrollToSection('features')">
+          <i class="fas fa-play-circle"></i>
+          <span>Explore Features</span>
+        </button>
+      </div>
+
+      <!-- Floating feature cards -->
+      <div class="hero-floating-cards reveal">
+        <div class="float-card card-1">
+          <div class="float-card-icon"><i class="fas fa-video"></i></div>
+          <span>HD Video</span>
+        </div>
+        <div class="float-card card-2">
+          <div class="float-card-icon"><i class="fas fa-robot"></i></div>
+          <span>AI Assistant</span>
+        </div>
+        <div class="float-card card-3">
+          <div class="float-card-icon"><i class="fas fa-shield-alt"></i></div>
+          <span>Encrypted</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== STATS ======== -->
+  <section class="stats-section" id="stats-section">
+    <div class="stats-container">
+      <div class="stat-item reveal" *ngFor="let stat of stats">
+        <span class="stat-value">{{ stat.value }}{{ stat.suffix }}</span>
+        <span class="stat-label">{{ stat.label }}</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== FEATURES ======== -->
+  <section class="features-section" id="features">
+    <div class="section-container">
+      <div class="section-header reveal">
+        <span class="section-tag">Features</span>
+        <h2 class="section-title">Everything You Need to<br/><span class="gradient-text">Collaborate Effectively</span></h2>
+        <p class="section-desc">From crystal-clear video calls to AI-powered insights, Confeet brings your team together with tools that actually matter.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card reveal">
+          <div class="feature-icon-wrap icon-indigo">
+            <i class="fas fa-video"></i>
+          </div>
+          <h3>Video &amp; Audio Conferencing</h3>
+          <p>Crystal-clear HD video with spatial audio. Support for up to 100 participants with real-time noise cancellation.</p>
+          <div class="feature-tag-row">
+            <span class="feature-tag">HD Video</span>
+            <span class="feature-tag">Noise Cancel</span>
+          </div>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="feature-icon-wrap icon-emerald">
+            <i class="fas fa-comments"></i>
+          </div>
+          <h3>Smart Chat &amp; Messaging</h3>
+          <p>Real-time messaging with threads, reactions, and rich text. Stay connected even outside meetings.</p>
+          <div class="feature-tag-row">
+            <span class="feature-tag">Threads</span>
+            <span class="feature-tag">Reactions</span>
+          </div>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="feature-icon-wrap icon-orange">
+            <i class="fas fa-cloud-upload-alt"></i>
+          </div>
+          <h3>File Sharing &amp; Storage</h3>
+          <p>Drag-and-drop file sharing with cloud storage. Share documents, images, and media instantly in any conversation.</p>
+          <div class="feature-tag-row">
+            <span class="feature-tag">Drag &amp; Drop</span>
+            <span class="feature-tag">Cloud</span>
+          </div>
+        </div>
+
+        <div class="feature-card featured reveal">
+          <div class="featured-badge">
+            <i class="fas fa-bolt"></i> NEW
+          </div>
+          <div class="feature-icon-wrap icon-purple">
+            <i class="fas fa-brain"></i>
+          </div>
+          <h3>RAG AI Assistant</h3>
+          <p>Upload documents and ask questions. Our AI analyzes your files and provides instant, context-aware answers.</p>
+          <div class="feature-tag-row">
+            <span class="feature-tag">AI Powered</span>
+            <span class="feature-tag">RAG</span>
+          </div>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="feature-icon-wrap icon-sky">
+            <i class="fas fa-desktop"></i>
+          </div>
+          <h3>Screen Sharing</h3>
+          <p>Share your entire screen or specific windows with one click. Present slides, demos, and content effortlessly.</p>
+          <div class="feature-tag-row">
+            <span class="feature-tag">One Click</span>
+            <span class="feature-tag">Multi-screen</span>
+          </div>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="feature-icon-wrap icon-pink">
+            <i class="fas fa-lock"></i>
+          </div>
+          <h3>End-to-End Encryption</h3>
+          <p>Military-grade 256-bit encryption for all communications. Your meetings, chats, and files are always private.</p>
+          <div class="feature-tag-row">
+            <span class="feature-tag">256-bit</span>
+            <span class="feature-tag">Zero Trust</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== AI SECTION ======== -->
+  <section class="ai-section" id="ai-section">
+    <div class="section-container ai-layout">
+      <div class="ai-content reveal">
+        <span class="section-tag">AI-Powered</span>
+        <h2 class="section-title">Ask Your Documents<br/><span class="gradient-text">Anything</span></h2>
+        <p class="section-desc" style="margin:1rem 0 0 0;">
+          Upload PDFs, docs, or presentations and let our RAG-powered AI assistant extract answers instantly.
+          No more digging through pages — just ask and get precise, cited responses.
+        </p>
+        <ul class="ai-features-list">
+          <li><i class="fas fa-check-circle"></i> Upload any document format</li>
+          <li><i class="fas fa-check-circle"></i> Natural language questions</li>
+          <li><i class="fas fa-check-circle"></i> Source-cited answers</li>
+          <li><i class="fas fa-check-circle"></i> Multi-document context</li>
+        </ul>
+        <button class="btn-primary" (click)="navigateToRegister()">
+          <span>Try AI Assistant</span>
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+
+      <div class="ai-demo reveal">
+        <div class="ai-terminal">
+          <div class="terminal-header">
+            <div class="terminal-dots">
+              <span class="tdot red"></span>
+              <span class="tdot yellow"></span>
+              <span class="tdot green"></span>
+            </div>
+            <span class="terminal-title"><i class="fas fa-robot"></i> Confeet AI</span>
+          </div>
+
+          <div class="terminal-body">
+            <div class="chat-msg user-msg">
+              <div class="msg-avatar"><i class="fas fa-user"></i></div>
+              <div class="msg-bubble">
+                <span class="typing-text">{{ displayedText }}</span>
+                <span class="cursor-blink">|</span>
+              </div>
+            </div>
+
+            <div class="chat-msg ai-msg" *ngIf="showAiResponse">
+              <div class="msg-avatar ai"><i class="fas fa-robot"></i></div>
+              <div class="msg-bubble ai-bubble">
+                <p>Based on the uploaded documents, here are the key findings:</p>
+                <div class="ai-highlight">
+                  <i class="fas fa-quote-left"></i>
+                  Revenue increased by 23% compared to Q3, driven primarily by the APAC region expansion...
+                </div>
+                <span class="ai-source"><i class="fas fa-file-alt"></i> Source: Q4-Report.pdf, Page 12</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-glow"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== ABOUT US ======== -->
+  <section class="about-section" id="about-us">
+    <div class="section-container">
+      <div class="about-grid">
+        <div class="about-content reveal">
+          <span class="section-tag">About Us</span>
+          <h2 class="section-title">Empowering Global<br/><span class="gradient-text">Communication</span></h2>
+          <p class="section-desc" style="margin-left:0; max-width: 100%;">
+            Confeet was founded on a simple premise: distance should never dictate the quality of collaboration. 
+            We are a team of engineers, designers, and innovators dedicated to breaking down the barriers of remote work.
+          </p>
+          <p class="section-desc" style="margin-left:0; max-width: 100%; margin-top: 1rem;">
+            By blending ultra-low-latency video infrastructure with cutting-edge AI, we've created a platform that 
+            doesn't just replicate the office—it improves upon it. Our mission is to make every meeting actionable, 
+            secure, and seamlessly integrated into your workflow.
+          </p>
+          <div class="about-stats">
+            <div class="a-stat">
+              <h4>2022</h4>
+              <span>Founded</span>
+            </div>
+            <div class="a-stat">
+              <h4>$40M</h4>
+              <span>Funding</span>
+            </div>
+            <div class="a-stat">
+              <h4>150+</h4>
+              <span>Employees</span>
+            </div>
+          </div>
+        </div>
+        <div class="about-image reveal">
+          <div class="image-wrapper">
+            <div class="about-glow"></div>
+            <img src="assets/hero-conference.png" alt="Confeet Team">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== LEADERSHIP ======== -->
+  <section class="leadership-section" id="leadership">
+    <div class="section-container">
+      <div class="section-header reveal">
+        <span class="section-tag">Our Leadership</span>
+        <h2 class="section-title">Guided by<br/><span class="gradient-text">Visionaries</span></h2>
+      </div>
+
+      <div class="leadership-grid">
+        <!-- CEO -->
+        <div class="lead-card reveal" (click)="navigateToLeadership('ceo')">
+          <div class="lead-bg" style="background: linear-gradient(135deg, rgba(30,58,138,0.4), rgba(15,23,42,0.8));"></div>
+          <div class="lead-quote-mark"><i class="fas fa-quote-left"></i></div>
+          <div class="lead-content">
+            <h4>Executive Chairman & Group CEO's Message</h4>
+            <p>Markets reward execution, structure, and speed—not intention. At Confeet, we enable teams to operate with precision...</p>
+          </div>
+          <img src="assets/zaid_ceo.png" alt="CEO" class="lead-portrait">
+          <div class="lead-info">
+            <h5>Eng. Zaid</h5>
+            <span>CEO, Confeet</span>
+          </div>
+          <div class="click-overlay"><span>Read Full Message <i class="fas fa-arrow-right"></i></span></div>
+        </div>
+
+        <!-- CTO -->
+        <div class="lead-card reveal" style="transition-delay: 0.1s" (click)="navigateToLeadership('cto')">
+          <div class="lead-bg" style="background: linear-gradient(135deg, rgba(6,78,59,0.4), rgba(15,23,42,0.8));"></div>
+          <div class="lead-quote-mark"><i class="fas fa-quote-left"></i></div>
+          <div class="lead-content">
+            <h4>Chief Technology Officer's Message</h4>
+            <p>Innovation isn't about the newest tech, it's about solving real human problems. We built Confeet's architecture on a foundation of zero-trust...</p>
+          </div>
+          <img src="assets/istiyak_without_bg.png" alt="CTO" class="lead-portrait">
+          <div class="lead-info">
+            <h5>Eng. Istiyak</h5>
+            <span>CTO, Confeet</span>
+          </div>
+          <div class="click-overlay"><span>Read Full Message <i class="fas fa-arrow-right"></i></span></div>
+        </div>
+
+        <!-- CFO -->
+        <div class="lead-card reveal" style="transition-delay: 0.2s" (click)="navigateToLeadership('cfo')">
+          <div class="lead-bg" style="background: linear-gradient(135deg, rgba(112,26,117,0.4), rgba(15,23,42,0.8));"></div>
+          <div class="lead-quote-mark"><i class="fas fa-quote-left"></i></div>
+          <div class="lead-content">
+            <h4>Chief Operation Officer's Message</h4>
+            <p>Sustainable growth requires discipline and a relentless focus on value delivery. In an era of economic uncertainty, Confeet provides...</p>
+          </div>
+          <img src="assets/cfo_portrait.png" alt="CFO" class="lead-portrait">
+          <div class="lead-info">
+            <h5>Amtul Lubna</h5>
+            <span>COO, Confeet</span>
+          </div>
+          <div class="click-overlay"><span>Read Full Message <i class="fas fa-arrow-right"></i></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== HOW IT WORKS ======== -->
+  <section class="how-section" id="how-it-works">
+    <div class="section-container">
+      <div class="section-header reveal">
+        <span class="section-tag">Simple Setup</span>
+        <h2 class="section-title">Get Started in<br/><span class="gradient-text">3 Easy Steps</span></h2>
+      </div>
+
+      <div class="steps-row">
+        <div class="step-card reveal">
+          <div class="step-number">01</div>
+          <div class="step-icon"><i class="fas fa-user-plus"></i></div>
+          <h3>Create Account</h3>
+          <p>Sign up in seconds with your email or Google account. No credit card required.</p>
+        </div>
+
+        <div class="step-connector">
+          <div class="connector-line"></div>
+          <div class="connector-arrow"><i class="fas fa-chevron-right"></i></div>
+        </div>
+
+        <div class="step-card reveal">
+          <div class="step-number">02</div>
+          <div class="step-icon"><i class="fas fa-plus-circle"></i></div>
+          <h3>Create a Room</h3>
+          <p>Start an instant meeting or schedule one for later. Share the link with your team.</p>
+        </div>
+
+        <div class="step-connector">
+          <div class="connector-line"></div>
+          <div class="connector-arrow"><i class="fas fa-chevron-right"></i></div>
+        </div>
+
+        <div class="step-card reveal">
+          <div class="step-number">03</div>
+          <div class="step-icon"><i class="fas fa-users"></i></div>
+          <h3>Collaborate</h3>
+          <p>Video call, chat, share files, and ask your AI assistant — all in one place.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== CTA BANNER ======== -->
+  <section class="cta-banner">
+    <div class="cta-bg-effects">
+      <div class="cta-orb orb-a"></div>
+      <div class="cta-orb orb-b"></div>
+    </div>
+    <div class="cta-content reveal">
+      <h2>Ready to Transform<br/>Your Meetings?</h2>
+      <p>Join thousands of teams already using Confeet for smarter collaboration.</p>
+      <div class="cta-actions">
+        <button class="btn-primary btn-lg" id="cta-register-btn" (click)="navigateToRegister()">
+          <span>Get Started Free</span>
+          <i class="fas fa-arrow-right"></i>
+        </button>
+        <button class="btn-outline-light btn-lg" id="cta-login-btn" (click)="navigateToLogin()">
+          <span>Sign In</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== CONTACT US ======== -->
+  <section class="contact-section" id="contact-us">
+    <div class="section-container">
+      <div class="section-header reveal">
+        <span class="section-tag">Get in Touch</span>
+        <h2 class="section-title">We'd Love to<br/><span class="gradient-text">Hear From You</span></h2>
+      </div>
+      <div class="contact-grid">
+        <div class="contact-info reveal">
+          <div class="info-card">
+            <div class="info-icon"><i class="fas fa-envelope"></i></div>
+            <h4>Email Us</h4>
+            <p>hello&#64;confeet.com</p>
+          </div>
+          <div class="info-card">
+            <div class="info-icon"><i class="fas fa-map-marker-alt"></i></div>
+            <h4>Visit Us</h4>
+            <p>123 Innovation Drive<br/>San Francisco, CA 94105</p>
+          </div>
+          <div class="info-card">
+            <div class="info-icon"><i class="fas fa-phone"></i></div>
+            <h4>Call Us</h4>
+            <p>+1 (555) 123-4567</p>
+          </div>
+        </div>
+        <div class="contact-form reveal">
+          <form (submit)="$event.preventDefault()">
+            <div class="form-group">
+              <label>Full Name</label>
+              <input type="text" placeholder="John Doe">
+            </div>
+            <div class="form-group">
+              <label>Email Address</label>
+              <input type="email" placeholder="john@company.com">
+            </div>
+            <div class="form-group">
+              <label>Message</label>
+              <textarea rows="4" placeholder="How can we help you?"></textarea>
+            </div>
+            <button class="btn-primary" style="width: 100%">Send Message</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== FOOTER ======== -->
+  <footer class="landing-footer">
+    <div class="footer-top-accent"></div>
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="footer-logo-row">
+          <div class="brand-logo">
+            <svg viewBox="0 0 40 40" fill="none">
+              <rect x="4" y="12" width="22" height="16" rx="3" fill="url(#footGrad)"/>
+              <polygon points="28,15 36,11 36,29 28,25" fill="url(#footGrad)" opacity="0.8"/>
+              <circle cx="15" cy="20" r="2.5" fill="#fff" opacity="0.9"/>
+              <defs>
+                <linearGradient id="footGrad" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0%" stop-color="#818cf8"/>
+                  <stop offset="100%" stop-color="#c084fc"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <span class="brand-text">Confeet</span>
+        </div>
+        <p class="footer-desc">The all-in-one platform for modern team collaboration. Video, chat, files, and AI — together at last.</p>
+        <div class="footer-social">
+          <a href="javascript:void(0)" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+          <a href="javascript:void(0)" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+          <a href="javascript:void(0)" aria-label="GitHub"><i class="fab fa-github"></i></a>
+          <a href="javascript:void(0)" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+        </div>
+      </div>
+
+      <div class="footer-links-group">
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="javascript:void(0)">Features</a>
+          <a href="javascript:void(0)">Pricing</a>
+          <a href="javascript:void(0)">Security</a>
+          <a href="javascript:void(0)">Integrations</a>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <a href="javascript:void(0)">About</a>
+          <a href="javascript:void(0)">Blog</a>
+          <a href="javascript:void(0)">Careers</a>
+          <a href="javascript:void(0)">Contact</a>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="javascript:void(0)">Privacy Policy</a>
+          <a href="javascript:void(0)">Terms of Service</a>
+          <a href="javascript:void(0)">Cookie Policy</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>&copy; 2026 Confeet. All rights reserved.</span>
+      <span class="footer-tagline">Built with <i class="fas fa-heart" style="color:#c084fc;font-size:.7rem"></i> for better meetings</span>
+    </div>
+  </footer>
+</div>

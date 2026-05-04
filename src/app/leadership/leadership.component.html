@@ -1,0 +1,34 @@
+<div class="leadership-page" *ngIf="leader">
+  <button class="btn-back" (click)="goBack()">
+    <i class="fas fa-arrow-left"></i> Back to Home
+  </button>
+
+  <div class="leader-container">
+    <div class="leader-card" [style.background]="leader.gradient">
+      <!-- Background Quotes -->
+      <div class="quote-bg quote-top"><i class="fas fa-quote-left"></i></div>
+      <div class="quote-bg quote-bottom"><i class="fas fa-quote-right"></i></div>
+      
+      <div class="card-content">
+        <h1 class="message-title">{{ leader.title }}'s Message</h1>
+        
+        <p class="highlight-quote">{{ leader.quote }}</p>
+        <p class="message-body">{{ leader.message }}</p>
+        
+        <div class="bio-section">
+          <h3>About {{ leader.name.split(' ')[0] }}</h3>
+          <p>{{ leader.bio }}</p>
+        </div>
+      </div>
+      
+      <div class="portrait-container">
+        <div class="gradient-overlay"></div>
+        <img [src]="leader.image" [alt]="leader.name" class="portrait-img">
+        <div class="name-tag">
+          <h2>{{ leader.name }}</h2>
+          <p>{{ leader.title }}<br/>Confeet Global Inc.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,11 +1,11 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { Observable, filter, map, Subscription } from 'rxjs';
+import { registerCallEventHandlers } from './server-event.handlers';
 import { ConfeetSocketService, WsEvent } from './confeet-socket.service';
 import { LocalService } from '../services/local.service';
 import {
     // Constants
     CallServerEvents,
-    CallStatus,
     // Types
     CallStatusValue,
     // Server to Client Events
@@ -21,13 +21,16 @@ import {
     CallParticipant,
     GroupNotificationEvent,
 } from '../../models/conference_call/call_model';
+import { CallStore } from '../../store/call/call.store';
 
 @Injectable({
     providedIn: 'root'
 })
 export class ServerEventService {
+
     // =========================================================
     // Server to Client Event Observables
+    // (These are pure WebSocket stream filters — no state here)
     // =========================================================
 
     /** Emits when receiving an incoming call */
@@ -67,34 +70,47 @@ export class ServerEventService {
     groupNotification$: Observable<GroupNotificationEvent>;
 
     // =========================================================
-    // Call State Management
+    // Call State — proxied from CallStore
+    // All components injecting ServerEventService continue to
+    // work with these signals without any change at all.
     // =========================================================
 
     /** Call status for UI display */
-    public callStatus = signal<CallStatusValue | null>(null);
+    get callStatus() { return this.store.callStatus; }
 
     /** Participants currently in the room */
-    public participantsInRoom = signal<CallParticipant[] | null>(null);
+    get participantsInRoom() { return this.store.participantsInRoom; }
 
     /** Is receiving an incoming call */
-    public hasIncomingCall = signal<boolean>(false);
+    get hasIncomingCall() { return this.store.hasIncomingCall; }
 
     /** Is receiving a joining request */
-    public hasJoiningRequest = signal<boolean>(false);
+    get hasJoiningRequest() { return this.store.hasJoiningRequest; }
 
     /** Incoming call details */
-    public incomingCall = signal<CallIncomingEvent | null>(null);
+    get incomingCall() { return this.store.incomingCall; }
 
-    /** Incoming call details */
-    public groupNotification = signal<GroupNotificationEvent | null>(null);
+    /** Latest group notification */
+    get groupNotification() { return this.store.groupNotification; }
 
-    private subscriptions = new Subscription();
+    // =========================================================
+    // Internal
+    // =========================================================
+
+    /** Subscription bag — exposed so server-event.handlers can add to it */
+    public subscriptions = new Subscription();
+
+    /** The store — exposed so server-event.handlers can call its methods */
+    public store: CallStore;
 
     constructor(
         private ws: ConfeetSocketService,
-        private local: LocalService
+        private local: LocalService,
+        store: CallStore
     ) {
-        // Setup filtered observables for server events
+        this.store = store;
+
+        // Wire up the filtered WebSocket observables
         this.callIncoming$ = this.onCallEvent<CallIncomingEvent>(CallServerEvents.CALL_INCOMING);
         this.callJoiningRequest$ = this.onCallEvent<CallIncomingEvent>(CallServerEvents.CALL_JOINING_REQUEST);
         this.callAccepted$ = this.onCallEvent<CallAcceptedEvent>(CallServerEvents.CALL_ACCEPTED);
@@ -109,190 +125,53 @@ export class ServerEventService {
         this.groupNotification$ = this.onCallEvent<GroupNotificationEvent>(CallServerEvents.CALL_GROUP_NOTIFICATION);
     }
 
+    // =========================================================
+    // Public API
+    // =========================================================
+
     /**
      * Initialize call event listeners.
      * Should be called once from LayoutComponent or NotificationService.
      */
     initialize(): void {
-        this.registerCallEventHandlers();
-        console.log('ServerEventService initialized');
+        registerCallEventHandlers(this, this.local);
+        console.log('[ServerEventService] Initialized with NgRx SignalStore');
+    }
+
+    /**
+     * Convenience helper — delegates to the store.
+     * Kept for backward-compatibility with any code that calls this directly.
+     */
+    public updateParticipantsInRoom(event: Record<string, CallParticipant>): void {
+        this.store.setParticipantsInRoom(event);
+    }
+
+    /**
+     * Convenience helper — delegates to the store.
+     * Kept for backward-compatibility with any code that calls this directly.
+     */
+    public resetCallState(): void {
+        this.store.reset();
+    }
+
+    /**
+     * Cleanup subscriptions on destroy.
+     */
+    destroy(): void {
+        this.subscriptions.unsubscribe();
     }
 
     // =========================================================
-    // Private Helper Methods
+    // Private Helpers
     // =========================================================
 
     /**
-     * Generic event filter for call events
+     * Generic typed filter over the WebSocket message stream.
      */
     private onCallEvent<T>(eventType: string): Observable<T> {
         return this.ws.getMessageSubject().pipe(
             filter((e: WsEvent) => e.event === eventType),
             map((e: WsEvent) => e.payload as T)
         );
-    }
-
-    private updateParticipantsInRoom(event: Record<string, CallParticipant>): void {
-        if (event && Object.keys(event).length > 0) {
-            this.participantsInRoom.set(Object.keys(event).map(x => event[x]));
-        } else {
-            this.participantsInRoom.set([]);
-        }
-    }
-
-    /**
-     * Register handlers for incoming call events
-     */
-    private registerCallEventHandlers(): void {
-        // Handle incoming call (only for callees, not the caller)
-        this.subscriptions.add(
-            this.callIncoming$.subscribe(event => {
-                const currentUser = this.local.getUser();
-
-                // Skip if I am the caller (I should not get notified of my own call)
-                if (currentUser && event.callerId === currentUser.userId) {
-                    console.log('Ignoring incoming call event - I am the caller');
-                    return;
-                }
-
-                // Only set data for callees
-                this.incomingCall.set(event);
-                this.hasIncomingCall.set(true);
-                this.callStatus.set(CallStatus.RINGING);
-                console.log('Incoming call from:', event.callerId);
-            })
-        );
-
-        // Handle joining request (call already in progress, user invited to join)
-        this.subscriptions.add(
-            this.callJoiningRequest$.subscribe(event => {
-                const currentUser = this.local.getUser();
-
-                this.updateParticipantsInRoom(event.participants);
-                this.incomingCall.set(event);
-                // Skip if I am the caller (I should not get notified of my own call)
-                if (currentUser && event.callerId === currentUser.userId) {
-                    console.log('Ignoring joining request event - I am the caller');
-                    return;
-                }
-
-                // Only set data for callees
-                this.hasJoiningRequest.set(true);
-                this.callStatus.set(CallStatus.JOINING_REQUEST);
-                console.log('Joining request from:', event.callerId);
-            })
-        );
-
-        // Handle joining request (call already in progress, user invited to join)
-        this.subscriptions.add(
-            this.groupNotification$.subscribe(event => {
-                console.log('Group notification:', event);
-                this.groupNotification.set(event);
-            })
-        );
-
-        // Handle raised joining request
-        this.subscriptions.add(
-            this.callRaisedJoiningRequest$.subscribe(event => {
-                const currentUser = this.local.getUser();
-
-                this.incomingCall.set(event);
-                // Skip if I am the caller (I should not get notified of my own call)
-                if (currentUser && event.callerId === currentUser.userId) {
-                    console.log('Ignoring joining request event - I am the caller');
-                    return;
-                }
-
-                // Only set data for callees
-                this.hasJoiningRequest.set(true);
-                this.callStatus.set(CallStatus.RAISED_JOINING_REQUEST);
-                console.log('Joining request from:', event.callerId);
-            })
-        );
-
-        // Handle call accepted
-        this.subscriptions.add(
-            this.callAccepted$.subscribe(event => {
-                this.callStatus.set(CallStatus.ACCEPTED);
-                console.log('Call accepted by:', event.acceptedBy);
-            })
-        );
-
-        // Handle call rejected
-        this.subscriptions.add(
-            this.callRejected$.subscribe(event => {
-                this.callStatus.set(CallStatus.REJECTED);
-                this.resetCallState();
-                console.log('Call rejected by:', event.rejectedBy);
-            })
-        );
-
-        // Handle call dismissed
-        this.subscriptions.add(
-            this.callDismissed$.subscribe(event => {
-                console.log('Call dismissed by:', JSON.stringify(event));
-            })
-        );
-
-        // Handle call cancelled
-        this.subscriptions.add(
-            this.callCancelled$.subscribe(event => {
-                this.callStatus.set(CallStatus.CANCELLED);
-                this.hasIncomingCall.set(false);
-                this.incomingCall.set(null);
-                console.log('Call cancelled by:', event.cancelledBy);
-            })
-        );
-
-        // Handle call timeout
-        this.subscriptions.add(
-            this.callTimedOut$.subscribe(event => {
-                this.callStatus.set(CallStatus.TIMEOUT);
-                this.resetCallState();
-                console.log('Call timed out:', event.conversationId);
-            })
-        );
-
-        // Handle call ended
-        this.subscriptions.add(
-            this.callEnded$.subscribe(event => {
-                this.callStatus.set(CallStatus.ENDED);
-                this.resetCallState();
-                console.log('Call ended by:', event.endedBy, 'Duration:', event.duration);
-            })
-        );
-
-        // Handle callee busy
-        this.subscriptions.add(
-            this.callBusy$.subscribe(event => {
-                this.callStatus.set(CallStatus.BUSY);
-                this.resetCallState();
-                console.log('User busy:', event.busyUser);
-            })
-        );
-
-        // Handle call error
-        this.subscriptions.add(
-            this.callError$.subscribe(event => {
-                this.callStatus.set(CallStatus.FAILED);
-                this.resetCallState();
-                console.error('Call error:', event.error);
-            })
-        );
-    }
-
-    /**
-     * Reset all call state
-     */
-    private resetCallState(): void {
-        this.hasIncomingCall.set(false);
-        this.incomingCall.set(null);
-    }
-
-    /**
-     * Cleanup subscriptions
-     */
-    destroy(): void {
-        this.subscriptions.unsubscribe();
     }
 }

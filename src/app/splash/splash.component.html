@@ -1,0 +1,58 @@
+<div class="splash-screen" [class.fade-out]="fadeOut">
+  <!-- Ambient background particles -->
+  <div class="bg-particles">
+    <div class="particle p1"></div>
+    <div class="particle p2"></div>
+    <div class="particle p3"></div>
+    <div class="particle p4"></div>
+    <div class="particle p5"></div>
+    <div class="particle p6"></div>
+  </div>
+
+  <!-- Main content -->
+  <div class="splash-content">
+    <!-- Logo ring -->
+    <div class="logo-wrapper">
+      <div class="logo-ring"></div>
+      <div class="logo-ring ring-2"></div>
+      <div class="logo-icon">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Video camera icon -->
+          <rect x="6" y="18" width="36" height="28" rx="4" fill="url(#logoGrad)" opacity="0.9"/>
+          <polygon points="46,24 58,18 58,46 46,40" fill="url(#logoGrad)" opacity="0.75"/>
+          <!-- Screen share dot -->
+          <circle cx="24" cy="32" r="4" fill="#fff" opacity="0.8"/>
+          <defs>
+            <linearGradient id="logoGrad" x1="0" y1="0" x2="64" y2="64">
+              <stop offset="0%" stop-color="#818cf8"/>
+              <stop offset="100%" stop-color="#c084fc"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      <!-- Orbiting dots -->
+      <div class="orbit-dot dot-1"></div>
+      <div class="orbit-dot dot-2"></div>
+      <div class="orbit-dot dot-3"></div>
+    </div>
+
+    <!-- Brand name -->
+    <h1 class="brand-name">
+      <span class="letter" style="--i:0">C</span>
+      <span class="letter" style="--i:1">o</span>
+      <span class="letter" style="--i:2">n</span>
+      <span class="letter" style="--i:3">f</span>
+      <span class="letter" style="--i:4">e</span>
+      <span class="letter" style="--i:5">e</span>
+      <span class="letter" style="--i:6">t</span>
+    </h1>
+
+    <p class="tagline">Connect. Collaborate. Create.</p>
+
+    <!-- Loading bar -->
+    <div class="progress-track">
+      <div class="progress-fill"></div>
+    </div>
+  </div>
+</div>
