@@ -13,6 +13,7 @@ import { NotificationService } from '../notifications/services/notification.serv
 import { CallType } from '../models/conference_call/call_model';
 import { ServerEventService } from '../providers/socket/server-event.service';
 import { ChatContainerComponent } from './chat-container/chat-container.component';
+import { TestSignalService } from '../providers/socket/call/test-sinal.service';
 
 @Component({
     selector: 'app-chat',
@@ -58,7 +59,8 @@ export class ChatComponent implements OnInit, OnDestroy {
         public chatService: ChatService,
         private router: Router,
         public notificationService: NotificationService,
-        private serverEventService: ServerEventService
+        private serverEventService: ServerEventService,
+        private testSignalService: TestSignalService
     ) {
         // React to group notifications
         effect(() => {
@@ -71,6 +73,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit() {
+        this.testSignalService.execute();
         this.user = this.local.getUser();
         this.currentUserId = this.user.userId;
 

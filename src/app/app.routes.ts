@@ -3,6 +3,7 @@ import { AppComponent } from "./app.component";
 import { MeetingComponent } from "./meeting/meeting.component";
 import { PreviewComponent } from "./preview/preview.component";
 import { authGuard } from "./providers/auth.guard";
+import { SplashComponent } from "./splash/splash.component";
 
 // Custom route matcher
 export function btcRouteMatcher(segments: UrlSegment[]) {
@@ -22,9 +23,19 @@ export function btcRouteMatcher(segments: UrlSegment[]) {
 export const routes: Routes = [
   {
     path: '',
+    component: SplashComponent,
+  },
+  {
+    path: 'home',
     loadComponent: () =>
-      import('./login/login.component').then(c => c.LoginComponent),
-  }, {
+      import('./landing/landing.component').then(c => c.LandingComponent),
+  },
+  {
+    path: 'leadership/:role',
+    loadComponent: () =>
+      import('./leadership/leadership.component').then(c => c.LeadershipComponent),
+  },
+  {
     path: 'login',
     loadComponent: () =>
       import('./login/login.component').then(c => c.LoginComponent),
