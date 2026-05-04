@@ -19,15 +19,16 @@
           <h3>About {{ leader.name.split(' ')[0] }}</h3>
           <p>{{ leader.bio }}</p>
         </div>
+        
+        <div class="name-tag">
+          <h2>{{ leader.name }}</h2>
+          <p>{{ leader.title }}<br/>Confeet Global Inc.</p>
+        </div>
       </div>
       
       <div class="portrait-container">
         <div class="gradient-overlay"></div>
         <img [src]="leader.image" [alt]="leader.name" class="portrait-img">
-        <div class="name-tag">
-          <h2>{{ leader.name }}</h2>
-          <p>{{ leader.title }}<br/>Confeet Global Inc.</p>
-        </div>
       </div>
     </div>
   </div>

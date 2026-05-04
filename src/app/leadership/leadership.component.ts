@@ -35,7 +35,7 @@ export class LeadershipComponent implements OnInit {
     cfo: {
       name: 'Amtul Lubna',
       title: 'Chief Operation Officer',
-      image: 'assets/cfo_portrait.png',
+      image: 'assets/lubna_coo.png',
       quote: "Sustainable growth requires discipline and a relentless focus on value delivery.",
       message: "In an era of economic uncertainty, Confeet provides organizations with massive ROI by consolidating video, chat, and AI tools into one secure platform. Our financial stability allows us to invest heavily in long-term R&D rather than short-term gains.",
       bio: "Amtul Lubna brings decades of operation leadership from the telecom and SaaS sectors, driving Confeet's strategy for sustainable global expansion.",
