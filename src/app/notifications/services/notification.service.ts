@@ -106,8 +106,6 @@ export class NotificationService {
             }
         } else {
             this.chatService.messages.update(msgs => [...msgs, message]);
-            // Auto mark as delivered
-            this.ws.markDelivered(message.id!, this.user.userId, message.conversationId);
         }
     }
 
@@ -317,12 +315,12 @@ export class NotificationService {
 
     private handleSeen(seen: MessageSeen): void {
         // Update message status in active conversation
-        const msg = this.chatService.messages().find(m => m.id === seen.id);
+        const msg = this.chatService.messages().find(m => m.id === seen.messageId);
         if (msg) {
             // Mark as seen in UI
-            console.log('Message seen:', seen.id);
+            console.log('Message seen:', seen.messageId);
             this.chatService.messages.update(msgs =>
-                msgs.map(x => x.id === seen.id ? { ...x, status: 3 } : x)
+                msgs.map(x => x.id === seen.messageId ? { ...x, status: 3 } : x)
             );
         }
     }

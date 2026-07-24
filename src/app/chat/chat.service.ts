@@ -381,6 +381,6 @@ export class ChatService {
     }
 
     sendMarkedSeen(message: Message) {
-        this.ws.markSeen(message.id, this.currentUserId, message.conversationId);
+        this.ws.markSeen(message.messageId, this.currentUserId, message.conversationId);
     }
 }

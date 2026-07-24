@@ -39,7 +39,7 @@ export class ConfeetSocketService {
         this.incomingMessage$ = this.onEvent<Message>(WsEvents.NEW_MESSAGE);
         this.outgoingMessage$ = this.onEvent<Message>(WsEvents.MESSAGE_SENT);
         this.delivered$ = this.onEvent<MessageDelivered>(WsEvents.DELIVERED);
-        this.seen$ = this.onEvent<MessageSeen>(WsEvents.SEEN);
+        this.seen$ = this.onEvent<MessageSeen>(WsEvents.MARK_SEEN);
         this.userTyping$ = this.onEvent<TypingIndicator>(WsEvents.USER_TYPING);
         this.error$ = this.onEvent<ErrorPayload>(WsEvents.ERROR);
         this.pong$ = this.onEvent<PongPayload>(WsEvents.PONG);
@@ -224,9 +224,9 @@ export interface MessageDelivered {
 }
 
 export interface MessageSeen {
-    id: string;
+    messageId: string;
     conversationId: string;
-    seenBy: string;
+    userId: string;
     seenAt: string;
 }
 
@@ -268,7 +268,7 @@ export const WsEvents = {
     MESSAGE_SENT: 'message_sent',
     MESSAGE_REACTED: 'message_reacted',
     DELIVERED: 'delivered',
-    SEEN: 'seen',
+    SEEN: 'mark_seen',
     USER_TYPING: 'user_typing',
     USER_STATUS: 'user_status',
     ERROR: 'error',
