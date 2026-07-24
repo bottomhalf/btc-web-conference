@@ -106,8 +106,6 @@ export class NotificationService {
             }
         } else {
             this.chatService.messages.update(msgs => [...msgs, message]);
-            // Auto mark as delivered
-            this.ws.markDelivered(message.id!, this.user.userId, message.conversationId);
         }
     }
 
@@ -250,12 +248,11 @@ export class NotificationService {
                 return;
             }
         }
-        const isActiveConversation = this.activeConversationId() === message.conversationId;
 
-        if (isActiveConversation && this.chatService.isChatActive()) {
-            // Add to current chat view
-            this.addMessageToActiveConversation(message);
-        } else {
+        // Add to current chat view
+        this.addMessageToActiveConversation(message);
+
+        if (this.activeConversationId() !== message.conversationId) {
             // Increment unread count for this conversation
             this.unreadCounts.update(counts => {
                 const newCounts = new Map(counts);
@@ -278,6 +275,9 @@ export class NotificationService {
 
         // Update conversation's last message in the list
         this.updateConversationLastMessage(message);
+
+        // Acknowledge message seen
+        this.chatService.sendMarkedSeen(message);
     }
 
     private handleMessageSent(message: Message | string): void {
@@ -315,13 +315,21 @@ export class NotificationService {
 
     private handleSeen(seen: MessageSeen): void {
         // Update message status in active conversation
-        const msg = this.chatService.messages().find(m => m.id === seen.id);
+        const msg = this.chatService.messages().find(m => m.messageId === seen.messageId);
         if (msg) {
-            // Mark as seen in UI
-            console.log('Message seen:', seen.id);
+            // Mark as seen in UI            
             this.chatService.messages.update(msgs =>
-                msgs.map(x => x.id === seen.id ? { ...x, status: 3 } : x)
+                msgs.map(x => {
+                    if (x.messageId === seen.messageId) {
+                        const seenByUserIds = x.seenByUserIds || [];
+                        const updatedSeenByUserIds = seenByUserIds.includes(seen.userId) ? seenByUserIds : [...seenByUserIds, seen.userId];
+                        return { ...x, status: 3, seenByUserIds: updatedSeenByUserIds };
+                    }
+                    return x;
+                })
             );
+
+            console.log('Message seen: ', seen.messageId);
         }
     }
 

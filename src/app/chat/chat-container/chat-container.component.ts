@@ -275,6 +275,13 @@ export class ChatContainerComponent implements AfterViewChecked {
     return 'Member';
   }
 
+  getOtherParticipantId(): string {
+    const conv = this.ws.currentConversation();
+    if (!conv) return '';
+    const other = (conv.participants || []).find(p => p.userId !== this.currentUserId);
+    return other?.userId || '';
+  }
+
 
   isSequentialMessage(index: number): boolean {
     if (index <= 0) return false;
