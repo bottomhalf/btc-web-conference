@@ -250,12 +250,11 @@ export class NotificationService {
                 return;
             }
         }
-        const isActiveConversation = this.activeConversationId() === message.conversationId;
 
-        if (isActiveConversation && this.chatService.isChatActive()) {
-            // Add to current chat view
-            this.addMessageToActiveConversation(message);
-        } else {
+        // Add to current chat view
+        this.addMessageToActiveConversation(message);
+
+        if (this.activeConversationId() !== message.conversationId) {
             // Increment unread count for this conversation
             this.unreadCounts.update(counts => {
                 const newCounts = new Map(counts);
@@ -278,6 +277,9 @@ export class NotificationService {
 
         // Update conversation's last message in the list
         this.updateConversationLastMessage(message);
+
+        // Acknowledge message seen
+        this.chatService.sendMarkedSeen(message);
     }
 
     private handleMessageSent(message: Message | string): void {

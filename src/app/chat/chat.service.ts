@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { Subject, filter, take } from 'rxjs';
 import { Conversation, Participant, SearchResult, UserDetail } from '../components/global-search/search.models';
 import { HttpService } from '../providers/services/http.service';
-import { ConfeetSocketService, Message } from '../providers/socket/confeet-socket.service';
+import { ConfeetSocketService, Message, MessageSeen } from '../providers/socket/confeet-socket.service';
 import { ResponseModel } from '../models/model';
 import { LocalService } from '../providers/services/local.service';
 import { ChatDbService } from '../core/services/chat-db.service';
@@ -378,5 +378,9 @@ export class ChatService {
         }
         this.isLoading.set(false);
         return results;
+    }
+
+    sendMarkedSeen(message: Message) {
+        this.ws.markSeen(message.id, this.currentUserId, message.conversationId);
     }
 }

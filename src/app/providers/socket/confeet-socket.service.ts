@@ -125,9 +125,9 @@ export class ConfeetSocketService {
     }
 
     // Mark as seen
-    markSeen(id: string, userId: string, conversationId: string): void {
+    markSeen(messageId: string, userId: string, conversationId: string): void {
         this.send(WsEvents.MARK_SEEN, {
-            id,
+            messageId,
             conversationId,
             userId,
             seenAt: new Date().toISOString()
