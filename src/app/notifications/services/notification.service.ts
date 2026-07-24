@@ -315,13 +315,21 @@ export class NotificationService {
 
     private handleSeen(seen: MessageSeen): void {
         // Update message status in active conversation
-        const msg = this.chatService.messages().find(m => m.id === seen.messageId);
+        const msg = this.chatService.messages().find(m => m.messageId === seen.messageId);
         if (msg) {
-            // Mark as seen in UI
-            console.log('Message seen:', seen.messageId);
+            // Mark as seen in UI            
             this.chatService.messages.update(msgs =>
-                msgs.map(x => x.id === seen.messageId ? { ...x, status: 3 } : x)
+                msgs.map(x => {
+                    if (x.messageId === seen.messageId) {
+                        const seenByUserIds = x.seenByUserIds || [];
+                        const updatedSeenByUserIds = seenByUserIds.includes(seen.userId) ? seenByUserIds : [...seenByUserIds, seen.userId];
+                        return { ...x, status: 3, seenByUserIds: updatedSeenByUserIds };
+                    }
+                    return x;
+                })
             );
+
+            console.log('Message seen: ', seen.messageId);
         }
     }
 

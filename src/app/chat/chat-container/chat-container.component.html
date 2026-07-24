@@ -378,6 +378,26 @@
                             </ng-container>
                         </span>
                     </div>
+
+                    <!-- Seen User Avatars -->
+                    @if ((msg.seenByUserIds && msg.seenByUserIds.length > 0) || (msg.status === 3 && ws.currentConversation()?.conversationType === 'direct')) {
+                    <div class="seen-avatars-container">
+                        @let seenUsersList = (msg.seenByUserIds && msg.seenByUserIds.length > 0) ? msg.seenByUserIds : [getOtherParticipantId()];
+                        @for (userId of seenUsersList; track userId) {
+                            @if (userId) {
+                                @if (getSenderAvatar(userId) && !failedAvatars.has(getSenderAvatar(userId))) {
+                                <img [src]="getSenderAvatar(userId)" (error)="onAvatarError(getSenderAvatar(userId))" class="seen-user-avatar"
+                                    [title]="getSenderName(userId) + ' seen'" />
+                                } @else {
+                                <div class="seen-user-initials" [title]="getSenderName(userId) + ' seen'"
+                                    [ngStyle]="{ 'background-color': getColorFromName(getSenderName(userId), '') }">
+                                    {{ getUserInitiaLetter(getSenderName(userId), '') }}
+                                </div>
+                                }
+                            }
+                        }
+                    </div>
+                    }
                 </div>
 
                 <!-- Floating Teams Emoji Reaction Bar -->

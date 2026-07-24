@@ -209,6 +209,7 @@ export interface Message {
     status?: number;
     recievedId?: string;
     isMentioned?: boolean;
+    seenByUserIds?: string[];
 }
 
 export interface Reactions {
