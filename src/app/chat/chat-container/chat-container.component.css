@@ -2021,3 +2021,110 @@ textarea.message-input {
     border: 1.5px solid #ffffff;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
+
+/* ===== Scroll to Bottom Button ===== */
+.scroll-bottom-btn {
+    position: absolute;
+    bottom: calc(100% + 16px);
+    right: 24px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    color: var(--teams-primary, #6264a7);
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 999;
+    transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    animation: fadeInScrollBtn 0.25s ease-out;
+}
+
+.scroll-bottom-btn:hover {
+    background-color: #f3f2f1;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.scroll-bottom-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes fadeInScrollBtn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===== New Message Snackbar ===== */
+.new-message-snackbar {
+    position: absolute;
+    bottom: calc(100% + 16px);
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--teams-primary, #6264a7);
+    color: #ffffff;
+    padding: 8px 14px;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 1000;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    animation: fadeInSnackbar 0.25s ease-out;
+}
+
+.new-message-snackbar:hover {
+    background-color: var(--teams-primary-hover, #4f518c);
+    transform: translate(-50%, -2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.new-message-snackbar .snackbar-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.new-message-snackbar .snackbar-close-btn {
+    background: transparent;
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border-radius: 50%;
+    opacity: 0.8;
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.new-message-snackbar .snackbar-close-btn:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+@keyframes fadeInSnackbar {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 8px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
