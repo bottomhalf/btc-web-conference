@@ -95,7 +95,7 @@ export class NotificationService {
     /**
      * Add a new message to the active conversation's message list
      */
-    addMessageToActiveConversation(message: Message): void {
+    updateMessageState(message: Message): boolean {
         if (message.senderId === this.user.userId) {
             this.chatService.messages.update(msgs =>
                 msgs.map(x => x.messageId === message.messageId ? { ...x, status: message.status || 1, id: message.id } : x)
@@ -104,8 +104,10 @@ export class NotificationService {
             if (message.messageId) {
                 this.chatDb.removePendingMessage(message.messageId);
             }
+            return true;
         } else {
             this.chatService.messages.update(msgs => [...msgs, message]);
+            return false;
         }
     }
 
@@ -249,8 +251,9 @@ export class NotificationService {
             }
         }
 
-        // Add to current chat view
-        this.addMessageToActiveConversation(message);
+        // Add to current chat view && remove from pending messages if it's a sent message
+        // If the message is from the current user, update its state and return early
+        if (this.updateMessageState(message)) return;
 
         if (this.activeConversationId() !== message.conversationId) {
             // Increment unread count for this conversation
@@ -294,7 +297,7 @@ export class NotificationService {
 
         if (isActiveConversation && this.chatService.isChatActive()) {
             // Update local message with server-assigned id and timestamp
-            this.addMessageToActiveConversation(message);
+            this.updateMessageState(message);
         }
 
         // Update conversation's last message
