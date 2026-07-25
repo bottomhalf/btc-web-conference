@@ -280,7 +280,11 @@ export class NotificationService {
         this.updateConversationLastMessage(message);
 
         // Acknowledge message seen
-        this.chatService.sendMarkedSeen(message);
+        if (this.chatService.scrollAtBottom()) {
+            this.chatService.sendMarkedSeen(message.messageId, message.conversationId);
+        } else {
+            this.chatService.setSnackBarState(true, message.messageId, message.conversationId);
+        }
     }
 
     private handleMessageSent(message: Message | string): void {
