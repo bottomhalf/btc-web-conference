@@ -20,6 +20,26 @@ export class ChatService {
     public userSearchResults = signal<UserDetail[]>([]);
     public isLoading = signal<boolean>(false);
     public isMessagesLoading = signal<boolean>(false);
+    public scrollAtBottom = signal<boolean>(false);
+    public snackBarState = signal<boolean>(false);
+    public snackbarMessageId = signal<string | null>(null);
+    public snackbarConversationId = signal<string | null>(null);
+
+    public toggleMessageSnackBar(flag: boolean) {
+        this.snackBarState.set(flag);
+    }
+
+    public setSnackBarState(flag: boolean, messageId?: string, conversationId?: string) {
+        this.snackBarState.set(flag);
+        if (flag) {
+            this.snackbarMessageId.set(messageId || null);
+            this.snackbarConversationId.set(conversationId || null);
+        } else {
+            this.snackbarMessageId.set(null);
+            this.snackbarConversationId.set(null);
+        }
+    }
+
     private _isChatActive = signal<boolean>(false);
     readonly isChatActive = this._isChatActive.asReadonly();
     private currentUserId: string = "";
@@ -380,7 +400,9 @@ export class ChatService {
         return results;
     }
 
-    sendMarkedSeen(message: Message) {
-        this.ws.markSeen(message.messageId, this.currentUserId, message.conversationId);
+    sendMarkedSeen(messageId: string, conversationId: string) {
+        this.ws.markSeen(messageId, this.currentUserId, conversationId);
+        this.snackbarMessageId.set(null);
+        this.snackbarConversationId.set(null);
     }
 }
