@@ -252,6 +252,8 @@
     padding: 0 16px;
     border-top: 1px solid var(--teams-border);
     transition: background-color 0.3s ease;
+    position: relative;
+    z-index: 1050;
 }
 
 /* Footer Left - Leave Button & Recording Info */

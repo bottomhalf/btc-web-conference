@@ -107,7 +107,6 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     private shareLinkModalInstance: any;
     currentBrowser: string = "";
     textMessage: string = "";
-
     /** Get video track for a participant */
     getVideoTrack(participantIdentity: string) {
         return this.roomService.getParticipantVideoTrack(participantIdentity);
@@ -172,10 +171,10 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
         }
 
         this.chatService.searchUsers(this.memberSearchQuery).then(() => {
-            const existingIds = this.meetingService.remoteParticipants() 
-                ? Array.from(this.meetingService.remoteParticipants().values()).map(p => p.identity) 
+            const existingIds = this.meetingService.remoteParticipants()
+                ? Array.from(this.meetingService.remoteParticipants().values()).map(p => p.identity)
                 : [];
-            
+
             // Exclude already connected users or the local user
             const currentUserId = this.local.getUser()?.userId || '';
             this.memberSearchResults = this.chatService.searchResults()
@@ -213,10 +212,10 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
 
     addParticipantToCall(user: any): void {
         const conversation = this.ws.currentConversation();
-        
+
         if (conversation && conversation.conversationType !== 'group') {
             // Direct call -> Automatically create a group call
-            
+
             const existingParticipantId = conversation.participants.find(p => p.userId !== this.local.getUser()?.userId)?.userId;
             const newGroupMembers = [user];
             if (existingParticipantId) {
@@ -224,24 +223,24 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
                 const otherMember = { conversationId: existingParticipantId, userId: existingParticipantId };
                 newGroupMembers.push(otherMember);
             }
-            
+
             // Create a group and initiate a call in the new group room
             this.chatService.createGroupConversation(this.local.getUser()?.userId || '', { title: "Group Call", members: newGroupMembers.map(m => m.userId) }).then(res => {
                 if (res.isSuccess) {
                     const newConversation = res.responseBody;
                     // Switch to the new conversation room (navigation)
                     this.router.navigate(['/btc/chat'], { queryParams: { conversationId: newConversation.id } });
-                    
+
                     // The backend automatically initiates the call or we do it here?
                     // Actually, if we switch rooms, we might need to hang up and call again in the new room
                     // For now, let's just use InviteService on the existing room, or trigger initiate in the new one.
                     // The easiest approach is to create the group, then we can invite the new user into the current session,
                     // but the meeting room ID is tied to the conversation.
-                    
+
                     // As per requirements: "1. create automatically new group 2. Adding a user to a Group Call follow rule as teams followed."
                     // Let's invite them to the CURRENT meeting room (so they join as temporary participant in this direct call room),
                     // but we also create the group chat for future history.
-                    
+
                     this.meetingService.requestToJoin({ userId: user.userId, name: user.name, email: user.email } as any);
                 }
             });
@@ -249,12 +248,12 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
             // Group call -> Just invite them as temporary participant to the meeting
             this.meetingService.requestToJoin({ userId: user.userId, name: user.name, email: user.email } as any);
         }
-        
+
         // Reset search
         this.memberSearchQuery = '';
         this.memberSearchResults = [];
         this.memberSearchSelectedIndex = -1;
-        
+
         // Close modal
         const addPeopleModal = document.getElementById('addPeopleModal');
         if (addPeopleModal) {
@@ -316,6 +315,13 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
             // Update our tracking set
             this.notified = currentlyRaised;
         });
+
+        effect(() => {
+            if (this.meetingService.isMinimized()) {
+                this.isChatEnabled = false;
+                this.isViewParticipant = false; // or toggle if that's what you want
+            }
+        });
     }
 
     async ngOnInit() {
@@ -370,6 +376,7 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     toggleChatWindow() {
+        this.isViewParticipant = false;
         this.isChatEnabled = !this.isChatEnabled;
         if (this.isChatEnabled) {
             this.enableChat();
@@ -998,6 +1005,11 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
         // Pick color based on hash
         const index = Math.abs(hash) % colors.length;
         return colors[index];
+    }
+
+    toggleParticipants() {
+        this.isChatEnabled = false;
+        this.isViewParticipant = !this.isViewParticipant
     }
 }
 
