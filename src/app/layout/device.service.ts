@@ -28,13 +28,18 @@ export class DeviceService implements OnInit {
             const camPerm = await navigator.permissions.query({ name: 'camera' as PermissionName });
             const micPerm = await navigator.permissions.query({ name: 'microphone' as PermissionName });
 
+            // Check if devices actually exist before requesting access
+            const preDevices = await navigator.mediaDevices.enumerateDevices();
+            const hasVideoDevice = preDevices.some(d => d.kind === 'videoinput');
+            const hasAudioDevice = preDevices.some(d => d.kind === 'audioinput');
+
             let stream: MediaStream | null = null;
 
-            // Request permission ONLY if needed
-            if (camPerm.state === 'prompt' || micPerm.state === 'prompt') {
+            // Request permission ONLY if needed and device exists
+            if ((camPerm.state === 'prompt' && hasVideoDevice) || (micPerm.state === 'prompt' && hasAudioDevice)) {
                 stream = await navigator.mediaDevices.getUserMedia({
-                    video: camPerm.state !== 'denied',
-                    audio: micPerm.state !== 'denied'
+                    video: camPerm.state !== 'denied' && hasVideoDevice,
+                    audio: micPerm.state !== 'denied' && hasAudioDevice
                 });
             }
             else if (camPerm.state === 'denied' || micPerm.state === 'denied') {

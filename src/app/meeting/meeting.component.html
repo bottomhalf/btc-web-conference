@@ -70,8 +70,7 @@
                                 [isActiveSpeaker]="meetingService.isParticipantActiveSpeaker(roomForm.value.participantName!)"></video-component>
                             } @else {
                             <!-- Avatar placeholder when camera is off or no local track -->
-                            <div
-                                class="d-flex align-items-center justify-content-center h-97 avatar-container rounded position-relative"
+                            <div class="d-flex align-items-center justify-content-center h-97 avatar-container rounded position-relative"
                                 [class.active-speaker-border]="meetingService.isParticipantActiveSpeaker(roomForm.value.participantName!)">
                                 <div class="col-auto fw-semibold fs-4 rounded-circle d-flex align-items-center justify-content-center shadow user-name-icon-lg"
                                     [ngStyle]="{'background-color': meetingService.getColorFromName(roomForm.value.participantName!)}">
@@ -102,8 +101,7 @@
                                 [isActiveSpeaker]="meetingService.isParticipantActiveSpeaker(participant.identity)"></video-component>
                             } @else {
                             <!-- Avatar placeholder for participants without camera or with camera off -->
-                            <div
-                                class="d-flex align-items-center justify-content-center h-97 avatar-container rounded position-relative"
+                            <div class="d-flex align-items-center justify-content-center h-97 avatar-container rounded position-relative"
                                 [class.active-speaker-border]="meetingService.isParticipantActiveSpeaker(participant.identity)">
                                 <div class="col-auto fw-semibold fs-4 rounded-circle d-flex align-items-center justify-content-center shadow user-name-icon-lg"
                                     [ngStyle]="{'background-color': meetingService.getColorFromName(participant.identity)}">
@@ -153,7 +151,8 @@
                         </div> -->
                 </div>
             </div>
-            <div class="roster-sidebar-container" [@rosterSlide]="isViewParticipant ? 'visible' : 'hidden'">
+            <div class="roster-sidebar-container card border-0"
+                [@rosterSlide]="isViewParticipant ? 'visible' : 'hidden'">
                 <app-participant-roster [roomForm]="roomForm" [invitedParticipants]="invitedParticipants">
                 </app-participant-roster>
             </div>
@@ -176,6 +175,7 @@
                     </svg>
                     Leave
                 </button>
+                @if (!meetingService.isMinimized()) {
                 @if (isMyshareScreen) {
                 <div class="btn-group dropdown ms-3">
                     <a href="javascript:void(0)" class="text-decoration-none" data-bs-toggle="dropdown"
@@ -228,6 +228,7 @@
                             d="M440-320h80v-166l64 63 57-57-161-160-160 160 57 56 63-63v167ZM160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-480H160v480Zm0 0v-480 480Z" />
                     </svg>
                 </a>
+                }
                 }
                 @if (permissions.microphone == 'granted') {
                 <a href="javascript:void(0)" class="text-decoration-none ms-3" (click)="toggleMic()" placement="top"
@@ -285,8 +286,9 @@
                 </a>
                 }
                 <span class="mx-3">|</span>
+                @if (!meetingService.isMinimized()) {
                 <a href="javascript:void(0)" class="text-decoration-none position-relative" placement="top"
-                    ngbTooltip="Participants" (click)="isViewParticipant = !isViewParticipant">
+                    ngbTooltip="Participants" (click)="toggleParticipants()">
                     <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
                         fill="#FFFFFF">
                         <path
@@ -304,6 +306,7 @@
                             d="M240-400h320v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm126-240h594v-480H160v525l46-45Zm-46 0v-480 480Z" />
                     </svg>
                 </a>
+                }
                 <a href="javascript:void(0)" class="text-decoration-none ms-3"
                     [ngClass]="{'bg-body-tertiary rounded p-1': handRaised}" (click)="toggleHandRaise()" placement="top"
                     [ngbTooltip]="handRaised ? 'Lower hand' : 'Raise hand'">
@@ -321,22 +324,29 @@
                     </svg>
                     }
                 </a>
-                <a href="javascript:void(0)" class="text-decoration-none ms-3" (click)="roomService.toggleRecording(meetingId)"
-                    placement="top" [ngbTooltip]="roomService.isRecording() ? 'Stop Recording' : 'Start Recording'">
+                <a href="javascript:void(0)" class="text-decoration-none ms-3"
+                    (click)="roomService.toggleRecording(meetingId)" placement="top"
+                    [ngbTooltip]="roomService.isRecording() ? 'Stop Recording' : 'Start Recording'">
                     @if (roomService.isRecording()) {
-                    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#dc3545">
-                        <path d="M320-320h320v-320H320v320ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
+                        fill="#dc3545">
+                        <path
+                            d="M320-320h320v-320H320v320ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z" />
                     </svg>
                     } @else {
-                    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#FFFFFF">
-                        <path d="M480-320q66 0 113-47t47-113q0-66-47-113t-113-47q-66 0-113 47t-47 113q0 66 47 113t113 47ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
+                        fill="#FFFFFF">
+                        <path
+                            d="M480-320q66 0 113-47t47-113q0-66-47-113t-113-47q-66 0-113 47t-47 113q0 66 47 113t113 47ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z" />
                     </svg>
                     }
                 </a>
                 <a href="javascript:void(0)" class="text-decoration-none ms-3" (click)="roomService.muteAll()"
                     placement="top" ngbTooltip="Mute all participants">
-                    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#FFFFFF">
-                        <path d="M792-56 671-177q-25 16-53 27.5T560-131v-82q14-5 27.5-10t25.5-12L480-368v168q0 33-23.5 56.5T400-120h-80q-33 0-56.5-23.5T240-200v-160h-80q-33 0-56.5-23.5T80-440v-80q0-33 23.5-56.5T160-600h80v-40q0-19 6-36.5t16-32.5l-82-82 56-56 672 672-56 56Zm-312-312ZM160-440h80v120h-80v-120Zm320 240v-80h-80v80h80Zm400-360v80q0 33-23.5 56.5T800-440h-80v20q0 16-4.5 31.5T702-361l-58-58q5-9 7.5-19.5T654-460v-60h80v-120h-80v-80h-80v80h-31l-80-80h111v-40q0-33 23.5-56.5T640-840h80q33 0 56.5 23.5T800-760v80h80v80Z"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
+                        fill="#FFFFFF">
+                        <path
+                            d="M792-56 671-177q-25 16-53 27.5T560-131v-82q14-5 27.5-10t25.5-12L480-368v168q0 33-23.5 56.5T400-120h-80q-33 0-56.5-23.5T240-200v-160h-80q-33 0-56.5-23.5T80-440v-80q0-33 23.5-56.5T160-600h80v-40q0-19 6-36.5t16-32.5l-82-82 56-56 672 672-56 56Zm-312-312ZM160-440h80v120h-80v-120Zm320 240v-80h-80v80h80Zm400-360v80q0 33-23.5 56.5T800-440h-80v20q0 16-4.5 31.5T702-361l-58-58q5-9 7.5-19.5T654-460v-60h80v-120h-80v-80h-80v80h-31l-80-80h111v-40q0-33 23.5-56.5T640-840h80q33 0 56.5 23.5T800-760v80h80v80Z" />
                     </svg>
                 </a>
                 <div class="btn-group dropdown ms-3" placement="top" ngbTooltip="Send a reaction">
@@ -731,7 +741,8 @@
                     <div class="modal-body">
                         <div class="form-group mb-3">
                             <div class="position-relative">
-                                <svg class="position-absolute" style="left: 10px; top: 10px;" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg class="position-absolute" style="left: 10px; top: 10px;" viewBox="0 0 24 24"
+                                    width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="11" cy="11" r="8" />
                                     <path d="M21 21l-4.35-4.35" />
                                 </svg>
@@ -741,12 +752,13 @@
                             </div>
                         </div>
                         @if (memberSearchResults.length > 0) {
-                        <div class="list-group list-group-flush border rounded mb-3" style="max-height: 250px; overflow-y: auto;">
+                        <div class="list-group list-group-flush border rounded mb-3"
+                            style="max-height: 250px; overflow-y: auto;">
                             @for (result of memberSearchResults; track result.conversationId; let idx = $index) {
-                            <a href="javascript:void(0)" class="list-group-item list-group-item-action d-flex align-items-center"
+                            <a href="javascript:void(0)"
+                                class="list-group-item list-group-item-action d-flex align-items-center"
                                 [class.active]="memberSearchSelectedIndex === idx"
-                                (click)="addParticipantToCall(result)"
-                                (mouseenter)="memberSearchSelectedIndex = idx">
+                                (click)="addParticipantToCall(result)" (mouseenter)="memberSearchSelectedIndex = idx">
                                 <div class="rounded-circle d-flex align-items-center justify-content-center text-white me-3 fw-bold"
                                     style="width: 35px; height: 35px;"
                                     [ngStyle]="{ 'background-color': meetingService.getColorFromName(result.name) }">
@@ -754,14 +766,15 @@
                                 </div>
                                 <div class="flex-grow-1">
                                     <div class="fw-semibold">{{ result.name }}</div>
-                                    <small class="text-muted" [class.text-white]="memberSearchSelectedIndex === idx">{{ result.email }}</small>
+                                    <small class="text-muted" [class.text-white]="memberSearchSelectedIndex === idx">{{
+                                        result.email }}</small>
                                 </div>
                                 <button class="btn btn-sm btn-primary">Add</button>
                             </a>
                             }
                         </div>
                         } @else if (memberSearchQuery && memberSearchQuery.length >= 2) {
-                            <div class="text-center text-muted py-3">No users found.</div>
+                        <div class="text-center text-muted py-3">No users found.</div>
                         }
                     </div>
                 </div>

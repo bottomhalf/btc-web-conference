@@ -295,8 +295,10 @@ export class PreviewComponent implements OnDestroy {
     private subscribeToPermissions() {
         this.subscription = this.mediaPerm.permissions$.subscribe(permissions => {
             this.permissions = permissions;
+            const hasCamera = (this.deviceService.cameras()?.length || 0) > 0;
+            const wantsVideo = this.meetingService.isCameraOn();
 
-            const hasRequiredPermissions = this.isAudioOnlyCall()
+            const hasRequiredPermissions = this.isAudioOnlyCall() || !wantsVideo || !hasCamera
                 ? permissions.microphone === 'granted'
                 : permissions.camera === 'granted' && permissions.microphone === 'granted';
 
@@ -312,11 +314,11 @@ export class PreviewComponent implements OnDestroy {
             }
 
             // Auto-show permission modal if permissions are denied
-            if (permissions.camera === 'denied' || permissions.microphone === 'denied') {
+            if ((wantsVideo && hasCamera && permissions.camera === 'denied') || permissions.microphone === 'denied') {
                 setTimeout(() => this.showPermissionModal(), 500);
             }
             // Auto-select first device when permissions are granted
-            else if (permissions.camera === 'granted' && permissions.microphone === 'granted') {
+            else if ((!wantsVideo || !hasCamera || permissions.camera === 'granted') && permissions.microphone === 'granted') {
                 setTimeout(() => this.autoSelectDevices(), 500);
             }
         });
@@ -435,7 +437,10 @@ export class PreviewComponent implements OnDestroy {
     }
 
     private validatePermissions(): boolean {
-        if (this.isVideoCall() && this.permissions.camera !== 'granted') {
+        const hasCamera = (this.deviceService.cameras()?.length || 0) > 0;
+        const wantsVideo = this.meetingService.isCameraOn();
+
+        if (this.isVideoCall() && wantsVideo && hasCamera && this.permissions.camera !== 'granted') {
             alert("Please allow camera access for video calls.");
             return false;
         }
