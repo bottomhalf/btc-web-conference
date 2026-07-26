@@ -931,7 +931,7 @@ export class ChatContainerComponent implements AfterViewChecked {
         });
     }
 
-    ping() {
+    nudgeUser() {
         const conv = this.ws.currentConversation();
         if (!conv) return;
 
@@ -952,7 +952,7 @@ export class ChatContainerComponent implements AfterViewChecked {
             messageId: crypto.randomUUID(),
             senderId: this.currentUserId,
             recievedId: null,
-            type: 'text',
+            type: 'nudge',
             senderName: currentUserName,
             replyTo: null,
             mentions: [],
@@ -961,7 +961,7 @@ export class ChatContainerComponent implements AfterViewChecked {
             createdAt: new Date(),
             editedAt: null,
             status: 0,
-            content: 'Ping!',
+            content: '##nudge',
             fileUrl: null,
         };
 
