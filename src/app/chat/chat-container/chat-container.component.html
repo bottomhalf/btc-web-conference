@@ -75,15 +75,16 @@
                 Join
             </button>
             <button class="header-action-btn" title="Send Poke" (click)="ping()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 4.1 12 6"/>
-                    <path d="m5.1 5.1 1.2 1.2"/>
-                    <path d="m5.1 12.9 1.2-1.2"/>
-                    <path d="m11.1 18.9 1.2-1.2"/>
-                    <path d="M17.7 18.7 16 16"/>
-                    <path d="M18 10h4"/>
-                    <path d="M16 2.1 12 6l4 3.9"/>
-                    <path d="M12 6 5.1 12.9l6.9 6.9 6.9-6.9-2.9-2.9"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M14 4.1 12 6" />
+                    <path d="m5.1 5.1 1.2 1.2" />
+                    <path d="m5.1 12.9 1.2-1.2" />
+                    <path d="m11.1 18.9 1.2-1.2" />
+                    <path d="M17.7 18.7 16 16" />
+                    <path d="M18 10h4" />
+                    <path d="M16 2.1 12 6l4 3.9" />
+                    <path d="M12 6 5.1 12.9l6.9 6.9 6.9-6.9-2.9-2.9" />
                 </svg>
             </button>
             <button class="header-action-btn" title="Audio call" (click)="startAudioCall()">
@@ -392,21 +393,23 @@
                     </div>
 
                     <!-- Seen User Avatars -->
-                    @if ((msg.seenByUserIds && msg.seenByUserIds.length > 0) || (msg.status === 3 && ws.currentConversation()?.conversationType === 'direct')) {
+                    @if ((msg.seenByUserIds && msg.seenByUserIds.length > 0) || (msg.status === 3 &&
+                    ws.currentConversation()?.conversationType === 'direct')) {
                     <div class="seen-avatars-container">
-                        @let seenUsersList = (msg.seenByUserIds && msg.seenByUserIds.length > 0) ? msg.seenByUserIds : [getOtherParticipantId()];
+                        @let seenUsersList = (msg.seenByUserIds && msg.seenByUserIds.length > 0) ? msg.seenByUserIds :
+                        [getOtherParticipantId()];
                         @for (userId of seenUsersList; track userId) {
-                            @if (userId) {
-                                @if (getSenderAvatar(userId) && !failedAvatars.has(getSenderAvatar(userId))) {
-                                <img [src]="getSenderAvatar(userId)" (error)="onAvatarError(getSenderAvatar(userId))" class="seen-user-avatar"
-                                    [title]="getSenderName(userId) + ' seen'" />
-                                } @else {
-                                <div class="seen-user-initials" [title]="getSenderName(userId) + ' seen'"
-                                    [ngStyle]="{ 'background-color': getColorFromName(getSenderName(userId), '') }">
-                                    {{ getUserInitiaLetter(getSenderName(userId), '') }}
-                                </div>
-                                }
-                            }
+                        @if (userId) {
+                        @if (getSenderAvatar(userId) && !failedAvatars.has(getSenderAvatar(userId))) {
+                        <img [src]="getSenderAvatar(userId)" (error)="onAvatarError(getSenderAvatar(userId))"
+                            class="seen-user-avatar" [title]="getSenderName(userId) + ' seen'" />
+                        } @else {
+                        <div class="seen-user-initials" [title]="getSenderName(userId) + ' seen'"
+                            [ngStyle]="{ 'background-color': getColorFromName(getSenderName(userId), '') }">
+                            {{ getUserInitiaLetter(getSenderName(userId), '') }}
+                        </div>
+                        }
+                        }
                         }
                     </div>
                     }
@@ -584,14 +587,15 @@
         <div class="new-message-snackbar" (click)="acknowledgeAndScroll()">
             <div class="snackbar-content">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
                 <span>New message received</span>
             </div>
-            <button class="snackbar-close-btn" (click)="chatService.showNewMessageSnackBar(false); $event.stopPropagation()" title="Dismiss">
+            <button class="snackbar-close-btn"
+                (click)="chatService.showNewMessageSnackBar(false); $event.stopPropagation()" title="Dismiss">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
             </button>
         </div>
