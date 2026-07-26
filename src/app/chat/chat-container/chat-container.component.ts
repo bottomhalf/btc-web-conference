@@ -366,6 +366,19 @@ export class ChatContainerComponent implements AfterViewChecked {
     // Simple HTML escaping to prevent XSS
     content = content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+    // Linkify URLs and Emails
+    const linkRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])|(www\.[^\s<]+[^<.,:;"')\]\s])|([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi;
+    content = content.replace(linkRegex, (match, httpUrl, wwwUrl, emailUrl) => {
+      if (httpUrl) {
+        return `<a href="${httpUrl}" target="_blank" class="chat-link" style="text-decoration: underline; color: inherit;">${httpUrl}</a>`;
+      } else if (wwwUrl) {
+        return `<a href="http://${wwwUrl}" target="_blank" class="chat-link" style="text-decoration: underline; color: inherit;">${wwwUrl}</a>`;
+      } else if (emailUrl) {
+        return `<a href="mailto:${emailUrl}" class="chat-link" style="text-decoration: underline; color: inherit;">${emailUrl}</a>`;
+      }
+      return match;
+    });
+
     if (msg.mentions && msg.mentions.length > 0) {
       const conv = this.ws.currentConversation();
       if (conv && conv.participants) {

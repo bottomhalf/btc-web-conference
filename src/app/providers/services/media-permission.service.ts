@@ -289,10 +289,20 @@ export class MediaPermissionsService {
   // Method to request permissions explicitly
   async requestPermissions(camera: boolean = true, microphone: boolean = true): Promise<MediaPermissions> {
     try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const hasVideoDevice = devices.some(d => d.kind === 'videoinput');
+      const hasAudioDevice = devices.some(d => d.kind === 'audioinput');
+
       const constraints: MediaStreamConstraints = {
-        video: camera,
-        audio: microphone
+        video: camera && hasVideoDevice,
+        audio: microphone && hasAudioDevice
       };
+
+      // If no devices are requested/available, just check and return
+      if (!constraints.video && !constraints.audio) {
+        await this.checkPermissions();
+        return this.getCurrentPermissions();
+      }
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
