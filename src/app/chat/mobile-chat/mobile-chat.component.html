@@ -15,7 +15,7 @@
           <div class="list-group list-group-flush">
               @for (item of directConversations; track item.id ? item.id + '-' + $index : $index) {
               <a href="javascript:void(0)" class="list-group-item list-group-item-action d-flex align-items-center border-0 py-3"
-                  [class.bg-light]="isConversationSelected(item)" (click)="selectChannelForConversation(item)">
+                  [class.active-conversation]="isConversationSelected(item)" (click)="selectChannelForConversation(item)">
                   
                   <div class="position-relative me-3">
                       @if (getConversationAvatar(item) && !failedAvatars.has(getConversationAvatar(item))) {
@@ -61,7 +61,7 @@
           <div class="list-group list-group-flush pb-3">
               @for (item of groupConversations; track item.id ? item.id + '-' + $index : $index) {
               <a href="javascript:void(0)" class="list-group-item list-group-item-action d-flex align-items-center border-0 py-3"
-                  [class.bg-light]="isConversationSelected(item)" (click)="selectChannelForConversation(item)">
+                  [class.active-conversation]="isConversationSelected(item)" (click)="selectChannelForConversation(item)">
                   
                   <div class="me-3">
                       @if (getConversationAvatar(item) && !failedAvatars.has(getConversationAvatar(item))) {
