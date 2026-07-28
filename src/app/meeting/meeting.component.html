@@ -44,7 +44,7 @@
             </div>
         </div>
         } @else if(!(network.isOnline$ | async)) {
-        <div class="overlay text-white fw-bold fs-4">
+        <div class="overlay fw-bold fs-4">
             <div class="loader"></div>
             <p>No internet connection...</p>
         </div>
@@ -175,7 +175,7 @@
                     </svg>
                     Leave
                 </button>
-                @if (!meetingService.isMinimized()) {
+                @if (!meetingService.isMinimized() && !isMobileView()) {
                 @if (isMyshareScreen) {
                 <div class="btn-group dropdown ms-3">
                     <a href="javascript:void(0)" class="text-decoration-none" data-bs-toggle="dropdown"
@@ -285,8 +285,8 @@
                     </svg>
                 </a>
                 }
+                @if (!meetingService.isMinimized() && !isMobileView()) {
                 <span class="mx-3">|</span>
-                @if (!meetingService.isMinimized()) {
                 <a href="javascript:void(0)" class="text-decoration-none position-relative" placement="top"
                     ngbTooltip="Participants" (click)="toggleParticipants()">
                     <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
@@ -324,6 +324,7 @@
                     </svg>
                     }
                 </a>
+                @if (!meetingService.isMinimized() && !isMobileView()) {
                 <a href="javascript:void(0)" class="text-decoration-none ms-3"
                     (click)="roomService.toggleRecording(meetingId)" placement="top"
                     [ngbTooltip]="roomService.isRecording() ? 'Stop Recording' : 'Start Recording'">
@@ -349,6 +350,7 @@
                             d="M792-56 671-177q-25 16-53 27.5T560-131v-82q14-5 27.5-10t25.5-12L480-368v168q0 33-23.5 56.5T400-120h-80q-33 0-56.5-23.5T240-200v-160h-80q-33 0-56.5-23.5T80-440v-80q0-33 23.5-56.5T160-600h80v-40q0-19 6-36.5t16-32.5l-82-82 56-56 672 672-56 56Zm-312-312ZM160-440h80v120h-80v-120Zm320 240v-80h-80v80h80Zm400-360v80q0 33-23.5 56.5T800-440h-80v20q0 16-4.5 31.5T702-361l-58-58q5-9 7.5-19.5T654-460v-60h80v-120h-80v-80h-80v80h-31l-80-80h111v-40q0-33 23.5-56.5T640-840h80q33 0 56.5 23.5T800-760v80h80v80Z" />
                     </svg>
                 </a>
+                }
                 <div class="btn-group dropdown ms-3" placement="top" ngbTooltip="Send a reaction">
                     <a href="javascript:void(0)" class="text-decoration-none" data-bs-toggle="dropdown"
                         aria-expanded="false">
@@ -358,7 +360,7 @@
                                 d="M480-480Zm0 400q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q43 0 83 8.5t77 24.5v90q-35-20-75.5-31.5T480-800q-133 0-226.5 93.5T160-480q0 133 93.5 226.5T480-160q133 0 226.5-93.5T800-480q0-32-6.5-62T776-600h86q9 29 13.5 58.5T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm320-600v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80ZM620-520q25 0 42.5-17.5T680-580q0-25-17.5-42.5T620-640q-25 0-42.5 17.5T560-580q0 25 17.5 42.5T620-520Zm-280 0q25 0 42.5-17.5T400-580q0-25-17.5-42.5T340-640q-25 0-42.5 17.5T280-580q0 25 17.5 42.5T340-520Zm140 260q68 0 123.5-38.5T684-400H276q25 63 80.5 101.5T480-260Z" />
                         </svg>
                     </a>
-                    <ul class="dropdown-menu emoji-dropdown bg-dark text-white w-50 px-3">
+                    <ul class="dropdown-menu emoji-dropdown w-50 px-3">
                         <li class="pt-2 pb-3">
                             <a href="javascript:void(0)" class="text-decoration-none mx-2"
                                 (click)="sendReaction('Thumbs Up')">
@@ -400,6 +402,7 @@
 
                     </ul>
                 </div>
+                @if (!isMobileView()) {
                 <a class="text-decoration-none ms-3" href="javascript:void(0)" data-bs-toggle="offcanvas"
                     placement="top" ngbTooltip="Backkgrounds" data-bs-target="#virtualBackgroundOffcanvas"
                     aria-controls="virtualBackgroundOffcanvas">
@@ -409,7 +412,6 @@
                             d="m176-120-56-56 301-302-181-45 198-123-17-234 179 151 216-88-87 217 151 178-234-16-124 198-45-181-301 301Zm24-520-80-80 80-80 80 80-80 80Zm355 197 48-79 93 7-60-71 35-86-86 35-71-59 7 92-79 49 90 22 23 90Zm165 323-80-80 80-80 80 80-80 80ZM569-570Z" />
                     </svg>
                 </a>
-
                 <div class="btn-group dropdown ms-3" placement="top" ngbTooltip="More action">
                     <a href="javascript:void(0)" class="text-decoration-none" data-bs-toggle="dropdown"
                         aria-expanded="false">
@@ -491,20 +493,21 @@
                         }
                     </ul>
                 </div>
-
+                }
             </div>
             <div style="display:none">
                 <div #audioContainer></div>
             </div>
+            @if (!isMobileView()) {
             <div class="col-md-4 text-center align-items-center justify-content-center fw-semibold row">
                 @if(recordingAndType.isRecording) {
                 <div class="col-auto border rounded me-2 py-1">
                     <i class="fa-regular fa-circle-dot fa-beat" style="color: #e10e0e;"></i>
-                    <span class="ms-2 text-white">{{formatTime(timeInSeconds) }}</span>
+                    <span class="ms-2">{{formatTime(timeInSeconds) }}</span>
                 </div>
                 }
                 @if (remoteSharescreenTrack() != null) {
-                <div class="col-md-6 text-truncate bg-white text-dark rounded border px-2 d-flex">
+                <div class="col-md-6 text-truncate meeting-info-card rounded border px-2 d-flex">
                     <div class="col-md-6 text-truncate">
                         {{remoteSharescreenTrack().participantIdentity}}
                     </div>
@@ -514,9 +517,10 @@
                 </div>
                 }
             </div>
-            <div class="footer-center fw-semibold text-white">
+            <div class="footer-center fw-semibold">
                 <span class="time">{{currentTime | date:'shortTime'}}</span>
             </div>
+            }
         </div>
         }
         <!-- ========================================
@@ -625,7 +629,7 @@
                                         </select>
                                     </div>
                                     <div
-                                        class="col-auto fw-bold bg-light rounded-pill px-3 d-flex align-items-center ms-3">
+                                        class="col-auto fw-bold device-pill rounded-pill px-3 d-flex align-items-center ms-3">
                                         @if (permissions.microphone == 'granted') {
                                         {{meetingService.isMicOn() ? 'Microphone is on' : 'Microphone is off'}}
                                         } @else {
@@ -675,7 +679,7 @@
                                         </select>
                                     </div>
                                     <div
-                                        class="col-auto fw-bold bg-light rounded-pill px-3 d-flex align-items-center ms-2">
+                                        class="col-auto fw-bold device-pill rounded-pill px-3 d-flex align-items-center ms-2">
                                         @if (permissions.camera == 'granted') {
                                         {{meetingService.isMicOn() ? 'Camera is on' : 'Camera is off'}}
                                         } @else {
@@ -793,7 +797,7 @@
                     <div class="modal-body">
                         <div class="col-md-12 form-control mb-2">
                             <div class="d-flex align-items-center">
-                                <input type="text" class="form-control border-0 p-0 m-0 w-75 fw-normal text-dark"
+                                <input type="text" class="form-control border-0 p-0 m-0 w-75 fw-normal meeting-url-input"
                                     readonly [value]="meetingUrl">
                                 <a href="javascript:void(0)" class="text-decoration-none ms-2" (click)="copyLink()">
                                     <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
@@ -951,7 +955,7 @@
             <div *ngFor="let r of roomService.reactions()" class="reaction" [@floatUp]>
                 <div class="d-flex align-items-center flex-column justify-content-center" style="width: 80px;">
                     <img [src]="r.emoji" alt="" style="width: 60%">
-                    <div class="col-md-12 text-truncate fs-6 text-center bg-white text-dark rounded mt-1">
+                    <div class="col-md-12 text-truncate fs-6 text-center meeting-reaction-card rounded mt-1">
                         {{r.name}}
                     </div>
                 </div>

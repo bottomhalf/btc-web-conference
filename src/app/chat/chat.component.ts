@@ -10,17 +10,17 @@ import { Router } from '@angular/router';
 import { ResponseModel, User } from '../models/model';
 
 import { NotificationService } from '../notifications/services/notification.service';
-import { CallType } from '../models/conference_call/call_model';
 import { ServerEventService } from '../providers/socket/server-events/server-event.service';
 import { ChatContainerComponent } from './chat-container/chat-container.component';
 import { TestSignalService } from '../providers/socket/client-events/call/test-sinal.service';
 import { MultiUserAutocompleteComponent } from '../shared/components/multi-user-autocomplete/multi-user-autocomplete.component';
 import { NotifyGroupCreatedService } from '../providers/socket/client-events/group/notify-group-created.service';
+import { MobileChatComponent } from './mobile-chat/mobile-chat.component';
 
 @Component({
     selector: 'app-chat',
     standalone: true,
-    imports: [CommonModule, FormsModule, ChatContainerComponent, MultiUserAutocompleteComponent],
+    imports: [CommonModule, FormsModule, ChatContainerComponent, MultiUserAutocompleteComponent, MobileChatComponent],
     templateUrl: './chat.component.html',
     styleUrl: './chat.component.css',
 })

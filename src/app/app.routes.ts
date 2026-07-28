@@ -40,6 +40,11 @@ export const routes: Routes = [
       import('./login/login.component').then(c => c.LoginComponent),
   },
   {
+    path: 'register',
+    loadComponent: () =>
+      import('./register/register.component').then(c => c.RegisterComponent),
+  },
+  {
     path: 'btc',
     loadComponent: () =>
       import('./layout/layout.component').then(c => c.LayoutComponent),

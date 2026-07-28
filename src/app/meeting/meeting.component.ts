@@ -1,4 +1,4 @@
-import { afterNextRender, AfterViewInit, Component, computed, effect, ElementRef, HostListener, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
+import { afterNextRender, AfterViewInit, Component, computed, effect, ElementRef, HostListener, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { createLocalScreenTracks, LocalTrackPublication, LocalVideoTrack, RemoteVideoTrack, Room, Track } from 'livekit-client';
 import { RoomService } from '../providers/services/room.service';
@@ -30,6 +30,7 @@ import { ChatServerService } from '../providers/services/chat.server.service';
 import { NotificationService } from '../notifications/services/notification.service';
 import { ChatService } from '../chat/chat.service';
 import { Conversation } from '../components/global-search/search.models';
+import { ViewPortService } from '../providers/services/view-port.service';
 
 @Component({
     selector: 'app-meeting',
@@ -265,6 +266,7 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     // Getter methods to expose meetingService signals reactively
     get room() { return this.meetingService.room; }
     get localTrack() { return this.meetingService.localTrack; }
+    readonly isMobileView = inject(ViewPortService).isMobileView;
 
     constructor(
         private cameraService: CameraService,
@@ -317,7 +319,7 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
         });
 
         effect(() => {
-            if (this.meetingService.isMinimized()) {
+            if (this.meetingService.isMinimized() || this.isMobileView) {
                 this.isChatEnabled = false;
                 this.isViewParticipant = false; // or toggle if that's what you want
             }

@@ -16,6 +16,18 @@
 }
 
 /* Main Container */
+.dashboard-duration-badge {
+    background-color: var(--dash-bg-tertiary);
+    color: var(--dash-text-primary);
+}
+.dashboard-toolbar {
+    background-color: var(--dash-bg-tertiary);
+}
+.dashboard-editor {
+    background-color: var(--dash-bg-secondary);
+    color: var(--dash-text-primary);
+}
+
 .main-container {
     background: var(--dash-bg-primary);
     min-height: calc(100vh - var(--teams-meeting-header-size));
@@ -670,5 +682,21 @@
         height: 50px;
         flex-direction: row;
         gap: 10px;
+    }
+
+    .hero-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.5rem;
+    }
+
+    .hero-right {
+        text-align: center;
+    }
+
+    .hero-stats {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 1rem;
     }
 }

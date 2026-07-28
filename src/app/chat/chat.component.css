@@ -2,10 +2,12 @@
 
 /* ===== CSS Variables for Teams Theme - Using Global Theme ===== */
 :host {
-    --teams-primary: #0b57d0; /* Google Blue */
+    --teams-primary: #0b57d0;
+    /* Google Blue */
     --teams-primary-hover: #0842a0;
     --teams-primary-light: #d3e3fd;
-    --teams-bg-sidebar: #f8fafd; /* Google Chat soft sidebar surface */
+    --teams-bg-sidebar: #f8fafd;
+    /* Google Chat soft sidebar surface */
     --teams-bg-main: #ffffff;
     --teams-bg-message-sent: #d3e3fd;
     --teams-bg-message-received: #f0f4f9;
@@ -15,9 +17,12 @@
     --teams-border: #e0e2e5;
     --teams-hover: #f0f4f9;
     --teams-selected: #e8f0fe;
-    --teams-online: #34A853; /* Google Green */
-    --teams-offline: #9AA0A6; /* Google Gray */
-    --teams-away: #FBBC05; /* Google Yellow */
+    --teams-online: #34A853;
+    /* Google Green */
+    --teams-offline: #9AA0A6;
+    /* Google Gray */
+    --teams-away: #FBBC05;
+    /* Google Yellow */
     --teams-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     --teams-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
     --teams-radius: 8px;
@@ -36,6 +41,12 @@
     background-color: var(--teams-bg-main);
     font-family: 'Segoe UI', 'Segoe UI Web (West European)', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
     overflow: hidden;
+}
+
+@media (max-width: 767.98px) {
+    .teams-chat-wrapper {
+        height: calc(100dvh - 56px - 60px); /* Adjust for top nav (~56px) and bottom nav (~60px) on mobile */
+    }
 }
 
 .flex-grow-main {
@@ -639,8 +650,13 @@
 }
 
 @keyframes popupOverlayFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 .new-chat-popup {
@@ -662,6 +678,7 @@
         opacity: 0;
         transform: translateY(28px) scale(0.96);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -842,7 +859,7 @@
     background-color: var(--teams-bg-main, #ffffff);
 }
 
-.popup-search-input:focus ~ .popup-search-icon {
+.popup-search-input:focus~.popup-search-icon {
     color: var(--teams-primary, #5b5fc7);
 }
 
@@ -887,13 +904,22 @@
     padding-right: 4px;
 }
 
-.popup-results::-webkit-scrollbar { width: 6px; }
-.popup-results::-webkit-scrollbar-track { background: transparent; }
+.popup-results::-webkit-scrollbar {
+    width: 6px;
+}
+
+.popup-results::-webkit-scrollbar-track {
+    background: transparent;
+}
+
 .popup-results::-webkit-scrollbar-thumb {
     background: var(--teams-border, #d1d5db);
     border-radius: 3px;
 }
-.popup-results::-webkit-scrollbar-thumb:hover { background: var(--teams-text-muted, #9ca3af); }
+
+.popup-results::-webkit-scrollbar-thumb:hover {
+    background: var(--teams-text-muted, #9ca3af);
+}
 
 .popup-result-item {
     display: flex;
@@ -1301,8 +1327,15 @@
 }
 
 @keyframes popoverFadeIn {
-    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0)   scale(1); }
+    from {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 /* Popover Header */
@@ -1311,7 +1344,7 @@
     align-items: center;
     gap: 12px;
     padding: 16px 16px 12px;
-    background: linear-gradient(135deg, rgba(91,95,199,0.08) 0%, rgba(91,95,199,0.02) 100%);
+    background: linear-gradient(135deg, rgba(91, 95, 199, 0.08) 0%, rgba(91, 95, 199, 0.02) 100%);
     border-bottom: 1px solid var(--teams-border);
 }
 
@@ -1461,21 +1494,27 @@
     transition: background 0.15s ease, transform 0.1s ease;
 }
 
-.status-msg-btn:active { transform: scale(0.96); }
+.status-msg-btn:active {
+    transform: scale(0.96);
+}
 
 .status-msg-btn.cancel {
     background: var(--teams-hover);
     color: var(--teams-text-secondary);
 }
 
-.status-msg-btn.cancel:hover { background: var(--teams-border); }
+.status-msg-btn.cancel:hover {
+    background: var(--teams-border);
+}
 
 .status-msg-btn.save {
     background: var(--teams-primary);
     color: white;
 }
 
-.status-msg-btn.save:hover { background: var(--teams-primary-hover); }
+.status-msg-btn.save:hover {
+    background: var(--teams-primary-hover);
+}
 
 /* Status Options List */
 .status-options-list {
@@ -1512,7 +1551,7 @@
     border-radius: 50%;
     flex-shrink: 0;
     display: inline-block;
-    border: 1.5px solid rgba(0,0,0,0.1);
+    border: 1.5px solid rgba(0, 0, 0, 0.1);
 }
 
 .status-option-label {
