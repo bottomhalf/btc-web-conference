@@ -326,6 +326,9 @@
                     <span class="message-time-inline">{{ msg.createdAt | date: 'h:mm a' }}</span>
                 </div>
                 }
+                @if (msg.type === 'nudge') {
+                <img src="assets/nudge-user.gif" class="nudge-img" />
+                } @else {
                 <div class="message-bubble sent" [class.jumbo-emoji]="isPureEmoji(msg.content)"
                     (mouseenter)="hoveredMsgIndex = $index">
                     @if (msg.replyTo && getRepliedMessage(msg.replyTo)) {
@@ -421,6 +424,7 @@
                     </div>
                     }
                 </div>
+                }
 
                 <!-- Floating Teams Emoji Reaction Bar -->
                 @if (hoveredMsgIndex === $index) {
@@ -481,6 +485,9 @@
                     }
                 </div>
                 }
+                @if (msg.type === 'nudge') {
+                <img src="assets/nudge-user.gif" class="nudge-img" />
+                } @else {
                 <div class="message-bubble received" [class.mentioned-bubble]="msg.isMentioned"
                     [class.jumbo-emoji]="isPureEmoji(msg.content)" (mouseenter)="hoveredMsgIndex = $index">
                     @if (msg.replyTo && getRepliedMessage(msg.replyTo)) {
@@ -522,11 +529,11 @@
                         </a>
                         }
                     </div>
-                    }
-                    @if (formatMessageContent(msg)) {
+                    } @else if (formatMessageContent(msg)) {
                     <div class="message-content black-text" [innerHTML]="formatMessageContent(msg)"></div>
                     }
                 </div>
+                }
 
                 <!-- Floating Teams Emoji Reaction Bar -->
                 @if (hoveredMsgIndex === $index) {

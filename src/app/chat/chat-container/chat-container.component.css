@@ -2005,6 +2005,10 @@ textarea.message-input {
     display: block;
 }
 
+.nudge-img {
+    width: 12% !important;
+}
+
 /* Seen User Avatars below messages */
 .seen-avatars-container {
     position: absolute;
