@@ -255,7 +255,7 @@
                             </div>
                         </div>
                         <div class="col-md-2 d-flex align-items-end justify-content-center pb-2">
-                            <span class="badge bg-light text-dark px-3 py-2">{{ duration }}</span>
+                            <span class="badge dashboard-duration-badge px-3 py-2">{{ duration }}</span>
                         </div>
                         <div class="col-md-5">
                             <label class="form-label">End Date & Time <span class="text-danger">*</span></label>
@@ -308,7 +308,7 @@
                     <div>
                         <label class="form-label">Description</label>
                         <div class="border rounded overflow-hidden">
-                            <div class="d-flex gap-2 p-2 bg-light border-bottom">
+                            <div class="d-flex gap-2 p-2 dashboard-toolbar border-bottom">
                                 <button type="button" class="btn btn-sm btn-outline-secondary border-0"
                                     (click)="execCommand('bold')" title="Bold"><i class="fa-solid fa-bold"></i></button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary border-0"
@@ -332,7 +332,7 @@
                                     (click)="execCommand('createLink')" title="Link"><i
                                         class="fa-solid fa-link"></i></button>
                             </div>
-                            <div class="p-3 bg-white" style="min-height: 120px; outline: none; color: black;"
+                            <div class="p-3 dashboard-editor" style="min-height: 120px; outline: none;"
                                 contenteditable="true" #editorContent (input)="updateAgendaContent($event)"></div>
                         </div>
                     </div>

@@ -18,6 +18,18 @@
 }
 
 /* Container */
+.dashboard-duration-badge {
+    background-color: var(--cal-bg-tertiary);
+    color: var(--cal-text-primary);
+}
+.dashboard-toolbar {
+    background-color: var(--cal-bg-tertiary);
+}
+.dashboard-editor {
+    background-color: var(--cal-bg-secondary);
+    color: var(--cal-text-primary);
+}
+
 .calendar-container {
     display: flex;
     flex-direction: column;
@@ -744,6 +756,28 @@
         font-size: 0.9rem;
         width: 28px;
         height: 28px;
+    }
+    
+    .month-view, .week-view {
+        overflow-x: auto;
+    }
+    
+    .month-header, .month-grid {
+        min-width: 500px;
+    }
+    
+    .week-header, .time-row {
+        min-width: 500px;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+    
+    .nav-controls, .view-switcher {
+        justify-content: center;
     }
 }
 

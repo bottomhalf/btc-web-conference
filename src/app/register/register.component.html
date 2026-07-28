@@ -1,0 +1,98 @@
+<div class="login-page">
+  <!-- Back Button -->
+  <button class="btn-back-floating" (click)="goBack()">
+    <i class="fas fa-arrow-left"></i>
+    <span>Back to login</span>
+  </button>
+
+  <!-- ======== ANIMATED BG CANVAS ======== -->
+  <div class="global-bg-animation">
+    <div class="wave wave-1"></div>
+    <div class="wave wave-2"></div>
+    <div class="wave wave-3"></div>
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+    <div class="floating-shape shape-4"></div>
+    <div class="floating-shape shape-5"></div>
+  </div>
+
+  <div class="login-container">
+    <div class="login-card reveal revealed">
+      <div class="login-header">
+        <div class="brand-logo mb-3">
+          <svg viewBox="0 0 40 40" fill="none">
+            <rect x="4" y="12" width="22" height="16" rx="3" fill="url(#loginGrad)"/>
+            <polygon points="28,15 36,11 36,29 28,25" fill="url(#loginGrad)" opacity="0.8"/>
+            <circle cx="15" cy="20" r="2.5" fill="#fff" opacity="0.9"/>
+            <defs>
+              <linearGradient id="loginGrad" x1="0" y1="0" x2="40" y2="40">
+                <stop offset="0%" stop-color="#818cf8"/>
+                <stop offset="100%" stop-color="#c084fc"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <h2 class="login-title">Create an Account</h2>
+        <p class="login-subtitle">Join Confeet today</p>
+      </div>
+
+      <form [formGroup]="registerForm" (ngSubmit)="register()" class="login-form">
+        <!-- First Name Input -->
+        <div class="form-group">
+          <label>First Name</label>
+          <div class="input-wrapper">
+            <i class="fas fa-user input-icon"></i>
+            <input type="text" placeholder="John" class="form-control-dark" formControlName="firstName"
+                [ngClass]="{ 'is-invalid': isSubmitted && registerForm.get('firstName')?.invalid }" />
+          </div>
+          <div class="error-msg" *ngIf="isSubmitted && registerForm.get('firstName')?.hasError('required')">First Name is required</div>
+        </div>
+
+        <!-- Last Name Input -->
+        <div class="form-group">
+          <label>Last Name</label>
+          <div class="input-wrapper">
+            <i class="fas fa-user input-icon"></i>
+            <input type="text" placeholder="Doe" class="form-control-dark" formControlName="lastName"
+                [ngClass]="{ 'is-invalid': isSubmitted && registerForm.get('lastName')?.invalid }" />
+          </div>
+          <div class="error-msg" *ngIf="isSubmitted && registerForm.get('lastName')?.hasError('required')">Last Name is required</div>
+        </div>
+
+        <!-- Mobile Input -->
+        <div class="form-group">
+          <label>Mobile Number</label>
+          <div class="input-wrapper">
+            <i class="fas fa-phone input-icon"></i>
+            <input type="text" placeholder="+1234567890" class="form-control-dark" formControlName="mobile"
+                [ngClass]="{ 'is-invalid': isSubmitted && registerForm.get('mobile')?.invalid }" />
+          </div>
+          <div class="error-msg" *ngIf="isSubmitted && registerForm.get('mobile')?.hasError('required')">Mobile number is required</div>
+        </div>
+
+        <!-- Email Input -->
+        <div class="form-group">
+          <label>Email Address</label>
+          <div class="input-wrapper">
+            <i class="fas fa-envelope input-icon"></i>
+            <input type="email" placeholder="john@company.com" class="form-control-dark" formControlName="email"
+                [ngClass]="{ 'is-invalid': isSubmitted && registerForm.get('email')?.invalid }" />
+          </div>
+          <div class="error-msg" *ngIf="isSubmitted && registerForm.get('email')?.hasError('required')">Email is required</div>
+          <div class="error-msg" *ngIf="isSubmitted && registerForm.get('email')?.hasError('email')">Please enter a valid email</div>
+        </div>
+
+        <!-- Register Button -->
+        <button type="submit" class="btn-login-primary mt-4" [disabled]="isLoading">
+          <span *ngIf="!isLoading">Register</span>
+          <span *ngIf="isLoading"><i class="fas fa-spinner fa-spin me-2"></i>Creating account...</span>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <p>Already have an account? <a href="javascript:void(0)" (click)="goBack()">Sign in</a></p>
+      </div>
+    </div>
+  </div>
+</div>

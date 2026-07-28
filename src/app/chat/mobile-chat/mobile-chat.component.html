@@ -1,0 +1,99 @@
+@if (activeView === 'list') {
+  <div class="mobile-chat-list-view w-100 h-100 d-flex flex-column">
+      <!-- Header -->
+      <div class="mobile-header d-flex justify-content-between align-items-center p-3 border-bottom">
+          <h4 class="m-0 fw-bold">Chats</h4>
+          <button class="btn btn-primary rounded-circle" (click)="openNewChat.emit('new-chat')" style="width: 40px; height: 40px;">
+              <i class="fa-solid fa-plus"></i>
+          </button>
+      </div>
+
+      <!-- List -->
+      <div class="mobile-list-container flex-grow-1 overflow-auto">
+          <!-- Direct Chats -->
+          <div class="section-title px-3 pt-3 pb-2 text-muted fw-bold small text-uppercase">Direct Messages</div>
+          <div class="list-group list-group-flush">
+              @for (item of directConversations; track item.id ? item.id + '-' + $index : $index) {
+              <a href="javascript:void(0)" class="list-group-item list-group-item-action d-flex align-items-center border-0 py-3"
+                  [class.active-conversation]="isConversationSelected(item)" (click)="selectChannelForConversation(item)">
+                  
+                  <div class="position-relative me-3">
+                      @if (getConversationAvatar(item) && !failedAvatars.has(getConversationAvatar(item))) {
+                      <img [src]="getConversationAvatar(item)" (error)="onAvatarError(getConversationAvatar(item))" 
+                          class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;" alt="avatar" />
+                      } @else {
+                      <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+                          style="width: 48px; height: 48px; font-size: 1.2rem;"
+                          [ngStyle]="{ 'background-color': getColorFromName(getConversationName(item), '') }">
+                          {{ getCurrentInitiaLetter(item) }}
+                      </div>
+                      }
+                      
+                      <!-- Status dot -->
+                      <span class="position-absolute bottom-0 end-0 rounded-circle border border-white"
+                          style="width: 12px; height: 12px;"
+                          [ngClass]="'bg-' + (getNormalizedStatus(getDirectUserStatus(item)) === 'online' ? 'success' : (getNormalizedStatus(getDirectUserStatus(item)) === 'busy' ? 'danger' : (getNormalizedStatus(getDirectUserStatus(item)) === 'away' ? 'warning' : 'secondary')))">
+                      </span>
+                  </div>
+
+                  <div class="flex-grow-1 min-w-0">
+                      <div class="d-flex justify-content-between align-items-baseline mb-1">
+                          <h6 class="m-0 text-truncate fw-bold">{{ getConversationName(item) }}</h6>
+                          @if (item.lastMessageAt) {
+                          <small class="text-muted ms-2 flex-shrink-0">{{ item.lastMessageAt | date : "h:mm a" }}</small>
+                          }
+                      </div>
+                      <p class="m-0 text-muted small text-truncate">{{ item.lastMessage?.content || 'No messages yet' }}</p>
+                  </div>
+              </a>
+              } @empty {
+                  <div class="p-3 text-center text-muted small">No direct conversations yet</div>
+              }
+          </div>
+
+          <!-- Group Chats -->
+          <div class="section-title px-3 pt-3 pb-2 text-muted fw-bold small text-uppercase d-flex justify-content-between align-items-center">
+              <span>Groups</span>
+              <button class="btn btn-sm btn-link text-decoration-none p-0" (click)="openNewChat.emit('create-group')">
+                  <i class="fa-solid fa-users"></i> New Group
+              </button>
+          </div>
+          <div class="list-group list-group-flush pb-3">
+              @for (item of groupConversations; track item.id ? item.id + '-' + $index : $index) {
+              <a href="javascript:void(0)" class="list-group-item list-group-item-action d-flex align-items-center border-0 py-3"
+                  [class.active-conversation]="isConversationSelected(item)" (click)="selectChannelForConversation(item)">
+                  
+                  <div class="me-3">
+                      @if (getConversationAvatar(item) && !failedAvatars.has(getConversationAvatar(item))) {
+                      <img [src]="getConversationAvatar(item)" (error)="onAvatarError(getConversationAvatar(item))" 
+                          class="rounded" style="width: 48px; height: 48px; object-fit: cover;" alt="space" />
+                      } @else {
+                      <div class="rounded d-flex align-items-center justify-content-center text-white fw-bold"
+                          style="width: 48px; height: 48px; font-size: 1.2rem;"
+                          [ngStyle]="{ 'background-color': getColorFromName(getConversationName(item), '') }">
+                          {{ getCurrentInitiaLetter(item) }}
+                      </div>
+                      }
+                  </div>
+
+                  <div class="flex-grow-1 min-w-0">
+                      <div class="d-flex justify-content-between align-items-baseline mb-1">
+                          <h6 class="m-0 text-truncate fw-bold">{{ getConversationName(item) }}</h6>
+                          @if (item.lastMessageAt) {
+                          <small class="text-muted ms-2 flex-shrink-0">{{ item.lastMessageAt | date : "h:mm a" }}</small>
+                          }
+                      </div>
+                      <p class="m-0 text-muted small text-truncate">{{ item.lastMessage?.content || 'No messages in group' }}</p>
+                  </div>
+              </a>
+              } @empty {
+                  <div class="p-3 text-center text-muted small">No groups yet</div>
+              }
+          </div>
+      </div>
+  </div>
+} @else {
+  <div class="mobile-chat-view w-100 h-100 d-flex flex-column">
+      <app-chat-container class="flex-grow-1 h-100 w-100" [header]="true" [isMobileMode]="true" (backToList)="activeView = 'list'"></app-chat-container>
+  </div>
+}

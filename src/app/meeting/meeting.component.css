@@ -21,6 +21,26 @@
     --teams-shadow: var(--theme-shadow);
 }
 
+@media (max-width: 767.98px) {
+    :host(.maximized) {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100dvh !important;
+        z-index: 9999 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+    }
+
+    .full-container {
+        width: 100vw !important;
+        height: 100dvh !important;
+        position: relative !important;
+    }
+}
+
 
 /* =====================================================
    Tooltip Styling - Teams Dark Theme
@@ -251,9 +271,82 @@
     align-items: center;
     padding: 0 16px;
     border-top: 1px solid var(--teams-border);
-    transition: background-color 0.3s ease;
     position: relative;
-    z-index: 1050;
+    z-index: 30;
+}
+
+@media (max-width: 767.98px) {
+
+    .roster-sidebar-container,
+    .chat-window {
+        position: absolute !important;
+        top: 0;
+        left: 0;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 1050;
+        border: none !important;
+        background: var(--teams-bg-primary);
+    }
+
+    .chat-window {
+        display: block !important;
+    }
+
+    /* Grid Layouts for Mobile */
+    .grid-container[data-count]>video-component,
+    .grid-container[data-count]>div:not([hidden]) {
+        /* Default mobile fallback */
+        width: calc(50% - 4px) !important;
+        height: calc(50% - 4px) !important;
+    }
+
+    .grid-container[data-count="1"]>video-component,
+    .grid-container[data-count="1"]>div:not([hidden]) {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .grid-container[data-count="2"]>video-component,
+    .grid-container[data-count="2"]>div:not([hidden]) {
+        width: 100% !important;
+        height: calc(50% - 4px) !important;
+    }
+
+    .grid-container[data-count="5"]>video-component,
+    .grid-container[data-count="5"]>div:not([hidden]),
+    .grid-container[data-count="6"]>video-component,
+    .grid-container[data-count="6"]>div:not([hidden]) {
+        width: calc(50% - 4px) !important;
+        height: calc(33.333% - 6px) !important;
+    }
+
+    /* Hide extra participants beyond 6 on mobile */
+    .grid-container[data-count="7"]>video-component:nth-of-type(n+7),
+    .grid-container[data-count="7"]>div:not([hidden]):nth-of-type(n+7),
+    .grid-container[data-count="8"]>video-component:nth-of-type(n+7),
+    .grid-container[data-count="8"]>div:not([hidden]):nth-of-type(n+7) {
+        display: none !important;
+    }
+
+    .footer-section {
+        padding: 8px !important;
+    }
+
+    .footer-left,
+    .footer-right {
+        min-width: 0 !important;
+    }
+
+    .footer-left .btn-danger {
+        padding: 6px 10px !important;
+        font-size: 0;
+        /* Hides the text on mobile */
+    }
+
+    .footer-left .btn-danger svg {
+        margin: 0 !important;
+    }
 }
 
 /* Footer Left - Leave Button & Recording Info */
@@ -1300,21 +1393,29 @@ textarea:focus {
    Footer Theme Overrides
    ===================================================== */
 /* Override Bootstrap text-white in footer for theme support */
-.footer-section .text-white,
-.footer-section span.text-white,
-.footer-center.text-white,
+.meeting-info-card {
+    background-color: var(--teams-bg-tertiary);
+    color: var(--teams-text-primary);
+}
+
+.device-pill {
+    background-color: var(--teams-bg-tertiary);
+    color: var(--teams-text-primary);
+}
+
+.meeting-url-input {
+    background-color: transparent;
+    color: var(--teams-text-primary);
+}
+
+.meeting-reaction-card {
+    background-color: var(--teams-bg-secondary);
+    color: var(--teams-text-primary);
+    box-shadow: 0 4px 6px var(--teams-shadow);
+}
+
+/* Footer text */
 .footer-center span {
-    color: var(--teams-text-primary) !important;
-}
-
-/* Footer separator */
-.footer-section span.text-white:not(.badge) {
-    color: var(--teams-border) !important;
-}
-
-/* Presenting bar */
-.footer-section .bg-white.text-dark {
-    background-color: var(--teams-bg-tertiary) !important;
     color: var(--teams-text-primary) !important;
 }
 
@@ -1324,11 +1425,8 @@ textarea:focus {
 }
 
 /* Emoji dropdown theme override */
-.emoji-dropdown.bg-dark {
+.emoji-dropdown {
     background-color: var(--teams-bg-secondary) !important;
-}
-
-.emoji-dropdown.text-white {
     color: var(--teams-text-primary) !important;
 }
 

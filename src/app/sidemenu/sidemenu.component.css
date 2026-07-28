@@ -581,3 +581,49 @@
         padding: 4px 2px 8px 2px;
     }
 }
+
+@media (max-width: 768px) {
+    .sidebar-container {
+        flex-direction: row;
+        height: 60px;
+        width: 100vw;
+        padding: 0;
+        justify-content: space-around;
+        align-items: center;
+        background: var(--theme-sidebar-bg); /* Solid color instead of gradient for bottom bar */
+        border-top: 1px solid var(--sidebar-divider);
+    }
+
+    .user-profile-section, .sidebar-divider, .user-section, .nav-tooltip, .nav-label {
+        display: none !important;
+    }
+
+    .nav-section {
+        flex-direction: row;
+        width: 100%;
+        justify-content: space-around;
+        padding: 0;
+        gap: 0;
+    }
+
+    .nav-item {
+        min-height: 100%;
+        width: 100%;
+        padding: 10px;
+        border-radius: 0;
+        justify-content: center;
+    }
+
+    .nav-item.active {
+        background: transparent;
+    }
+
+    .nav-item.active::before {
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50%;
+        height: 3px;
+        border-radius: 0 0 3px 3px;
+    }
+}

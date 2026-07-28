@@ -8,6 +8,8 @@ import {
     AfterViewChecked,
     effect,
     HostListener,
+    Output,
+    EventEmitter
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpEventType, HttpRequest, HttpHeaders } from '@angular/common/http';
@@ -22,6 +24,7 @@ import { Conversation, Participant, SearchResult } from '../../components/global
 import { ResponseModel, User } from '../../models/model';
 import { CallType } from '../../models/conference_call/call_model';
 import { ChatDbService } from '../../core/services/chat-db.service';
+import { ViewPortService } from '../../providers/services/view-port.service';
 
 @Component({
     selector: 'app-chat-container',
@@ -34,6 +37,8 @@ export class ChatContainerComponent implements AfterViewChecked {
     @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
     @Input() header: boolean = false;
     @Input() classes: string = '';
+    @Input() isMobileMode: boolean = false;
+    @Output() backToList = new EventEmitter<void>();
 
     ws = inject(ConfeetSocketService);
     chatService = inject(ChatService);
@@ -78,7 +83,7 @@ export class ChatContainerComponent implements AfterViewChecked {
     // Emoji Picker state & categories
     showEmojiPicker = signal<boolean>(false);
     selectedEmojiCategory = signal<string>('smileys');
-
+    readonly isMobileView = inject(ViewPortService).isMobileView;
     readonly emojiCategories = [
         {
             id: 'smileys',

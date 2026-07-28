@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnDestroy, signal, ViewChild } from '@angular/core';
+import { Component, ElementRef, inject, OnDestroy, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LocalVideoTrack, Room } from 'livekit-client';
@@ -16,11 +16,13 @@ import { ConfeetSocketService } from '../providers/socket/confeet-socket.service
 import { ServerEventService } from '../providers/socket/server-events/server-event.service';
 import { InitiateAudioJoiningRequestService } from '../providers/socket/client-events/call/initiate-audio-joining-request.service';
 import { environment } from '../../environments/environment';
+import { ViewPortService } from '../providers/services/view-port.service';
+import { CommonModule } from '@angular/common';
 
 @Component({
     selector: 'app-preview',
     standalone: true,
-    imports: [FormsModule],
+    imports: [FormsModule, CommonModule],
     templateUrl: './preview.component.html',
     styleUrl: './preview.component.css'
 })
@@ -67,6 +69,8 @@ export class PreviewComponent implements OnDestroy {
     isWaitingInLobby: boolean = false;
     private subscriptions = new Subscription();
     private conversationId: string = null;
+    readonly isMobileView = inject(ViewPortService).isMobileView;
+
     constructor(
         private nav: iNavigation,
         private route: ActivatedRoute,
