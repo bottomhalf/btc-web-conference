@@ -10,17 +10,17 @@
             <button class="btn btn-outline-danger mt-4 px-4 py-2" (click)="cancelLobbyRequest()">Leave Lobby</button>
         </div>
         } @else if (!room() && isValidMeetingId) {
-        <div class="row">
+        <div class="row" [ngClass]="{ 'py-2 px-3': !isLoggedIn }">
             <!-- Meeting Title -->
             @if (!isMobileView()) {
-            <div class="text-center my-4 col-md-12 py-2">
+            <div class="text-center col-md-12 py-2" [ngClass]="{ 'my-4': isLoggedIn }">
                 <span class="meeting-title-badge">{{meetingTitle}}</span>
             </div>
             }
             <!-- Video Preview Section -->
             <div class="col-md-6 d-flex justify-content-center align-items-stretch flex-column">
                 <div class="preview-wrapper">
-                    <div class="video-preview-container">
+                    <div class="video-preview-container" [ngClass]="{ 'mb-0': !isLoggedIn }">
                         <video #previewVideo autoplay playsinline muted class="camera-box"></video>
 
                         <!-- Permission/Status Overlays -->
@@ -109,9 +109,9 @@
                                 d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z" />
                         </svg>
                     </div>
-                    <div class="settings-footer-text">
-                        <h3>Welcome to: Confeet Meeting Application</h3>
-                        <p>Develop & maintain by: BottomHalf Pvt. Ltd.</p>
+                    <div class="settings-footer-text text-truncate">
+                        <h3 class="text-truncate">Welcome to: Confeet Meeting Application</h3>
+                        <p class="text-truncate">Develop & maintain by: BottomHalf Pvt. Ltd.</p>
                     </div>
                 </div>
             </div>
@@ -137,7 +137,6 @@
                         <!-- Guest Name Input -->
                         @if (!isLoggedIn) {
                         <div class="mb-3">
-                            <label class="form-label">Your Name <span class="text-danger">*</span></label>
                             <input class="form-control" [(ngModel)]="userName" placeholder="Enter your name" type="text"
                                 [ngClass]="{'error-field': isSubmitted && userName== ''}" (keyup.enter)="joinRoom()" />
                         </div>
