@@ -1,7 +1,6 @@
 import { AfterViewInit, Component, ElementRef, Input, OnChanges, SimpleChanges, ViewChild, Signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LocalVideoTrack, RemoteTrackPublication } from 'livekit-client';
-import { VideoComponent } from '../../video/video.component';
 import { MeetingService } from '../meeting.service';
 
 /**
@@ -12,7 +11,7 @@ import { MeetingService } from '../meeting.service';
 @Component({
     selector: 'app-screenshare',
     standalone: true,
-    imports: [CommonModule, VideoComponent],
+    imports: [CommonModule],
     templateUrl: './screenshare.component.html',
     styleUrl: './screenshare.component.css',
 })

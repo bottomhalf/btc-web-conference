@@ -97,16 +97,20 @@ export class NotificationService {
      */
     updateMessageState(message: Message): boolean {
         if (message.senderId === this.user.userId) {
-            this.chatService.messages.update(msgs =>
-                msgs.map(x => x.messageId === message.messageId ? { ...x, status: message.status || 1, id: message.id } : x)
-            );
+            if (this.activeConversationId() === message.conversationId) {
+                this.chatService.messages.update(msgs =>
+                    msgs.map(x => x.messageId === message.messageId ? { ...x, status: message.status || 1, id: message.id } : x)
+                );
+            }
             // Remove from IndexedDB once acknowledged by the server
             if (message.messageId) {
                 this.chatDb.removePendingMessage(message.messageId);
             }
             return true;
         } else {
-            this.chatService.messages.update(msgs => [...msgs, message]);
+            if (this.activeConversationId() === message.conversationId) {
+                this.chatService.messages.update(msgs => [...msgs, message]);
+            }
             return false;
         }
     }
@@ -297,12 +301,10 @@ export class NotificationService {
                 return;
             }
         }
-        const isActiveConversation = this.activeConversationId() === message.conversationId;
-
-        if (isActiveConversation && this.chatService.isChatActive()) {
-            // Update local message with server-assigned id and timestamp
-            this.updateMessageState(message);
-        }
+        
+        // Always update message state to ensure it is removed from the pending queue.
+        // updateMessageState will internally handle checking the activeConversationId for UI updates.
+        this.updateMessageState(message);
 
         // Update conversation's last message
         this.updateConversationLastMessage(message);
@@ -420,10 +422,15 @@ export class NotificationService {
     }
 
     /**
-     * Cleanup subscriptions (typically not needed for root service)
+     * Cleanup subscriptions and clear local state
      */
     destroy(): void {
         this.subscriptions.unsubscribe();
+        this.subscriptions = new Subscription(); // Reset for subsequent logins
         this.initialized = false;
+        this.clearAllNotifications();
+        this.unreadCounts.set(new Map());
+        this.typingUsers.set(new Map());
+        this.activeConversationId.set(null);
     }
 }

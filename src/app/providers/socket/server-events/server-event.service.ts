@@ -164,6 +164,7 @@ export class ServerEventService {
      */
     destroy(): void {
         this.subscriptions.unsubscribe();
+        this.subscriptions = new Subscription(); // Reset for subsequent logins
     }
 
     // =========================================================

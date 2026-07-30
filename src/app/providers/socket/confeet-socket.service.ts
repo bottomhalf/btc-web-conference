@@ -66,6 +66,12 @@ export class ConfeetSocketService {
             console.log('WS connected');
             this.sendPing(this.senderId);
             this.startHeartbeat(this.senderId);
+
+            // Broadcast the user's status to other users
+            // Read from local storage or default to 'available'
+            const storedStatus = localStorage.getItem('user_status') || 'available';
+            this.updateStatus(storedStatus);
+
             this.isConnectedSubject.next(true);
         };
 

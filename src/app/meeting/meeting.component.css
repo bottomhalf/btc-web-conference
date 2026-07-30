@@ -1696,8 +1696,7 @@ textarea:focus {
 
 /* Full meeting container */
 .full-container {
-    width: 100%;
-    /*calc(100% - 4rem);*/
+    width: calc(100% - 4rem);
     position: fixed;
     top: 0;
     right: 0;
@@ -1706,6 +1705,10 @@ textarea:focus {
     animation: fadeIn 0.2s ease-out;
     z-index: 20 !important;
     transition: background-color 0.3s ease;
+}
+
+.full-contianer-with {
+    width: 100% !important;
 }
 
 /* =====================================================

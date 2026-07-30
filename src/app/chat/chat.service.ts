@@ -405,4 +405,11 @@ export class ChatService {
         this.snackbarMessageId.set(null);
         this.snackbarConversationId.set(null);
     }
+
+    clearSessionData(): void {
+        this.messages.set([]);
+        this.meetingRooms.set([]);
+        this.searchResults.set([]);
+        this.userSearchResults.set([]);
+    }
 }
