@@ -4,11 +4,10 @@ import { Router } from '@angular/router';
 import { iNavigation } from '../providers/services/iNavigation';
 import { LocalService } from '../providers/services/local.service';
 import { NgbDropdownConfig, NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
-import { JwtService } from '../providers/services/jwt.service';
-import { CalendarPage, ChatPage, Dashboard, Login, MonitorDashboard } from '../models/constant';
+import { CalendarPage, ChatPage, Dashboard, MonitorDashboard } from '../models/constant';
 import { User } from '../models/model';
-import { MeetingService } from '../meeting/meeting.service';
 import { ThemeService } from '../providers/services/theme.service';
+import { SessionManagerService } from '../providers/session-manager.service';
 
 @Component({
   selector: 'app-sidemenu',
@@ -53,8 +52,7 @@ export class SidemenuComponent {
     private nav: iNavigation,
     private local: LocalService,
     private config: NgbDropdownConfig,
-    private jwtService: JwtService,
-    private meetingService: MeetingService,
+    private sessionManager: SessionManagerService,
     public themeService: ThemeService
   ) {
     config.placement = 'top-end';
@@ -113,10 +111,8 @@ export class SidemenuComponent {
     return fullName
   }
 
-  logout() {
-    this.jwtService.removeJwtToken();
-    this.meetingService.leaveRoom()
-    this.nav.navigate(Login, null);
+  async logout() {
+    await this.sessionManager.logout();
   }
 
   toggleTheme() {
