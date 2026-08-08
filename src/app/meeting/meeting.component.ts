@@ -267,6 +267,7 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     get room() { return this.meetingService.room; }
     get localTrack() { return this.meetingService.localTrack; }
     readonly isMobileView = inject(ViewPortService).isMobileView;
+    readonly isLoggedin = inject(LocalService).isLoggedIn();
 
     constructor(
         private cameraService: CameraService,

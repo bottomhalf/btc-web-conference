@@ -202,7 +202,7 @@
 
                     @if (!isChatSectionCollapsed) {
                     <div class="section-list direct-list">
-                        @for (item of directConversations; track item.id ? item.id + '-' + $index : $index) {
+                        @for (item of directConversations; track item.id) {
                         <a href="javascript:void(0)" class="conversation-item"
                             [class.selected]="isConversationSelected(item)"
                             (click)="selectChannelForConversation(item)">
@@ -247,13 +247,18 @@
 
                             <div class="conversation-details">
                                 <div class="conversation-header">
-                                    <span class="conversation-name">{{ getConversationName(item) }}</span>
+                                    <span class="conversation-name" [class.fw-bold]="(notificationService.unreadCounts().get(item.id) || 0) > 0">{{ getConversationName(item) }}</span>
                                     @if (item.lastMessageAt) {
                                     <span class="conversation-time">{{ item.lastMessageAt | date : "h:mm a" }}</span>
                                     }
                                 </div>
-                                <div class="conversation-preview">
-                                    {{ item.lastMessage?.content || 'No messages yet' }}
+                                <div class="conversation-preview d-flex align-items-center justify-content-between">
+                                    <span class="text-truncate" [class.fw-bold]="(notificationService.unreadCounts().get(item.id) || 0) > 0" [class.text-dark]="(notificationService.unreadCounts().get(item.id) || 0) > 0">
+                                        {{ item.lastMessage?.content || 'No messages yet' }}
+                                    </span>
+                                    @if ((notificationService.unreadCounts().get(item.id) || 0) > 0) {
+                                        <span class="badge rounded-pill ms-2" style="font-size: 0.7rem; background-color: var(--teams-primary);">{{ notificationService.unreadCounts().get(item.id) }}</span>
+                                    }
                                 </div>
                             </div>
                         </a>
@@ -287,7 +292,7 @@
 
                     @if (!isSpacesSectionCollapsed) {
                     <div class="section-list spaces-list">
-                        @for (item of groupConversations; track item.id ? item.id + '-' + $index : $index) {
+                        @for (item of groupConversations; track item.id) {
                         <a href="javascript:void(0)" class="conversation-item space-item"
                             [class.selected]="isConversationSelected(item)"
                             (click)="selectChannelForConversation(item)">
@@ -307,13 +312,18 @@
 
                             <div class="conversation-details">
                                 <div class="conversation-header">
-                                    <span class="conversation-name space-name">{{ getConversationName(item) }}</span>
+                                    <span class="conversation-name space-name" [class.fw-bold]="(notificationService.unreadCounts().get(item.id) || 0) > 0">{{ getConversationName(item) }}</span>
                                     @if (item.lastMessageAt) {
                                     <span class="conversation-time">{{ item.lastMessageAt | date : "h:mm a" }}</span>
                                     }
                                 </div>
-                                <div class="conversation-preview">
-                                    {{ item.lastMessage?.content || 'No messages in space' }}
+                                <div class="conversation-preview d-flex align-items-center justify-content-between">
+                                    <span class="text-truncate" [class.fw-bold]="(notificationService.unreadCounts().get(item.id) || 0) > 0" [class.text-dark]="(notificationService.unreadCounts().get(item.id) || 0) > 0">
+                                        {{ item.lastMessage?.content || 'No messages in space' }}
+                                    </span>
+                                    @if ((notificationService.unreadCounts().get(item.id) || 0) > 0) {
+                                        <span class="badge rounded-pill ms-2" style="font-size: 0.7rem; background-color: var(--teams-primary);">{{ notificationService.unreadCounts().get(item.id) }}</span>
+                                    }
                                 </div>
                             </div>
                         </a>

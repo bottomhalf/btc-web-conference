@@ -198,6 +198,44 @@ export class ChatService {
         return this.searchResults();
     }
 
+    updateConversationLastMessage(message: any): void {
+        const conversation = this.meetingRooms().find(x => x.id === message.conversationId);
+        if (conversation) {
+            const currentRooms = this.meetingRooms();
+            const updatedRooms = currentRooms.map(x => x.id === conversation.id ? {
+                ...x,
+                lastMessageAt: message.createdAt ? new Date(message.createdAt) : new Date(),
+                lastMessage: {
+                    messageId: message.messageId,
+                    content: message.content,
+                    senderId: message.senderId,
+                    senderName: message.senderName || '',
+                    sentAt: message.createdAt ? new Date(message.createdAt) : new Date()
+                }
+            } : x);
+
+            const sortedRooms = updatedRooms.sort((a, b) => {
+                let timeA = Date.now();
+                if (a.lastMessageAt) {
+                    const dateA = new Date(a.lastMessageAt);
+                    if (!isNaN(dateA.getTime())) {
+                        timeA = dateA.getTime();
+                    }
+                }
+                let timeB = 0;
+                if (b.lastMessageAt) {
+                    const dateB = new Date(b.lastMessageAt);
+                    if (!isNaN(dateB.getTime())) {
+                        timeB = dateB.getTime();
+                    }
+                }
+                return timeB - timeA;
+            });
+
+            this.meetingRooms.set([...sortedRooms]);
+        }
+    }
+
     async getMessages(conversationId: string, page: number, limit: number, append: boolean = false): Promise<void> {
         if (page === 1 || !append) {
             this.isMessagesLoading.set(true);
@@ -205,8 +243,8 @@ export class ChatService {
         try {
             // isLoading not set here to avoid flickering entire chat on pagination
             const res = await this.http.get(`messages/get?id=${conversationId ?? ''}&page=${page}&limit=${limit}`);
-            if (res.isSuccess && res.responseBody && res.responseBody.messages) {
-                var messages = res.responseBody.messages;
+            if (res.isSuccess && res.responseBody && res.responseBody.searchResult.messages) {
+                var messages = res.responseBody.searchResult.messages;
                 for (let i = 0; i < messages.length; i++) {
                     messages[i].isMentioned = this.isMentioned(messages[i]);
                     messages[i].status = messages[i].status || 1;
@@ -255,8 +293,7 @@ export class ChatService {
         const res = await this.http.post(`conversations/create/${userId}`, conversation);
         // If successful, we might want to refresh meeting rooms or add this one
         if (res.isSuccess) {
-            // Optionally refresh list
-            // this.getMeetingRooms(); 
+            this.getMeetingRooms();
         }
         return res; // Keep return for Component to know ID of new chat
     }
@@ -265,8 +302,7 @@ export class ChatService {
         const res = await this.http.post(`conversations/build-group/${userId}`, createGroupRequest);
         // If successful, we might want to refresh meeting rooms or add this one
         if (res.isSuccess) {
-            // Optionally refresh list
-            // this.getMeetingRooms(); 
+            this.getMeetingRooms();
         }
         return res; // Keep return for Component to know ID of new chat
     }

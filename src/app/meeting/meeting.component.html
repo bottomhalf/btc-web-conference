@@ -1,5 +1,5 @@
 <div class="full-container d-flex flex-column vh-100 overflow-hidden"
-    [ngClass]="{'container-border': isMyshareScreen, 'd-none': !meetingService.inMeeting(), 'meeting-mini-mode': meetingService.isMinimized()}"
+    [ngClass]="{'container-border': isMyshareScreen, 'd-none': !meetingService.inMeeting(), 'meeting-mini-mode': meetingService.isMinimized(), 'full-contianer-with': !isLoggedin}"
     (mousedown)="onMiniMouseDown($event)" (dblclick)="onMiniDoubleClick($event)">
     <div class="conference-section flex-grow-1">
         @if (!room()) {
@@ -175,7 +175,7 @@
                     </svg>
                     Leave
                 </button>
-                @if (!meetingService.isMinimized() && !isMobileView()) {
+                @if (!meetingService.isMinimized()) {
                 @if (isMyshareScreen) {
                 <div class="btn-group dropdown ms-3">
                     <a href="javascript:void(0)" class="text-decoration-none" data-bs-toggle="dropdown"
@@ -324,7 +324,7 @@
                     </svg>
                     }
                 </a>
-                @if (!meetingService.isMinimized() && !isMobileView()) {
+                @if (!meetingService.isMinimized() && !(isMobileView())) {
                 <a href="javascript:void(0)" class="text-decoration-none ms-3"
                     (click)="roomService.toggleRecording(meetingId)" placement="top"
                     [ngbTooltip]="roomService.isRecording() ? 'Stop Recording' : 'Start Recording'">
@@ -797,8 +797,9 @@
                     <div class="modal-body">
                         <div class="col-md-12 form-control mb-2">
                             <div class="d-flex align-items-center">
-                                <input type="text" class="form-control border-0 p-0 m-0 w-75 fw-normal meeting-url-input"
-                                    readonly [value]="meetingUrl">
+                                <input type="text"
+                                    class="form-control border-0 p-0 m-0 w-75 fw-normal meeting-url-input" readonly
+                                    [value]="meetingUrl">
                                 <a href="javascript:void(0)" class="text-decoration-none ms-2" (click)="copyLink()">
                                     <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960"
                                         width="24px" fill="#000000">
