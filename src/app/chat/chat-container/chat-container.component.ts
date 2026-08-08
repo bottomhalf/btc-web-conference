@@ -1353,6 +1353,7 @@ export class ChatContainerComponent implements AfterViewChecked {
                 };
                 this.chatService.messages.update((msgs) => [...msgs, event]);
                 this.chatDb.addPendingMessage(event.messageId, event.conversationId, event);
+                this.chatService.updateConversationLastMessage(event);
                 this.ws.sendMessage(event);
             }
             this.stagedFiles.set([]);
@@ -1378,6 +1379,7 @@ export class ChatContainerComponent implements AfterViewChecked {
             };
             this.chatService.messages.update((msgs) => [...msgs, event]);
             this.chatDb.addPendingMessage(event.messageId, event.conversationId, event);
+            this.chatService.updateConversationLastMessage(event);
             this.ws.sendMessage(event);
         }
 

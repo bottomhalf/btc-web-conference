@@ -41,6 +41,7 @@ export interface Conversation {
   lastMessage?: LastMessage | null;
   updatedAt?: Date | string | null;
   isActive?: boolean;
+  unreadCount?: number;
 }
 
 export interface SearchResult {

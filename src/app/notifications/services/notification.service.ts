@@ -185,6 +185,12 @@ export class NotificationService {
             rawConversations = message;
         }
 
+        rawConversations.sort((a, b) => {
+            const timeA = a.last_message_at ? Number(a.last_message_at) : 0;
+            const timeB = b.last_message_at ? Number(b.last_message_at) : 0;
+            return timeB - timeA;
+        });
+
         if (rawConversations.length > 0 || (message && message.conversations)) {
             const mappedRooms: Conversation[] = (rawConversations || []).map((conv: any) => {
                 const members = conv.members || [];
@@ -373,20 +379,7 @@ export class NotificationService {
     }
 
     private updateConversationLastMessage(message: Message): void {
-        const conversation = this.chatService.meetingRooms().find(x => x.id === message.conversationId);
-        if (conversation) {
-            this.chatService.meetingRooms.update(
-                rooms => rooms.map(x => x.id === conversation.id ? {
-                    ...x,
-                    lastMessage: <LastMessage>{
-                        messageId: message.messageId,
-                        content: message.content,
-                        senderId: message.senderId,
-                        sentAt: message.createdAt
-                    }
-                } : x)
-            );
-        }
+        this.chatService.updateConversationLastMessage(message);
     }
 
     showNotification(notification: AppNotification): void {
