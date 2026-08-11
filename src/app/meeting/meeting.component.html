@@ -54,6 +54,7 @@
                 <!-- Screen share component - always rendered, visibility controlled by CSS -->
                 <app-screenshare [ngClass]="{'d-none': !(currentScreenTrack != null || isMyshareScreen)}"
                     [isMyshareScreen]="isMyshareScreen" [localScreenTrack]="localScreenTrack"
+                    [remoteVideoTrack]="currentScreenTrack"
                     [remoteSharescreenTrack]="remoteSharescreenTrack">
                 </app-screenshare>
 
