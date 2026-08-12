@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, ElementRef, Input, OnChanges, SimpleChanges, ViewChild, Signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LocalVideoTrack, RemoteTrackPublication } from 'livekit-client';
+import { LocalVideoTrack, RemoteTrackPublication, RemoteVideoTrack } from 'livekit-client';
 import { MeetingService } from '../meeting.service';
 
 /**
@@ -21,9 +21,11 @@ export class ScreenshareComponent implements AfterViewInit, OnChanges {
     // Inputs from parent component
     @Input() isMyshareScreen: boolean = false;
     @Input() localScreenTrack: LocalVideoTrack | null = null;
+    @Input() remoteVideoTrack: RemoteVideoTrack | null = null;
     @Input() remoteSharescreenTrack!: Signal<{ participantIdentity: string; trackPublication: RemoteTrackPublication } | null>;
 
     private isViewReady = false;
+    private attachedRemoteTrack: RemoteVideoTrack | null = null;
 
     // Inject services directly
     meetingService = inject(MeetingService);
@@ -31,11 +33,15 @@ export class ScreenshareComponent implements AfterViewInit, OnChanges {
     ngAfterViewInit(): void {
         this.isViewReady = true;
         this.attachLocalScreenTrack();
+        this.attachRemoteScreenTrack();
     }
 
     ngOnChanges(changes: SimpleChanges): void {
         if ((changes['localScreenTrack'] || changes['isMyshareScreen']) && this.isViewReady) {
             this.attachLocalScreenTrack();
+        }
+        if (changes['remoteVideoTrack'] && this.isViewReady) {
+            this.attachRemoteScreenTrack();
         }
     }
 
@@ -44,8 +50,33 @@ export class ScreenshareComponent implements AfterViewInit, OnChanges {
      */
     private attachLocalScreenTrack(): void {
         if (this.localScreenTrack && this.screenPreview?.nativeElement && this.isMyshareScreen) {
+            if (this.attachedRemoteTrack) {
+                this.attachedRemoteTrack.detach(this.screenPreview.nativeElement);
+                this.attachedRemoteTrack = null;
+            }
             this.localScreenTrack.attach(this.screenPreview.nativeElement);
             console.log('ScreenshareComponent: Local screen track attached to preview');
+        }
+    }
+
+    /**
+     * Attach the remote screen track to the video preview element
+     */
+    private attachRemoteScreenTrack(): void {
+        if (!this.isViewReady || !this.screenPreview?.nativeElement) return;
+        
+        // Always detach previous remote track
+        if (this.attachedRemoteTrack) {
+            this.attachedRemoteTrack.detach(this.screenPreview.nativeElement);
+            this.attachedRemoteTrack = null;
+        }
+
+        if (this.remoteVideoTrack && !this.isMyshareScreen) {
+            this.remoteVideoTrack.attach(this.screenPreview.nativeElement);
+            this.attachedRemoteTrack = this.remoteVideoTrack;
+            console.log('ScreenshareComponent: Remote screen track attached to preview');
+        } else if (!this.remoteVideoTrack && !this.isMyshareScreen && this.screenPreview?.nativeElement) {
+            this.screenPreview.nativeElement.srcObject = null;
         }
     }
 

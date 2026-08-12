@@ -226,6 +226,18 @@ export class RoomService {
         room.remoteParticipants.forEach((participant) => {
           newMap.set(participant.identity, participant);
           this.updateParticipantMediaStatus(participant);
+          
+          // Check for existing screen share tracks
+          participant.trackPublications.forEach((publication) => {
+            if (publication.source === Track.Source.ScreenShare && publication.track) {
+              this.latestScreenShare.next({ participant, track: publication.track as RemoteVideoTrack });
+              this.remoteSharescreenTrack.set({
+                trackSid: publication.trackSid,
+                trackPublication: publication,
+                participantIdentity: participant.identity,
+              });
+            }
+          });
         });
         return newMap;
       });
