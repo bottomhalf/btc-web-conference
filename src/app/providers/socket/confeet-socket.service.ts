@@ -31,6 +31,8 @@ export class ConfeetSocketService {
     private reconnectInterval = 3000;
     private heartbeatInterval = environment.heartbeatInterval; // 30 seconds
     private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+    private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    private isExplicitDisconnect: boolean = false;
     private senderId!: string;
     private url!: string;
 
@@ -52,17 +54,28 @@ export class ConfeetSocketService {
     connect(url: string, senderId: string) {
         this.url = url;
         this.senderId = senderId;
+        this.isExplicitDisconnect = false;
 
-        if (this.ws) return;
+        if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+            return;
+        }
 
+        this.stopReconnectTimer();
         this.initSocket();
     }
 
     private initSocket() {
+        if (this.isExplicitDisconnect) return;
+        this.stopReconnectTimer();
+
         console.log("Connecting to: " + this.url);
         this.ws = new WebSocket(`${this.url}?userId=${this.senderId}`);
 
         this.ws.onopen = () => {
+            if (this.isExplicitDisconnect) {
+                this.disconnect();
+                return;
+            }
             console.log('WS connected');
             this.sendPing(this.senderId);
             this.startHeartbeat(this.senderId);
@@ -76,7 +89,11 @@ export class ConfeetSocketService {
         };
 
         this.ws.onmessage = (event) => {
-            this.messageSubject.next(JSON.parse(event.data));
+            try {
+                this.messageSubject.next(JSON.parse(event.data));
+            } catch (err) {
+                console.error('Error parsing WS message:', err);
+            }
         };
 
         this.ws.onerror = (error) => {
@@ -84,12 +101,17 @@ export class ConfeetSocketService {
         };
 
         this.ws.onclose = () => {
-            console.warn('WS closed, reconnecting...');
             this.isConnectedSubject.next(false);
             this.stopHeartbeat();
             this.ws = null;
 
-            setTimeout(() => this.initSocket(), this.reconnectInterval);
+            if (!this.isExplicitDisconnect) {
+                console.warn('WS closed, reconnecting...');
+                this.stopReconnectTimer();
+                this.reconnectTimer = setTimeout(() => this.initSocket(), this.reconnectInterval);
+            } else {
+                console.log('WS closed (explicit disconnect). Will not reconnect.');
+            }
         };
     }
 
@@ -167,15 +189,36 @@ export class ConfeetSocketService {
     }
 
     disconnect(): void {
+        this.isExplicitDisconnect = true;
         this.stopHeartbeat();
+        this.stopReconnectTimer();
         this.isConnectedSubject.next(false);
-        this.ws?.close();
-        this.ws = null;
+        if (this.ws) {
+            const socket = this.ws;
+            this.ws = null;
+            socket.onopen = null;
+            socket.onmessage = null;
+            socket.onerror = null;
+            socket.onclose = null;
+            try {
+                socket.close();
+            } catch (err) {
+                console.error('Error closing WebSocket:', err);
+            }
+        }
+    }
+
+    private stopReconnectTimer(): void {
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
+        }
     }
 
     // Heartbeat methods
     private startHeartbeat(userId: string): void {
         this.stopHeartbeat(); // Clear any existing timer
+        if (this.isExplicitDisconnect) return;
         console.log('Starting heartbeat with interval:', this.heartbeatInterval, 'ms');
 
         this.heartbeatTimer = setInterval(() => {
@@ -192,6 +235,10 @@ export class ConfeetSocketService {
     }
 
     private sendPing(userId: string): void {
+        if (this.isExplicitDisconnect || this.ws?.readyState !== WebSocket.OPEN) {
+            this.stopHeartbeat();
+            return;
+        }
         console.log('Sending heartbeat ping');
         this.send(WsEvents.HEARTBEAT, { userId });
     }

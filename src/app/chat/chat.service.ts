@@ -1,11 +1,16 @@
-import { Injectable, signal } from '@angular/core';
-import { Subject, filter, take } from 'rxjs';
+import { Injectable, Injector, signal } from '@angular/core';
+import { Subject, Subscription, filter, take } from 'rxjs';
 import { Conversation, Participant, SearchResult, UserDetail } from '../components/global-search/search.models';
 import { HttpService } from '../providers/services/http.service';
-import { ConfeetSocketService, Message, MessageSeen } from '../providers/socket/confeet-socket.service';
-import { ResponseModel } from '../models/model';
+import {
+    ConfeetSocketService, Message, MessageDelivered,
+    MessageSeen, TypingIndicator, ErrorPayload
+}
+    from '../providers/socket/confeet-socket.service';
+import { GetStatusName, ResponseModel, User } from '../models/model';
 import { LocalService } from '../providers/services/local.service';
 import { ChatDbService } from '../core/services/chat-db.service';
+import { NotificationService } from '../notifications/services/notification.service';
 
 @Injectable({
     providedIn: 'root'
@@ -44,10 +49,22 @@ export class ChatService {
     readonly isChatActive = this._isChatActive.asReadonly();
     private currentUserId: string = "";
 
+    // Lazy NotificationService to avoid circular dependency
+    private _notificationService: NotificationService | null = null;
+    private get notifService(): NotificationService {
+        if (!this._notificationService) {
+            this._notificationService = this.injector.get(NotificationService);
+        }
+        return this._notificationService;
+    }
+
+    private socketSubscriptions = new Subscription();
+
     constructor(private http: HttpService,
         private ws: ConfeetSocketService,
         private local: LocalService,
-        private chatDb: ChatDbService
+        private chatDb: ChatDbService,
+        private injector: Injector
     ) {
         const user = this.local.getUser();
         if (user) {
@@ -447,5 +464,303 @@ export class ChatService {
         this.meetingRooms.set([]);
         this.searchResults.set([]);
         this.userSearchResults.set([]);
+    }
+
+    // ==========================================
+    // Socket Event Handling
+    // ==========================================
+
+    /**
+     * Register all WebSocket event subscriptions
+     */
+    handleSocketEvents(): void {
+        // New message received
+        this.socketSubscriptions.add(
+            this.ws.incomingMessage$.subscribe(message => {
+                this.handleNewMessage(message);
+            })
+        );
+
+        // Init user list received
+        this.socketSubscriptions.add(
+            this.ws.initUserList$.subscribe(message => {
+                console.log("initUserList", message);
+                this.handleInitUserList(message);
+            })
+        );
+
+        // Message sent confirmation
+        this.socketSubscriptions.add(
+            this.ws.outgoingMessage$.subscribe(message => {
+                this.handleMessageSent(message);
+            })
+        );
+
+        // Delivery receipt
+        this.socketSubscriptions.add(
+            this.ws.delivered$.subscribe(delivered => {
+                this.handleDelivered(delivered);
+            })
+        );
+
+        // Read receipt
+        this.socketSubscriptions.add(
+            this.ws.seen$.subscribe(seen => {
+                this.handleSeen(seen);
+            })
+        );
+
+        // Message reactions
+        this.socketSubscriptions.add(
+            this.ws.messageReacted$.subscribe(event => {
+                this.handleMessageReacted(event);
+            })
+        );
+
+        // Typing indicator
+        this.socketSubscriptions.add(
+            this.ws.userTyping$.subscribe(typing => {
+                this.handleTyping(typing);
+            })
+        );
+
+        // Error handling
+        this.socketSubscriptions.add(
+            this.ws.error$.subscribe(error => {
+                this.handleError(error);
+            })
+        );
+    }
+
+    /**
+     * Add a new message to the active conversation's message list
+     */
+    private updateMessageState(message: Message): boolean {
+        if (message.senderId === this.currentUserId) {
+            if (this.notifService.activeConversationId() === message.conversationId) {
+                this.messages.update(msgs =>
+                    msgs.map(x => x.messageId === message.messageId ? { ...x, status: message.status || 1, id: message.id } : x)
+                );
+            }
+            // Remove from IndexedDB once acknowledged by the server
+            if (message.messageId) {
+                this.chatDb.removePendingMessage(message.messageId);
+            }
+            return true;
+        } else {
+            if (this.notifService.activeConversationId() === message.conversationId) {
+                this.messages.update(msgs => [...msgs, message]);
+            }
+            return false;
+        }
+    }
+
+    private handleInitUserList(message: any) {
+        let rawConversations: any[] = [];
+        if (message && message.conversations && Array.isArray(message.conversations)) {
+            rawConversations = message.conversations;
+        } else if (Array.isArray(message)) {
+            rawConversations = message;
+        }
+
+        rawConversations.sort((a, b) => {
+            const timeA = a.last_message_at ? Number(a.last_message_at) : 0;
+            const timeB = b.last_message_at ? Number(b.last_message_at) : 0;
+            return timeB - timeA;
+        });
+
+        if (rawConversations.length > 0 || (message && message.conversations)) {
+            const mappedRooms: Conversation[] = (rawConversations || []).map((conv: any) => {
+                const members = conv.members || [];
+                const participants: Participant[] = members.map((m: any) => ({
+                    userId: m.user_id || m.userId || '',
+                    username: m.email || m.username || '',
+                    firstName: m.first_name || m.firstName || '',
+                    lastName: m.last_name || m.lastName || '',
+                    email: m.email || '',
+                    avatar: m.avatar || '',
+                    joinedAt: null,
+                    role: m.role || 'member',
+                    status: GetStatusName(m.status),
+                    lastSeen: m.last_seen || m.lastSeen || 0
+                }));
+                const participantIds = participants.map(p => p.userId);
+
+                return {
+                    id: conv.id || conv.conversation_id || conv.conversationId || '',
+                    avatar: conv.avatar || '',
+                    createdAt: null,
+                    createdBy: '',
+                    description: '',
+                    lastMessageAt: conv.last_message_at ? new Date(conv.last_message_at) : null,
+                    lastMessageId: conv.last_message ? (conv.last_message.messageId || '') : '',
+                    memberCount: participants.length,
+                    settings: null,
+                    title: conv.title || conv.conversationName || '',
+                    type: (conv.type || '').toUpperCase() === 'GROUP' ? 'GROUP' : 'DIRECT',
+                    searchableMemberInfo: [],
+                    participantIds: participantIds,
+                    participants: participants,
+                    deleted: false,
+
+                    // Legacy fallback fields for backward compatibility
+                    conversationId: conv.id || conv.conversation_id || conv.conversationId || '',
+                    conversationType: (conv.type || '').toLowerCase() === 'group' ? 'group' : 'direct',
+                    conversationName: conv.title || conv.conversationName || '',
+                    conversationAvatar: conv.avatar || '',
+                    lastMessage: conv.last_message || null,
+                    isActive: true
+                };
+            });
+
+            this.meetingRooms.set(mappedRooms);
+        }
+
+        let chatUsers: User[] = [];
+        let users: User[] = [];
+        let groups: User[] = [];
+        if (message && message["conversation_users"]) {
+            users = message["conversation_users"] as User[];
+        }
+
+        if (message && message["conversation_groups"]) {
+            groups = message["conversation_groups"] as User[];
+        }
+    }
+
+    private handleNewMessage(message: Message | string): void {
+        if (typeof message === 'string') {
+            try {
+                const decoded = atob(message);
+                message = JSON.parse(decoded) as Message;
+            } catch (e) {
+                console.error('Failed to decode/parse base64 message:', e);
+                return;
+            }
+        }
+
+        // Add to current chat view && remove from pending messages if it's a sent message
+        // If the message is from the current user, update its state and return early
+        if (this.updateMessageState(message)) return;
+
+        if (this.notifService.activeConversationId() !== message.conversationId) {
+            // Increment unread count for this conversation
+            this.notifService.unreadCounts.update(counts => {
+                const newCounts = new Map(counts);
+                const current = newCounts.get(message.conversationId) || 0;
+                newCounts.set(message.conversationId, current + 1);
+                return newCounts;
+            });
+            const senderName = (message as any).senderName;
+            // Show notification
+            this.notifService.showNotification({
+                id: message.messageId,
+                type: 'message',
+                title: senderName,
+                content: message.content,
+                conversationId: message.conversationId,
+                timestamp: new Date(),
+                read: false
+            });
+        }
+
+        // Update conversation's last message in the list
+        this.updateConversationLastMessage(message);
+
+        // Acknowledge message seen
+        if (this.scrollAtBottom()) {
+            this.sendMarkedSeen(message.messageId, message.conversationId);
+        } else {
+            this.setSnackBarState(true, message.messageId, message.conversationId);
+        }
+    }
+
+    private handleMessageSent(message: Message | string): void {
+        if (typeof message === 'string') {
+            try {
+                const decoded = atob(message);
+                message = JSON.parse(decoded) as Message;
+            } catch (e) {
+                console.error('Failed to decode/parse base64 message sent confirmation:', e);
+                return;
+            }
+        }
+        
+        // Always update message state to ensure it is removed from the pending queue.
+        // updateMessageState will internally handle checking the activeConversationId for UI updates.
+        this.updateMessageState(message);
+
+        // Update conversation's last message
+        this.updateConversationLastMessage(message);
+    }
+
+    private handleDelivered(delivered: MessageDelivered): void {
+        // Update message status in active conversation
+        const msg = this.messages().find(m => m.id === delivered.id);
+        if (msg) {
+            // Mark as delivered in UI
+            console.log('Message delivered:', delivered.id);
+            this.messages.update(msgs =>
+                msgs.map(x => x.id === delivered.id ? { ...x, status: 2 } : x)
+            );
+        }
+    }
+
+    private handleSeen(seen: MessageSeen): void {
+        // Update message status in active conversation
+        const msg = this.messages().find(m => m.messageId === seen.messageId);
+        if (msg) {
+            // Mark as seen in UI            
+            this.messages.update(msgs =>
+                msgs.map(x => {
+                    if (x.messageId === seen.messageId) {
+                        const seenByUserIds = x.seenByUserIds || [];
+                        const updatedSeenByUserIds = seenByUserIds.includes(seen.userId) ? seenByUserIds : [...seenByUserIds, seen.userId];
+                        return { ...x, status: 3, seenByUserIds: updatedSeenByUserIds };
+                    }
+                    return x;
+                })
+            );
+
+            console.log('Message seen: ', seen.messageId);
+        }
+    }
+
+    private handleMessageReacted(event: any): void {
+        const payload = event && event.payload ? event.payload : event;
+        if (!payload || !payload.messageId) return;
+        this.messages.update(msgs =>
+            msgs.map(m => (m.id === payload.messageId || (m as any).messageId === payload.messageId) ? { ...m, reactions: payload.reactions || [] } : m)
+        );
+    }
+
+    private handleTyping(typing: TypingIndicator): void {
+        this.notifService.typingUsers.update(users => {
+            const newUsers = new Map(users);
+            newUsers.set(typing.userId, typing.isTyping);
+            return newUsers;
+        });
+    }
+
+    private handleError(error: ErrorPayload): void {
+        console.error('WebSocket error:', error.message);
+
+        this.notifService.showNotification({
+            id: crypto.randomUUID(),
+            type: 'error',
+            title: 'Connection Error',
+            content: error.message,
+            conversationId: '',
+            timestamp: new Date(),
+            read: false
+        });
+    }
+
+    /**
+     * Cleanup socket subscriptions
+     */
+    destroySocketSubscriptions(): void {
+        this.socketSubscriptions.unsubscribe();
+        this.socketSubscriptions = new Subscription();
     }
 }

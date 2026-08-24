@@ -1,8 +1,8 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { CanActivateFn } from '@angular/router';
 import { LocalService } from './services/local.service';
 import { iNavigation } from './services/iNavigation';
-import { Login } from '../models/constant';
+import { Login, ChatPage } from '../models/constant';
 
 export const authGuard: CanActivateFn = (route, state) => {
   const local = inject(LocalService);
@@ -14,4 +14,15 @@ export const authGuard: CanActivateFn = (route, state) => {
     nav.navigate(Login, null);
     return false;
   }
+};
+
+export const guestGuard: CanActivateFn = (route, state) => {
+  const local = inject(LocalService);
+  const nav = inject(iNavigation);
+
+  if (local.isLoggedIn()) {
+    nav.navigate(ChatPage, null);
+    return false;
+  }
+  return true;
 };

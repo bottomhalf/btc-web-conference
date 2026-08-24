@@ -1,5 +1,5 @@
 import { Routes, UrlSegment } from "@angular/router";
-import { authGuard } from "./providers/auth.guard";
+import { authGuard, guestGuard } from "./providers/auth.guard";
 import { SplashComponent } from "./splash/splash.component";
 // Import our new fallback component
 import { UnderConstructionComponent } from "./shared/components/under-construction/under-construction.component";
@@ -38,22 +38,25 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () =>
       import('./login/login.component').then(c => c.LoginComponent),
+    canActivate: [guestGuard],
   },
   {
     path: 'register',
     loadComponent: () =>
       import('./register/register.component').then(c => c.RegisterComponent),
+    canActivate: [guestGuard],
   },
   {
     path: 'btc',
     loadComponent: () =>
       import('./layout/layout.component').then(c => c.LayoutComponent),
+    canActivate: [authGuard],
+    canActivateChild: [authGuard],
     children: [
       {
         path: 'dashboard',
         loadComponent: () =>
           import('./dashboard/dashboard.component').then(c => c.DashboardComponent),
-        canActivate: [authGuard],
       },
       {
         path: 'preview',
@@ -69,19 +72,16 @@ export const routes: Routes = [
         path: 'chat',
         loadComponent: () =>
           import('./chat/chat.component').then(c => c.ChatComponent),
-        canActivate: [authGuard],
       },
       {
         path: 'calendar',
         loadComponent: () =>
           import('./calendar/calendar.component').then(c => c.CalendarComponent),
-        canActivate: [authGuard],
       },
       {
         path: 'monitor-dashboard',
         loadComponent: () =>
           import('./monitor-dashboard/monitor-dashboard.component').then(c => c.MonitorDashboardComponent),
-        canActivate: [authGuard],
       }
     ],
   },

@@ -56,7 +56,7 @@ export class LayoutComponent implements OnInit {
   ngOnInit(): void {
     this.deviceService.loadDevices();
     this.user = this.local.getUser();
-    if (this.user.userId) {
+    if (this.user?.userId) {
       this.socketHandShake();
       this.notificationService.initialize();
       this.serverEvents.initialize();

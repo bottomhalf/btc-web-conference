@@ -1,52 +1,77 @@
 @if (isLoading() && !monitorData()) {
 <div class="monitor-loading">
     <div class="spinner-custom"></div>
-    <p>Loading monitor data...</p>
+    <p>Loading Redis presence & session analysis...</p>
 </div>
 } @else {
 <div class="monitor-container" [class.dark-mode]="isDarkMode()">
-    <!-- Header with Status Banner -->
+    <!-- Header with Status & Controls -->
     <div class="monitor-header">
         <div class="header-content">
             <div class="header-left">
-                <h1 class="header-title">
-                    <i class="fa-solid fa-satellite-dish"></i>
-                    WebSocket Monitor
-                </h1>
-                <p class="header-subtitle">Real-time connection health and statistics</p>
+                <div class="header-title-row">
+                    <h1 class="header-title">
+                        <i class="fa-solid fa-server header-icon"></i>
+                        Redis Presence & Session Monitor
+                    </h1>
+                    <div class="live-indicator">
+                        <span class="pulse-dot"></span>
+                        <span class="live-text">Live Redis Metrics</span>
+                    </div>
+                </div>
+                <p class="header-subtitle">Real-time distributed presence, active client sessions, and Redis memory statistics</p>
             </div>
+            
             <div class="header-right">
-                <div class="status-badge" [class]="statusBadgeClass()">
-                    <i class="fa-solid" [class]="statusIcon()"></i>
-                    <span class="status-text">{{ status() | titlecase }}</span>
-                    <span class="status-pulse"></span>
+                <!-- User Target Search Input -->
+                <div class="user-query-box">
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-user-tag"></i>
+                        <input type="text" placeholder="Target User ID (e.g. BOT0035)" 
+                            [(ngModel)]="userIdInput" 
+                            (keyup.enter)="onUserIdSubmit()">
+                    </div>
+                    <button class="btn-inspect" (click)="onUserIdSubmit()" [disabled]="isLoading()">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>Inspect</span>
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- Controls -->
+        <!-- Controls Toolbar -->
         <div class="header-controls">
             <div class="refresh-info">
                 @if (lastUpdated()) {
                 <span class="last-updated">
                     <i class="fa-regular fa-clock"></i>
-                    Last updated: {{ lastUpdated() | date:'HH:mm:ss' }}
+                    Last fetched: <strong>{{ lastUpdated() | date:'HH:mm:ss' }}</strong>
+                </span>
+                }
+                @if (timestamp()) {
+                <span class="server-timestamp">
+                    <i class="fa-solid fa-cloud"></i>
+                    Redis timestamp: {{ timestamp() | date:'shortTime' }}
                 </span>
                 }
             </div>
+
             <div class="control-buttons">
                 <button class="btn-theme" (click)="toggleTheme()">
                     <i class="fa-solid" [class.fa-moon]="!isDarkMode()" [class.fa-sun]="isDarkMode()"></i>
                     {{ isDarkMode() ? 'Light Mode' : 'Dark Mode' }}
+                </button>
+                <button class="btn-raw" [class.active]="showRawJson()" (click)="toggleRawJson()">
+                    <i class="fa-solid fa-code"></i>
+                    {{ showRawJson() ? 'Hide JSON' : 'View JSON' }}
                 </button>
                 <button class="btn-refresh" (click)="refreshNow()" [disabled]="isLoading()">
                     <i class="fa-solid fa-rotate" [class.fa-spin]="isLoading()"></i>
                     Refresh
                 </button>
                 <button class="btn-toggle" [class.active]="isAutoRefreshEnabled()" (click)="toggleAutoRefresh()">
-                    <i class="fa-solid" [class.fa-pause]="isAutoRefreshEnabled()"
-                        [class.fa-play]="!isAutoRefreshEnabled()"></i>
-                    {{ isAutoRefreshEnabled() ? 'Auto-refresh On' : 'Auto-refresh Off' }}
+                    <i class="fa-solid" [class.fa-pause]="isAutoRefreshEnabled()" [class.fa-play]="!isAutoRefreshEnabled()"></i>
+                    {{ isAutoRefreshEnabled() ? 'Auto-refresh (10s)' : 'Auto-refresh Off' }}
                 </button>
             </div>
         </div>
@@ -55,309 +80,568 @@
     <!-- Error Banner -->
     @if (error()) {
     <div class="error-banner">
-        <i class="fa-solid fa-circle-exclamation"></i>
-        <span>{{ error() }}</span>
-        <button class="btn-retry" (click)="refreshNow()">Retry</button>
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <div class="error-msg">
+            <strong>Error fetching Redis analysis:</strong>
+            <span>{{ error() }}</span>
+        </div>
+        <button class="btn-retry" (click)="refreshNow()">
+            <i class="fa-solid fa-rotate-right"></i> Retry
+        </button>
     </div>
     }
 
-    <!-- Connection Stats Cards -->
+    <!-- Server & Infrastructure Metrics Bar -->
+    @if (serverInfo()) {
+    <div class="infra-bar">
+        <div class="infra-title">
+            <i class="fa-solid fa-microchip"></i>
+            <span>Redis Infrastructure</span>
+        </div>
+        <div class="infra-grid">
+            <div class="infra-item">
+                <div class="infra-icon mem-icon">
+                    <i class="fa-solid fa-memory"></i>
+                </div>
+                <div class="infra-data">
+                    <span class="infra-label">Used Memory</span>
+                    <div class="infra-val-group">
+                        <span class="infra-val">{{ usedMemoryHuman() }}</span>
+                        <span class="infra-sub">({{ serverInfo()?.usedMemory | number }} bytes)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="infra-item">
+                <div class="infra-icon client-icon">
+                    <i class="fa-solid fa-network-wired"></i>
+                </div>
+                <div class="infra-data">
+                    <span class="infra-label">Connected Clients</span>
+                    <span class="infra-val">{{ connectedClients() }}</span>
+                </div>
+            </div>
+
+            <div class="infra-item">
+                <div class="infra-icon uptime-icon">
+                    <i class="fa-solid fa-stopwatch"></i>
+                </div>
+                <div class="infra-data">
+                    <span class="infra-label">Server Uptime</span>
+                    <div class="infra-val-group">
+                        <span class="infra-val">{{ formatUptime(uptimeInSeconds()) }}</span>
+                        <span class="infra-sub">({{ uptimeInSeconds() | number }}s)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="infra-item">
+                <div class="infra-icon keys-icon">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                <div class="infra-data">
+                    <span class="infra-label">Total Redis Keys</span>
+                    <span class="infra-val">{{ totalKeys() }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    }
+
+    <!-- Summary KPIs Grid -->
     <div class="stats-grid">
-        <div class="stat-card stat-connected">
+        <div class="stat-card stat-users">
             <div class="stat-icon">
-                <i class="fa-solid fa-plug"></i>
+                <i class="fa-solid fa-users"></i>
             </div>
             <div class="stat-content">
-                <h3 class="stat-value">{{ connections()?.totalConnected ?? 0 }}</h3>
-                <p class="stat-label">Total Connected</p>
-            </div>
-        </div>
-
-        <div class="stat-card stat-online">
-            <div class="stat-icon">
-                <i class="fa-solid fa-circle"></i>
-            </div>
-            <div class="stat-content">
-                <h3 class="stat-value">{{ connections()?.totalOnline ?? 0 }}</h3>
-                <p class="stat-label">Online</p>
-            </div>
-        </div>
-
-        <div class="stat-card stat-busy">
-            <div class="stat-icon">
-                <i class="fa-solid fa-minus-circle"></i>
-            </div>
-            <div class="stat-content">
-                <h3 class="stat-value">{{ connections()?.totalBusy ?? 0 }}</h3>
-                <p class="stat-label">Busy</p>
-            </div>
-        </div>
-
-        <div class="stat-card stat-incall">
-            <div class="stat-icon">
-                <i class="fa-solid fa-phone"></i>
-            </div>
-            <div class="stat-content">
-                <h3 class="stat-value">{{ connections()?.totalInCall ?? 0 }}</h3>
-                <p class="stat-label">In Call</p>
-            </div>
-        </div>
-
-        <div class="stat-card stat-away">
-            <div class="stat-icon">
-                <i class="fa-solid fa-moon"></i>
-            </div>
-            <div class="stat-content">
-                <h3 class="stat-value">{{ connections()?.totalAway ?? 0 }}</h3>
-                <p class="stat-label">Away</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Two-column layout for Rooms and Calls -->
-    <div class="content-grid">
-        <!-- Rooms Section -->
-        <div class="section-card">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fa-solid fa-door-open"></i>
-                    Rooms
-                </h2>
-                <div class="section-badge">
-                    <span class="badge-active">{{ rooms()?.activeRooms ?? 0 }} active</span>
-                    <span class="badge-total">/ {{ rooms()?.totalRooms ?? 0 }} total</span>
+                <h3 class="stat-value">{{ totalUsers() }}</h3>
+                <p class="stat-label">Total Monitored Users</p>
+                <div class="stat-footer">
+                    <span class="tag-pill" [class.highlight]="usersMultiDevice() > 0">
+                        <i class="fa-solid fa-laptop-mobile"></i> {{ usersMultiDevice() }} Multi-device
+                    </span>
                 </div>
             </div>
+        </div>
 
-            <div class="section-search">
-                <i class="fa-solid fa-search"></i>
-                <input type="text" placeholder="Search rooms..." [value]="roomSearch()"
-                    (input)="onRoomSearchChange($event)">
+        <div class="stat-card stat-sessions">
+            <div class="stat-icon">
+                <i class="fa-solid fa-cubes"></i>
             </div>
-
-            <div class="table-container">
-                @if (filteredRooms().length > 0) {
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Conversation ID</th>
-                            <th>Members</th>
-                            <th>Online</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (room of filteredRooms(); track trackByConversationId($index, room)) {
-                        <tr>
-                            <td class="cell-id">{{ room.conversationId }}</td>
-                            <td class="cell-count">{{ room.totalMembers }}</td>
-                            <td class="cell-count">
-                                <span class="online-badge">{{ room.onlineMembers }}</span>
-                            </td>
-                        </tr>
-                        }
-                    </tbody>
-                </table>
-                } @else {
-                <div class="empty-state">
-                    <i class="fa-solid fa-inbox"></i>
-                    <p>No rooms found</p>
+            <div class="stat-content">
+                <h3 class="stat-value">{{ totalSessions() }}</h3>
+                <p class="stat-label">Active Sessions</p>
+                <div class="stat-footer">
+                    <span class="tag-pill" [class.warning]="staleSessions() > 0">
+                        <i class="fa-solid fa-clock-rotate-left"></i> {{ staleSessions() }} Stale
+                    </span>
                 </div>
+            </div>
+        </div>
+
+        <div class="stat-card stat-watchers">
+            <div class="stat-icon">
+                <i class="fa-solid fa-eye"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-value">{{ totalWatchers() }}</h3>
+                <p class="stat-label">Total Watchers</p>
+                <div class="stat-footer">
+                    <span class="tag-pill tag-watcher" [class.highlight]="totalWatchers() > 0">
+                        <i class="fa-solid fa-satellite-dish"></i> Presence Observers
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Breakdown Card -->
+        <div class="stat-card stat-breakdown">
+            <div class="stat-card-header">
+                <span class="stat-label"><i class="fa-solid fa-chart-pie"></i> Status Distribution</span>
+            </div>
+            <div class="breakdown-pills">
+                @for (key of statusBreakdownKeys(); track key) {
+                <div class="status-chip" [class]="'chip-' + key">
+                    <span class="chip-dot"></span>
+                    <span class="chip-name">{{ key | titlecase }}</span>
+                    <span class="chip-count">{{ statusBreakdown()[key] }}</span>
+                </div>
+                }
+                @if (statusBreakdownKeys().length === 0) {
+                <span class="empty-breakdown">No status data</span>
                 }
             </div>
         </div>
 
-        <!-- Active Calls Section -->
-        <div class="section-card">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <i class="fa-solid fa-phone-volume"></i>
-                    Active Calls
-                </h2>
-                <div class="section-badge">
-                    <span class="badge-active">{{ calls()?.totalActiveCalls ?? 0 }} active</span>
-                </div>
+        <!-- Device Breakdown Card -->
+        <div class="stat-card stat-breakdown">
+            <div class="stat-card-header">
+                <span class="stat-label"><i class="fa-solid fa-devices"></i> Device Breakdown</span>
             </div>
-
-            <div class="table-container">
-                @if (calls()?.callDetails && calls()!.callDetails.length > 0) {
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Caller</th>
-                            <th>Type</th>
-                            <th>Status</th>
-                            <th>Duration</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (call of calls()!.callDetails; track trackByConversationId($index, call)) {
-                        <tr>
-                            <td class="cell-id">{{ call.callerId }}</td>
-                            <td>
-                                <span class="call-type" [class.video]="call.callType === 'video'">
-                                    <i class="fa-solid" [class.fa-video]="call.callType === 'video'"
-                                        [class.fa-phone]="call.callType === 'audio'"></i>
-                                    {{ call.callType | titlecase }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="call-status">{{ getStatusLabel(call.status) }}</span>
-                            </td>
-                            <td class="cell-duration">{{ getCallDuration(call.startedAt) }}</td>
-                        </tr>
-                        }
-                    </tbody>
-                </table>
-                } @else {
-                <div class="empty-state">
-                    <i class="fa-solid fa-phone-slash"></i>
-                    <p>No active calls</p>
+            <div class="breakdown-pills">
+                @for (key of deviceBreakdownKeys(); track key) {
+                <div class="device-chip">
+                    <i [class]="getDeviceIcon(key)"></i>
+                    <span class="chip-name">{{ key | titlecase }}</span>
+                    <span class="chip-count">{{ deviceBreakdown()[key] }}</span>
                 </div>
+                }
+                @if (deviceBreakdownKeys().length === 0) {
+                <span class="empty-breakdown">No device data</span>
                 }
             </div>
         </div>
     </div>
 
-    <!-- Connected Clients Section -->
-    <div class="section-card clients-section mb-4">
-        <div class="section-header">
-            <h2 class="section-title">
-                <i class="fa-solid fa-users"></i>
-                Connected Clients
-            </h2>
-            <div class="section-badge">
-                <span class="badge-total">{{ clients().length }} clients</span>
+    <!-- Raw JSON Collapsible Viewer -->
+    @if (showRawJson() && monitorData()) {
+    <div class="raw-json-card">
+        <div class="raw-json-header">
+            <div class="raw-json-title">
+                <i class="fa-solid fa-file-code"></i>
+                <span>Raw Response (v1/admin/redis-analysis)</span>
             </div>
+            <button class="btn-copy-json" (click)="copyRawJson()">
+                <i class="fa-solid" [class.fa-copy]="copiedId() !== 'raw_json'" [class.fa-check]="copiedId() === 'raw_json'"></i>
+                {{ copiedId() === 'raw_json' ? 'Copied!' : 'Copy JSON' }}
+            </button>
         </div>
-
-        <div class="clients-filters">
-            <div class="filter-search">
-                <i class="fa-solid fa-search"></i>
-                <input type="text" placeholder="Search by Client ID, User ID..." [value]="searchQuery()"
-                    (input)="onSearchChange($event)">
-            </div>
-            <div class="filter-status">
-                <select [value]="statusFilter()" (change)="onStatusFilterChange($event)">
-                    <option value="all">All Status</option>
-                    <option value="online">Online</option>
-                    <option value="busy">Busy</option>
-                    <option value="in_call">In Call</option>
-                    <option value="away">Away</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="table-container">
-            @if (filteredClients().length > 0) {
-            <table class="data-table clients-table">
-                <thead>
-                    <tr>
-                        <th>Client ID</th>
-                        <th>User ID</th>
-                        <th>Status</th>
-                        <th>Conversation</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (client of filteredClients(); track trackByClientId($index, client)) {
-                    <tr>
-                        <td class="cell-id">{{ client.clientId }}</td>
-                        <td class="cell-id">{{ client.userId }}</td>
-                        <td>
-                            <span class="client-status" [class]="'status-' + client.status">
-                                {{ client.status | titlecase }}
-                            </span>
-                        </td>
-                        <td class="cell-id">{{ client.currentConversationId ?? '-' }}</td>
-                    </tr>
-                    }
-                </tbody>
-            </table>
-            } @else {
-            <div class="empty-state">
-                <i class="fa-solid fa-user-slash"></i>
-                <p>No clients match your filters</p>
-            </div>
-            }
-        </div>
-    </div>
-
-    <!-- Connected Clients Section -->
-    <div class="section-card clients-section mb-4">
-        <div class="section-header">
-            <h2 class="section-title">
-                <i class="fa-solid fa-users"></i>
-                Active Rooms
-            </h2>
-            <div class="section-badge">
-                <span class="badge-total">{{ clients().length }} clients</span>
-            </div>
-        </div>
-
-        <div class="clients-filters">
-            <div class="filter-search col-md-8">
-                <i class="fa-solid fa-search"></i>
-                <input type="text" placeholder="Search by Client ID, User ID..." [value]="searchQuery()"
-                    (input)="onSearchChange($event)">
-            </div>
-            <div class="filter-status col-md-4">
-                <select [value]="roomFilter()" class="col-md-12" (change)="onRoomFilterChange($event)">
-                    <option value="">Select Room</option>
-                    @for(room of getRooms(); track $index) {
-                    <option value="{{room}}">{{room}}</option>
-                    }
-                </select>
-            </div>
-        </div>
-
-        <div class="table-container">
-            @if (filteredRoomParticipantsStats().length > 0) {
-            <table class="data-table clients-table">
-                <thead>
-                    <tr>
-                        <th>User ID</th>
-                        <th>Participant Name</th>
-                        <th>Status</th>
-                        <th>Joined At</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (participant of filteredRoomParticipantsStats(); track participant.userId) {
-                    <tr>
-                        <td class="cell-id">{{ participant.userId }}</td>
-                        <td class="cell-id">{{ participant.name }}</td>
-                        <td>
-                            <span class="client-status" [class]="'status-' + getStatus(participant.status)">
-                                {{ getStatus(participant.status) | titlecase }}
-                            </span>
-                        </td>
-                        <td class="cell-id">{{ participant.joinedAt | date }}</td>
-                    </tr>
-                    }
-                </tbody>
-            </table>
-            } @else {
-            <div class="empty-state">
-                <i class="fa-solid fa-user-slash"></i>
-                <p>No clients match your filters</p>
-            </div>
-            }
-        </div>
-    </div>
-
-    <!-- Status Count Summary -->
-    @if (statusCountKeys().length > 0) {
-    <div class="status-summary">
-        <h3 class="summary-title">Status Distribution</h3>
-        <div class="status-pills">
-            @for (status of statusCountKeys(); track status) {
-            <div class="status-pill" [class]="'pill-' + status">
-                <span class="pill-label">{{ status | titlecase }}</span>
-                <span class="pill-count">{{ statusCount()[status] }}</span>
-            </div>
-            }
-        </div>
+        <pre class="raw-json-content"><code>{{ monitorData() | json }}</code></pre>
     </div>
     }
+
+    <!-- Users & Sessions Section -->
+    <div class="users-section">
+        <!-- Section Header & Filter Toolbar -->
+        <div class="section-toolbar">
+            <div class="toolbar-left">
+                <h2 class="section-title">
+                    <i class="fa-solid fa-users-viewfinder"></i>
+                    Monitored Users & Active Sessions
+                </h2>
+                <span class="users-count-badge">
+                    {{ filteredUsers().length }} of {{ users().length }} Users
+                </span>
+            </div>
+
+            <div class="toolbar-right">
+                <!-- Search Box -->
+                <div class="filter-search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Filter by User ID, Watcher ID, Gateway, Platform..." 
+                        [value]="searchQuery()" 
+                        (input)="searchQuery.set($any($event.target).value)">
+                    @if (searchQuery()) {
+                    <button class="btn-clear-search" (click)="searchQuery.set('')">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    }
+                </div>
+
+                <!-- Status Filter Dropdown -->
+                <div class="filter-dropdown">
+                    <select [value]="statusFilter()" (change)="statusFilter.set($any($event.target).value)">
+                        <option value="all">All Statuses</option>
+                        <option value="online">Online</option>
+                        <option value="away">Away</option>
+                        <option value="busy">Busy</option>
+                        <option value="offline">Offline</option>
+                    </select>
+                </div>
+
+                <!-- Device Filter Dropdown -->
+                <div class="filter-dropdown">
+                    <select [value]="deviceFilter()" (change)="deviceFilter.set($any($event.target).value)">
+                        <option value="all">All Devices</option>
+                        <option value="web">Web</option>
+                        <option value="mobile">Mobile</option>
+                        <option value="desktop">Desktop</option>
+                    </select>
+                </div>
+
+                <!-- Multi-Device Toggle Filter -->
+                <label class="toggle-multi-device">
+                    <input type="checkbox" [checked]="onlyMultiDevice()" (change)="onlyMultiDevice.set($any($event.target).checked)">
+                    <span>Multi-Device</span>
+                </label>
+
+                <!-- With Watchers Toggle Filter -->
+                <label class="toggle-multi-device">
+                    <input type="checkbox" [checked]="onlyWithWatchers()" (change)="onlyWithWatchers.set($any($event.target).checked)">
+                    <span><i class="fa-solid fa-eye"></i> With Watchers</span>
+                </label>
+
+                <!-- Expand/Collapse All Buttons -->
+                <div class="expand-buttons">
+                    <button class="btn-small" (click)="expandAll()" title="Expand All Users">
+                        <i class="fa-solid fa-angles-down"></i> Expand All
+                    </button>
+                    <button class="btn-small" (click)="collapseAll()" title="Collapse All Users">
+                        <i class="fa-solid fa-angles-up"></i> Collapse All
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users List -->
+        @if (filteredUsers().length > 0) {
+        <div class="users-cards-container">
+            @for (user of filteredUsers(); track trackByUserId($index, user)) {
+            <div class="user-card" [class.multi-device-border]="user.isMultiDevice || (user.sessions && user.sessions.length > 1)">
+                <!-- User Card Header -->
+                <div class="user-card-header" (click)="toggleUserExpand(user.userId)">
+                    <div class="user-identity">
+                        <div class="user-avatar-wrapper">
+                            <div class="user-avatar" [class.has-img]="!!user.avatar">
+                                @if (user.avatar) {
+                                <img [src]="user.avatar" [alt]="user.firstName || user.userId" class="user-avatar-img">
+                                } @else {
+                                <span class="user-avatar-initials">{{ getUserInitials(user) }}</span>
+                                }
+                            </div>
+                            <span class="avatar-status-dot" [class]="getUserStatusDotClass(user)" [title]="getUserStatusLabel(user)"></span>
+                        </div>
+                        <div class="user-info">
+                            <div class="user-id-row">
+                                <span class="user-display-name">{{ getUserDisplayName(user) }}</span>
+                                <span class="user-id-badge" title="User ID">ID: {{ user.userId }}</span>
+                                <button class="btn-copy-mini" (click)="$event.stopPropagation(); copyToClipboard(user.userId, user.userId)" title="Copy User ID">
+                                    <i class="fa-solid" [class.fa-copy]="copiedId() !== user.userId" [class.fa-check]="copiedId() === user.userId"></i>
+                                </button>
+                                <button class="btn-inspect-mini" (click)="inspectUser(user.userId, $event)" title="Inspect this User">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                </button>
+                                <span class="user-account-badge" [class]="getUserStatusClass(user)">
+                                    <span class="user-status-dot-badge" [class]="getUserStatusDotClass(user)"></span>
+                                    {{ getUserStatusLabel(user) }}
+                                </span>
+                            </div>
+                            <div class="user-sub-info">
+                                @if (user.username) {
+                                <span class="user-profile-item user-username" title="Username">
+                                    <i class="fa-solid fa-at"></i>{{ user.username }}
+                                </span>
+                                }
+                                @if (user.email) {
+                                @if (user.username) { <span class="user-dot-sep">•</span> }
+                                <span class="user-profile-item user-email" title="Email">
+                                    <i class="fa-regular fa-envelope"></i>{{ user.email }}
+                                </span>
+                                }
+                                @if (!user.username && !user.email) {
+                                <span class="user-profile-item user-fallback-id">No profile linked</span>
+                                }
+                                <span class="user-dot-sep">•</span>
+                                <span class="user-sessions-count">
+                                    <i class="fa-solid fa-circle-nodes"></i> {{ user.totalSessions }} {{ user.totalSessions === 1 ? 'Session' : 'Sessions' }}
+                                </span>
+                                @if (getWatcherCount(user) > 0) {
+                                <span class="user-dot-sep">•</span>
+                                <span class="user-watchers-count">
+                                    <i class="fa-solid fa-eye"></i> {{ getWatcherCount(user) }} {{ getWatcherCount(user) === 1 ? 'Watcher' : 'Watchers' }}
+                                </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="user-meta">
+                        @if (getWatcherCount(user) > 0) {
+                        <span class="badge-watchers" title="Active Presence Watchers">
+                            <i class="fa-solid fa-eye"></i> {{ getWatcherCount(user) }} {{ getWatcherCount(user) === 1 ? 'Watcher' : 'Watchers' }}
+                        </span>
+                        }
+
+                        @if (user.isMultiDevice || (user.sessions && user.sessions.length > 1)) {
+                        <span class="badge-multi-device">
+                            <i class="fa-solid fa-layer-group"></i> Multi-Device
+                        </span>
+                        }
+
+                        @if (user.earliestExpiry) {
+                        <div class="expiry-info" title="Earliest Expiry">
+                            <span class="expiry-label"><i class="fa-regular fa-hourglass-half"></i> Next Expiry:</span>
+                            <span class="expiry-time">{{ user.earliestExpiry | date:'HH:mm:ss' }}</span>
+                        </div>
+                        }
+
+                        <button class="btn-expand" [class.expanded]="isUserExpanded(user.userId)">
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Expanded Sessions & Watchers Content -->
+                @if (isUserExpanded(user.userId)) {
+                <div class="user-sessions-expanded">
+                    <!-- User Profile Card -->
+                    @if (user.username || user.email || user.firstName || user.lastName || user.status) {
+                    <div class="user-profile-card">
+                        <div class="profile-card-item">
+                            <span class="profile-label"><i class="fa-solid fa-signature"></i> Full Name</span>
+                            <span class="profile-val">{{ user.firstName || '-' }} {{ user.lastName || '' }}</span>
+                        </div>
+                        <div class="profile-card-item">
+                            <span class="profile-label"><i class="fa-solid fa-at"></i> Username</span>
+                            <span class="profile-val code-val">{{ user.username ? ('@' + user.username) : '-' }}</span>
+                        </div>
+                        <div class="profile-card-item">
+                            <span class="profile-label"><i class="fa-regular fa-envelope"></i> Email</span>
+                            <span class="profile-val">{{ user.email || '-' }}</span>
+                        </div>
+                        <div class="profile-card-item">
+                            <span class="profile-label"><i class="fa-solid fa-shield-halved"></i> Account Status</span>
+                            <span class="profile-val status-val" [class]="getUserStatusClass(user)">
+                                <span class="status-dot" [class]="getUserStatusDotClass(user)"></span>
+                                {{ getUserStatusLabel(user) }}
+                            </span>
+                        </div>
+                        <div class="profile-card-item">
+                            <span class="profile-label"><i class="fa-regular fa-clock"></i> Earliest Expiry</span>
+                            <span class="profile-val">{{ user.earliestExpiry ? (user.earliestExpiry | date:'medium') : 'None' }}</span>
+                        </div>
+                    </div>
+                    }
+                    <!-- Watchers Section (Collapsible Hide/Show) -->
+                    <div class="watchers-block" [class.is-collapsed]="!isWatchersExpanded(user.userId)">
+                        <div class="watchers-block-header clickable" (click)="toggleWatchersExpand(user.userId, $event)">
+                            <div class="watchers-header-left">
+                                <div class="watchers-title-group">
+                                    <i class="fa-solid fa-binoculars"></i>
+                                    <span class="watchers-title">Active Watchers</span>
+                                    <span class="watchers-count-pill">{{ getWatcherCount(user) }}</span>
+                                </div>
+                                <span class="watchers-subtitle">Connections tracking this user's presence state</span>
+                            </div>
+
+                            <div class="watchers-header-right">
+                                <button class="btn-toggle-watchers" (click)="toggleWatchersExpand(user.userId, $event)" title="Toggle Watchers list">
+                                    <span class="toggle-text">{{ isWatchersExpanded(user.userId) ? 'Hide Watchers' : 'Show Watchers' }}</span>
+                                    <i class="fa-solid fa-chevron-down toggle-icon" [class.rotated]="isWatchersExpanded(user.userId)"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        @if (isWatchersExpanded(user.userId)) {
+                        <div class="watchers-content">
+                            @if (getWatchersList(user).length > 0) {
+                            <div class="watchers-list">
+                                @for (watcherId of getWatchersList(user); track watcherId) {
+                                <div class="watcher-chip">
+                                    <div class="watcher-avatar">
+                                        <i class="fa-solid fa-user-check"></i>
+                                    </div>
+                                    <span class="watcher-id">{{ watcherId }}</span>
+                                    <div class="watcher-actions">
+                                        <button class="btn-watcher-action" (click)="filterByWatcher(watcherId, $event)" title="Filter user list by this Watcher ID">
+                                            <i class="fa-solid fa-filter"></i>
+                                        </button>
+                                        <button class="btn-watcher-action" (click)="inspectUser(watcherId, $event)" title="Inspect this User">
+                                            <i class="fa-solid fa-magnifying-glass"></i>
+                                        </button>
+                                        <button class="btn-watcher-action" (click)="$event.stopPropagation(); copyToClipboard(watcherId, 'watcher_' + user.userId + '_' + watcherId)" title="Copy Watcher ID">
+                                            <i class="fa-solid" [class.fa-copy]="copiedId() !== ('watcher_' + user.userId + '_' + watcherId)" [class.fa-check]="copiedId() === ('watcher_' + user.userId + '_' + watcherId)"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                }
+                            </div>
+                            } @else {
+                            <div class="no-watchers-msg">
+                                <i class="fa-regular fa-eye-slash"></i>
+                                <span>No active watchers currently subscribed to this user</span>
+                            </div>
+                            }
+                        </div>
+                        }
+                    </div>
+
+                    <!-- Client Sessions Section -->
+                    <div class="sessions-block-header">
+                        <div class="sessions-title-group">
+                            <i class="fa-solid fa-network-wired"></i>
+                            <span class="sessions-title">Client Sessions</span>
+                            <span class="sessions-count-pill">{{ user.sessions?.length || 0 }}</span>
+                        </div>
+                    </div>
+
+                    <div class="sessions-table-wrapper">
+                        <table class="sessions-table">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Client ID</th>
+                                    <th>Gateway ID</th>
+                                    <th>Device</th>
+                                    <th>Platform / User Agent</th>
+                                    <th>Last Seen</th>
+                                    <th>TTL Remaining</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (session of user.sessions; track trackByClientId($index, session)) {
+                                <tr [class.expired-row]="session.isExpired">
+                                    <!-- Status Column -->
+                                    <td>
+                                        <div class="status-badge-cell" [class]="getStatusClass(session.status)">
+                                            <span class="status-indicator-dot"></span>
+                                            <span class="status-title">{{ session.status | titlecase }}</span>
+                                        </div>
+                                    </td>
+
+                                    <!-- Client ID Column -->
+                                    <td class="cell-client-id">
+                                        <div class="code-copy-group">
+                                            <code class="client-code">{{ session.clientId }}</code>
+                                            <button class="btn-copy-inline" (click)="copyToClipboard(session.clientId, session.clientId)" title="Copy Client ID">
+                                                <i class="fa-solid" [class.fa-copy]="copiedId() !== session.clientId" [class.fa-check]="copiedId() === session.clientId"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+
+                                    <!-- Gateway ID Column -->
+                                    <td class="cell-gateway-id">
+                                        <div class="code-copy-group">
+                                            <code class="gateway-code">{{ session.gatewayId }}</code>
+                                            <button class="btn-copy-inline" (click)="copyToClipboard(session.gatewayId, session.gatewayId)" title="Copy Gateway ID">
+                                                <i class="fa-solid" [class.fa-copy]="copiedId() !== session.gatewayId" [class.fa-check]="copiedId() === session.gatewayId"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+
+                                    <!-- Device Column -->
+                                    <td>
+                                        <div class="device-badge">
+                                            <i [class]="getDeviceIcon(session.device)"></i>
+                                            <span>{{ session.device | titlecase }}</span>
+                                        </div>
+                                    </td>
+
+                                    <!-- Platform Column -->
+                                    <td class="cell-platform">
+                                        <div class="platform-info" [title]="session.platform">
+                                            <i class="platform-icon" [class]="getPlatformIcon(session.platform)"></i>
+                                            <span class="platform-text">{{ session.platform || 'Unknown' }}</span>
+                                        </div>
+                                    </td>
+
+                                    <!-- Last Seen Column -->
+                                    <td class="cell-time">
+                                        <div class="last-seen-group" [title]="session.lastSeen">
+                                            <span class="relative-time">{{ formatRelativeTime(session.lastSeen) }}</span>
+                                            <span class="exact-time">{{ session.lastSeen | date:'HH:mm:ss' }}</span>
+                                        </div>
+                                    </td>
+
+                                    <!-- TTL Column -->
+                                    <td class="cell-ttl">
+                                        <div class="ttl-wrapper">
+                                            <div class="ttl-badge" [class.ttl-low]="session.ttlSeconds < 30" [class.ttl-expired]="session.isExpired">
+                                                <i class="fa-solid fa-stopwatch"></i>
+                                                <span>{{ session.ttlSeconds }}s</span>
+                                            </div>
+                                            @if (session.isExpired) {
+                                            <span class="expired-tag">EXPIRED</span>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                }
+            </div>
+            }
+        </div>
+
+        <!-- Pagination Controls Bar -->
+        @if (pagination() && (pagination()?.totalPages || 0) > 0) {
+        <div class="pagination-bar">
+            <div class="pagination-info">
+                <span>Page <strong>{{ pagination()?.page }}</strong> of <strong>{{ pagination()?.totalPages }}</strong></span>
+                <span class="pagination-total">({{ pagination()?.totalUsers }} total active users)</span>
+            </div>
+
+            <div class="pagination-controls">
+                <div class="page-size-selector">
+                    <span class="page-size-label">Rows per page:</span>
+                    <select [value]="pageSize()" (change)="onPageSizeChange($event)">
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+
+                <div class="page-nav-buttons">
+                    <button class="btn-page-nav" [disabled]="!pagination()?.hasPrevious || isLoading()" (click)="prevPage()">
+                        <i class="fa-solid fa-chevron-left"></i> Previous
+                    </button>
+                    <span class="current-page-badge">{{ pagination()?.page }}</span>
+                    <button class="btn-page-nav" [disabled]="!pagination()?.hasNext || isLoading()" (click)="nextPage()">
+                        Next <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        }
+        } @else {
+        <div class="empty-state-card">
+            <div class="empty-icon">
+                <i class="fa-solid fa-users-slash"></i>
+            </div>
+            <h3>No Monitored Users Found</h3>
+            <p>No user sessions match your current filter criteria or target user inspection.</p>
+            @if (searchQuery() || statusFilter() !== 'all' || deviceFilter() !== 'all' || onlyMultiDevice()) {
+            <button class="btn-reset-filters" (click)="resetFilters()">
+                <i class="fa-solid fa-filter-circle-xmark"></i> Reset Filters
+            </button>
+            }
+        </div>
+        }
+    </div>
 </div>
 }

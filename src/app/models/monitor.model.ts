@@ -1,76 +1,87 @@
 // -----------------------------------------------------------------
-// Monitor API Response Models
+// Redis Presence & Session Analysis Models
 // -----------------------------------------------------------------
 
-import { CallParticipant } from "./conference_call/call_model";
-
-// MonitorResponse is the main response for the monitor API
-export interface MonitorResponse {
-    status: 'healthy' | 'degraded' | 'unhealthy';
-    isSuccess: boolean;
-    connections: ConnectionStats;
-    roomParticipantsStats: RoomParticipantsStats[];
-    rooms: RoomStats;
-    calls: CallStats;
-    clients: ClientInfo[];
-    statusCount: { [key: string]: number };
+export interface StatusBreakdown {
+    [status: string]: number;
 }
 
-export interface RoomParticipantsStats {
-    conversationId: string;
-    callerId: string;
-    callType: string;
-    status: number;
-    timeout: number;
-    createdAt: Date;
-    participants: Record<string, CallParticipant>;
-    roomName: string;
+export interface DeviceBreakdown {
+    [device: string]: number;
 }
 
-// ConnectionStats holds connection-related statistics
-export interface ConnectionStats {
-    totalConnected: number;
-    totalOnline: number;
-    totalBusy: number;
-    totalInCall: number;
-    totalAway: number;
+export interface PresenceSummary {
+    totalUsers: number;
+    totalSessions: number;
+    totalWatchers?: number;
+    statusBreakdown: StatusBreakdown;
+    deviceBreakdown: DeviceBreakdown;
+    usersMultiDevice: number;
+    staleSessions: number;
 }
 
-// RoomStats holds room/conversation statistics
-export interface RoomStats {
-    totalRooms: number;
-    activeRooms: number;
-    roomDetails: RoomInfo[];
-}
-
-// RoomInfo contains information about a single room
-export interface RoomInfo {
-    conversationId: string;
-    totalMembers: number;
-    onlineMembers: number;
-    memberIds: string[];
-}
-
-// CallStats holds active call statistics
-export interface CallStats {
-    totalActiveCalls: number;
-    callDetails: CallInfo[];
-}
-
-// CallInfo contains information about a single active call
-export interface CallInfo {
-    conversationId: string;
-    callerId: string;
-    calleeIds: string[];
-    callType: 'audio' | 'video';
-    status: number;
-    startedAt: string;
-}
-
-// ClientInfo contains information about a connected client
-export interface ClientInfo {
+export interface UserSession {
     clientId: string;
     userId: string;
-    status: 'online' | 'busy' | 'in_call' | 'away';
-    currentConversationId?: string;
+    gatewayId: string;
+    status: 'online' | 'offline' | 'away' | 'busy' | string;
+    device: 'web' | 'mobile' | 'desktop' | string;
+    platform: string;
+    lastSeen: string; // ISO timestamp
+    ttlSeconds: number;
+    isExpired: boolean;
 }
+
+export interface PaginationMeta {
+    page: number;
+    pageSize: number;
+    totalUsers: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+}
+
+export interface PresenceUser {
+    userId: string;
+    username?: string;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    avatar?: string;
+    status?: string;
+    isActive?: boolean;
+    sessions: UserSession[];
+    totalSessions: number;
+    watcherIds?: string[];
+    watcherCount?: number;
+    earliestExpiry?: string; // ISO timestamp
+    isMultiDevice: boolean;
+}
+
+export interface ServerInfo {
+    usedMemory: string;
+    usedMemoryHuman: string;
+    connectedClients: string;
+    uptimeInSeconds: string;
+    totalKeys: number;
+}
+
+export interface RedisAnalysisResponse {
+    timestamp: string;
+    pagination?: PaginationMeta;
+    summary: PresenceSummary;
+    users: PresenceUser[];
+    serverInfo: ServerInfo;
+}
+
+export interface UserWatchersReport {
+    userId: string;
+    redisKey: string;
+    watcherCount: number;
+    watchers: string[];
+    timestamp: string;
+}
+
+// Backward compatibility alias
+export type MonitorResponse = RedisAnalysisResponse;
+export type ClientInfo = UserSession;
