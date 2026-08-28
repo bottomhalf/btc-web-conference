@@ -13,11 +13,11 @@ import { ChatPage } from '../models/constant';
   styleUrl: './login.component.css'
 })
 export class LoginComponent implements OnInit {
-  email: string = "istiyaq.mi9@gmail.com";
+  email: string = "";
   isSubmitted: boolean = false;
   isEmailValid: boolean = true;
   passwordType: string = "password";
-  password: string = 'istiyak';
+  password: string = '';
   isLoading: boolean = false;
   rememberMe: boolean = false;
   constructor(
