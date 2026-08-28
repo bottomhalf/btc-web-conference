@@ -11,7 +11,6 @@ import { environment } from '../../../environments/environment';
 export class MonitorService {
     private http = inject(HttpService);
     private local = inject(LocalService);
-    private readonly baseUrl = environment.goApiGateway;
 
     // Signal-based state
     private _monitorData = signal<RedisAnalysisResponse | null>(null);
@@ -56,6 +55,7 @@ export class MonitorService {
     readonly connectedClients = computed(() => this.serverInfo()?.connectedClients ?? '0');
     readonly uptimeInSeconds = computed(() => this.serverInfo()?.uptimeInSeconds ?? '0');
     readonly totalKeys = computed(() => this.serverInfo()?.totalKeys ?? 0);
+    private readonly baseUrl = environment.goApiGateway;
 
     constructor() {
         // Initialize target user id with current logged in user if available, otherwise fallback to BOT0035
@@ -133,7 +133,7 @@ export class MonitorService {
             params.set('page', page.toString());
             params.set('pageSize', pageSize.toString());
             const url = `admin/redis-analysis?${params.toString()}`;
-            const response: any = await this.http.get(url, { baseUrl: this.baseUrl });
+            const response: any = await this.http.get(url);
 
             let data: RedisAnalysisResponse | null = null;
 

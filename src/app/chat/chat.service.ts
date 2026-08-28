@@ -59,6 +59,7 @@ export class ChatService {
     }
 
     private socketSubscriptions = new Subscription();
+    private processedMessageIds = new Set<string>();
 
     constructor(private http: HttpService,
         private ws: ConfeetSocketService,
@@ -636,6 +637,20 @@ export class ChatService {
             } catch (e) {
                 console.error('Failed to decode/parse base64 message:', e);
                 return;
+            }
+        }
+
+        if (message.messageId) {
+            if (this.processedMessageIds.has(message.messageId)) {
+                return;
+            }
+            this.processedMessageIds.add(message.messageId);
+
+            if (this.processedMessageIds.size > 1000) {
+                const iterator = this.processedMessageIds.values();
+                for (let i = 0; i < 500; i++) {
+                    this.processedMessageIds.delete(iterator.next().value);
+                }
             }
         }
 
