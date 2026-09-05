@@ -1,6 +1,6 @@
 import { Injectable, Injector, signal } from '@angular/core';
 import { Subject, Subscription, filter, take } from 'rxjs';
-import { Conversation, Participant, SearchResult, UserDetail } from '../components/global-search/search.models';
+import { Conversation, Participant, SearchResult, UserDetail, UpdateChatDetailRequest } from '../components/global-search/search.models';
 import { HttpService } from '../providers/services/http.service';
 import {
     ConfeetSocketService, Message, MessageDelivered,
@@ -17,6 +17,11 @@ import { NotificationService } from '../notifications/services/notification.serv
 })
 export class ChatService {
     public openChat$ = new Subject<any>();
+    public openCreateGroupModal$ = new Subject<void>();
+
+    public triggerCreateGroup(): void {
+        this.openCreateGroupModal$.next();
+    }
 
     // Signals for State Management
     public meetingRooms = signal<Conversation[]>([]);
@@ -157,6 +162,14 @@ export class ChatService {
 
     async deleteFile(fileKey: string): Promise<any> {
         return this.http.delete(`storage/delete?fileKey=${encodeURIComponent(fileKey)}`);
+    }
+
+    async deleteChat(chatId: string, permanent: boolean = true): Promise<ResponseModel> {
+        return this.http.delete(`chat/delete-chat/${chatId}?permanent=${permanent}`);
+    }
+
+    async updateChatDetail(chatId: string, request: UpdateChatDetailRequest): Promise<ResponseModel> {
+        return this.http.put(`chat/update-chat-detail/${chatId}`, request);
     }
 
     async searchUsers(term: string): Promise<void> {

@@ -82,6 +82,28 @@ export interface ConversationSettings {
   adminOnlyPost: boolean;
 }
 
+export interface MemberUpdateDetail {
+  userId?: string;
+  role?: string;
+  nickname?: string;
+  isMuted?: boolean;
+  muteUntilMillis?: number;
+  isPinned?: boolean;
+  isArchived?: boolean;
+  notification?: string;
+  status?: string;
+}
+
+export interface UpdateChatDetailRequest {
+  chatId: string;
+  title: string;
+  description: string;
+  avatar?: string;
+  type?: string;
+  settings?: ConversationSettings | any;
+  memberUpdates?: MemberUpdateDetail[];
+}
+
 export interface Messages {
   id: string;
   messageId: string;

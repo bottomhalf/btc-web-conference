@@ -1,15 +1,5 @@
 <header class="app-header">
     <global-search></global-search>
-    <!-- <div class="search-input-wrapper">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35" />
-        </svg>
-        <input type="text" class="search-input" placeholder="Search for people, chats..." [(ngModel)]="searchQuery"
-            [ngbTypeahead]="search" [inputFormatter]="formatter" [resultFormatter]="formatter"
-            (selectItem)="onSelect($event)" [resultTemplate]="rt" />
-        <span *ngIf="isSearching" class="spinner-border spinner-border-sm text-secondary ms-2" role="status"></span>
-    </div> -->
 
     <ng-template #rt let-r="result" let-t="term">
         <div class="result-item-container d-flex align-items-center w-100">
@@ -28,7 +18,17 @@
         </div>
     </ng-template>
 
-    <div class="header-right d-flex align-items-center">
+    <div class="header-right d-flex align-items-center gap-2">
+        <!-- Create Group Icon Button -->
+        <button type="button" class="btn-header-create-group" (click)="openCreateGroupModal()" title="Create Group" aria-label="Create Group">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M19 8v6M22 11h-6" />
+            </svg>
+            <span class="create-group-btn-text">Create Group</span>
+        </button>
+
         <!-- Clickable avatar with status badge -->
         <div class="user-profile" (click)="toggleStatusPopover($event)" title="Set your status">
             <div class="avatar"
@@ -61,22 +61,24 @@
         <div class="sp-section">
             <div class="sp-label">Status message</div>
             @if (!editingStatusMessage) {
-            <div class="sp-msg-row" (click)="startEditingStatusMessage()">
+            <div class="sp-msg-display" (click)="startEditingStatusMessage()">
                 @if (statusMessage) {
-                    <span class="sp-msg-text">{{ statusMessage }}</span>
+                <span class="sp-msg-text">{{ statusMessage }}</span>
                 } @else {
-                    <span class="sp-msg-placeholder">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg>
-                        Add a status message
-                    </span>
+                <span class="sp-msg-placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Add a status message
+                </span>
                 }
-                <svg class="sp-edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                <svg class="sp-edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                 </svg>
             </div>
             } @else {
-            <div class="sp-msg-editor">
+            <div class="sp-msg-edit">
                 <input class="sp-msg-input" type="text" [(ngModel)]="tempStatusMessage"
                     placeholder="What's your status?" maxlength="80"
                     (keyup.enter)="saveStatusMessage()" (keyup.escape)="cancelStatusMessage()" autofocus />

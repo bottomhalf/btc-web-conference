@@ -443,4 +443,48 @@
     font-size: 13px;
     color: var(--header-text-primary);
     font-weight: 500;
+}
+
+/* ===== Header Create Group Button ===== */
+.btn-header-create-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: var(--header-input-bg);
+    color: var(--header-text-primary);
+    border: 1px solid var(--header-border);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+    user-select: none;
+}
+
+.btn-header-create-group svg {
+    color: var(--header-accent);
+    flex-shrink: 0;
+}
+
+.btn-header-create-group:hover {
+    background-color: var(--header-hover);
+    border-color: var(--header-accent);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.btn-header-create-group:active {
+    transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+    .create-group-btn-text {
+        display: none;
+    }
+    .btn-header-create-group {
+        padding: 6px;
+        border-radius: 50%;
+    }
 }
