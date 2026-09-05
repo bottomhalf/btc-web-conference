@@ -36,3 +36,4 @@ export const ChatPage = "btc/chat";
 export const CalendarPage = "btc/calendar";
 export const LandingPage = "home";
 export const MonitorDashboard = "btc/monitor-dashboard";
+export const ManagePage = "btc/manage";

@@ -82,6 +82,21 @@ export const routes: Routes = [
         path: 'monitor-dashboard',
         loadComponent: () =>
           import('./monitor-dashboard/monitor-dashboard.component').then(c => c.MonitorDashboardComponent),
+      },
+      {
+        path: 'manage',
+        loadComponent: () =>
+          import('./manage/manage.component').then(c => c.ManageComponent),
+      },
+      {
+        path: 'edit-meeting/:id',
+        loadComponent: () =>
+          import('./meeting-edit/meeting-edit.component').then(c => c.MeetingEditComponent),
+      },
+      {
+        path: 'edit-meeting',
+        loadComponent: () =>
+          import('./meeting-edit/meeting-edit.component').then(c => c.MeetingEditComponent),
       }
     ],
   },

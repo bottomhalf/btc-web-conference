@@ -1,0 +1,657 @@
+<div class="meeting-edit-wrapper">
+    <!-- Top Hero Banner / Header -->
+    <div class="edit-hero-header">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn-hero-back" (click)="goBack()" [ngbTooltip]="'Back to Dashboard'" container="body" aria-label="Back">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="hero-badge-img-wrapper">
+                    <img src="assets/meeting_camera_badge.jpg" alt="Meeting Badge" class="hero-badge-img">
+                </div>
+                <div>
+                    <div class="hero-breadcrumb">
+                        <span (click)="goBack()" class="breadcrumb-item-link">Dashboard</span>
+                        <i class="fa-solid fa-chevron-right breadcrumb-separator"></i>
+                        <span class="breadcrumb-item-current">Meeting #{{ meetingDetailId || 'New' }}</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <h1 class="hero-title mb-0">
+                            {{ meetingForm.get('title')?.value || 'Edit Meeting' }}
+                        </h1>
+                        @if (isExpired) {
+                        <span class="badge-expired-chip" [ngbTooltip]="'This meeting has expired. Extend the date/time or delete this meeting.'" container="body">
+                            <i class="fa-solid fa-clock-rotate-left me-1"></i> Expired
+                        </span>
+                        } @else {
+                        <span class="badge-status-chip">
+                            <i class="fa-solid fa-video me-1 text-accent"></i>
+                            {{ meetingDetail.hasQuickMeeting ? 'Quick Meeting' : 'Scheduled' }}
+                        </span>
+                        }
+                        <span class="badge-attendees-chip" (click)="activeTab = 'participants'" role="button" [ngbTooltip]="'Click to view or edit attendees'" container="body">
+                            <i class="fa-solid fa-users me-1"></i>
+                            {{ attendeesCount }} {{ attendeesCount === 1 ? 'Attendee' : 'Attendees' }}
+                        </span>
+                        @if (hasUnsavedChanges) {
+                        <span class="badge-unsaved-chip">
+                            <i class="fa-solid fa-circle-dot me-1"></i> Unsaved Changes
+                        </span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Header Quick Actions -->
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button type="button" class="btn-hero-save" (click)="saveMeeting()" [disabled]="isSaving || isLoading">
+                    @if (isSaving) {
+                    <i class="fa-solid fa-circle-notch fa-spin me-1"></i> Saving...
+                    } @else {
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
+                    }
+                </button>
+                <button type="button" class="btn-hero-delete" (click)="deleteMeeting()" [disabled]="isLoading || isDeleting" [ngbTooltip]="'Delete this meeting'" container="body">
+                    @if (isDeleting) {
+                    <i class="fa-solid fa-spinner fa-spin me-1"></i> Deleting...
+                    } @else {
+                    <i class="fa-regular fa-trash-can me-1"></i> Delete
+                    }
+                </button>
+                <button type="button" class="btn-hero-action" (click)="copyMeetingLink(linkTooltip)" [ngbTooltip]="'Copied Link!'" triggers="manual" container="body" #linkTooltip="ngbTooltip">
+                    <i class="fa-solid fa-link me-1 text-info"></i> Copy Link
+                </button>
+                <button type="button" class="btn-hero-action" (click)="copyInviteText(inviteTooltip)" [ngbTooltip]="'Copied Invite!'" triggers="manual" container="body" #inviteTooltip="ngbTooltip">
+                    <i class="fa-solid fa-share-nodes me-1 text-warning"></i> Share Invite
+                </button>
+                <button type="button" class="btn-hero-join" (click)="joinMeeting()" [disabled]="isLoading || isExpired"
+                    [ngbTooltip]="isExpired ? 'Meeting is expired. Extend date and time to join.' : ''" container="body">
+                    <i class="fa-solid fa-play me-1"></i> Join Meeting
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Notifications -->
+    @if (successMessage) {
+    <div class="alert alert-success-custom animate-fade-in my-3" role="alert">
+        <i class="fa-solid fa-circle-check fs-5 text-success"></i>
+        <div class="flex-grow-1">{{ successMessage }}</div>
+        <button type="button" class="btn-close-alert" (click)="successMessage = null">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+    }
+
+    @if (errorMessage) {
+    <div class="alert alert-danger-custom animate-fade-in my-3" role="alert">
+        <i class="fa-solid fa-triangle-exclamation fs-5 text-danger"></i>
+        <div class="flex-grow-1">{{ errorMessage }}</div>
+        <button type="button" class="btn btn-sm btn-outline-danger" (click)="meetingDetailId && loadMeetingDetail(meetingDetailId)">
+            <i class="fa-solid fa-rotate-right me-1"></i> Retry
+        </button>
+    </div>
+    }
+
+    <!-- Loading State -->
+    @if (isLoading) {
+    <div class="edit-loading-container my-5">
+        <div class="loading-spinner-rings"></div>
+        <p class="mt-3 text-muted">Fetching meeting details from server...</p>
+    </div>
+    } @else {
+    <!-- Main Edit Layout -->
+    <form [formGroup]="meetingForm" (ngSubmit)="saveMeeting()">
+        <div class="row g-4 mt-1">
+            <!-- Left Form Area (Tabs & Inputs) -->
+            <div class="col-xl-8 col-lg-7">
+                <!-- Navigation Tabs -->
+                <div class="edit-nav-tabs mb-4">
+                    <button type="button" class="tab-btn" [class.active]="activeTab === 'details'" (click)="activeTab = 'details'">
+                        <div class="tab-icon-box tab-details-icon"><i class="fa-solid fa-calendar-day"></i></div>
+                        <span>Schedule & Details</span>
+                    </button>
+                    <button type="button" class="tab-btn" [class.active]="activeTab === 'participants'" (click)="activeTab = 'participants'">
+                        <div class="tab-icon-box tab-users-icon"><i class="fa-solid fa-users"></i></div>
+                        <span>Attendees</span>
+                        <span class="tab-badge ms-2">{{ attendeesCount }}</span>
+                    </button>
+                    <button type="button" class="tab-btn" [class.active]="activeTab === 'agenda'" (click)="activeTab = 'agenda'">
+                        <div class="tab-icon-box tab-agenda-icon"><i class="fa-solid fa-file-lines"></i></div>
+                        <span>Agenda & Notes</span>
+                    </button>
+                    <button type="button" class="tab-btn" [class.active]="activeTab === 'settings'" (click)="activeTab = 'settings'">
+                        <div class="tab-icon-box tab-settings-icon"><i class="fa-solid fa-sliders"></i></div>
+                        <span>Call Settings</span>
+                    </button>
+                </div>
+
+                <!-- Tab 1: Schedule & Details -->
+                @if (activeTab === 'details') {
+                <div class="card-section animate-fade-in">
+                    <div class="section-title-bar mb-4">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <h3 class="section-heading">
+                                    <i class="fa-solid fa-clock-rotate-left text-accent me-2"></i>
+                                    General & Timing
+                                </h3>
+                                <span class="section-subtitle">Define meeting title, schedule, duration, and recurrence</span>
+                            </div>
+                            <span class="tz-badge"><i class="fa-solid fa-globe me-1"></i> (UTC+05:30) IST</span>
+                        </div>
+                    </div>
+
+                    <!-- Expired Notice Banner -->
+                    @if (isExpired) {
+                    <div class="expired-alert-banner mb-4 animate-fade-in">
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa-solid fa-clock-rotate-left fs-3 text-danger"></i>
+                            <div>
+                                <h6 class="text-danger fw-bold mb-0">Meeting Schedule Expired</h6>
+                                <small class="text-muted">This meeting's end date & time has passed. Extend the timing below or click a quick extension button to reactivate.</small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn-extend-pill" (click)="extendFromNow(30)">
+                                <i class="fa-solid fa-bolt me-1"></i> +30m From Now
+                            </button>
+                            <button type="button" class="btn-extend-pill" (click)="extendFromNow(60)">
+                                <i class="fa-solid fa-plus me-1"></i> +1 Hour
+                            </button>
+                        </div>
+                    </div>
+                    }
+
+                    <!-- Title Input -->
+                    <div class="mb-4">
+                        <label class="form-label-styled">Meeting Topic / Title <span class="text-danger">*</span></label>
+                        <div class="input-glow-group">
+                            <span class="input-icon-left"><i class="fa-solid fa-heading"></i></span>
+                            <input type="text" placeholder="e.g. Sprint Planning, Project Review, Standup..." class="form-control form-control-styled with-left-icon"
+                                formControlName="title"
+                                [ngClass]="{'is-invalid': isSubmitted && meetingForm.controls['title'].errors?.['required']}">
+                        </div>
+                        @if (isSubmitted && meetingForm.controls['title'].errors?.['required']) {
+                        <div class="invalid-feedback d-block mt-1">Please provide a meeting title.</div>
+                        }
+                    </div>
+
+                    <!-- Part 1: Date Range Card -->
+                    <div class="schedule-section-card mb-4">
+                        <div class="schedule-card-header">
+                            <h5 class="schedule-card-title">
+                                <i class="fa-regular fa-calendar-days text-accent me-2"></i> Date Range
+                            </h5>
+                            <div class="form-check form-switch custom-toggle-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="allDayCheck" formControlName="isAllDay">
+                                <label class="form-check-label ms-2 small fw-semibold" for="allDayCheck">All Day Event</label>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Start Date -->
+                            <div class="col-md-6">
+                                <label class="form-label-styled">
+                                    <i class="fa-regular fa-circle-play text-success me-1"></i> Start Date <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group" [ngClass]="{'error-field': isSubmitted && meetingForm.controls['startDate'].errors?.['required']}">
+                                    <input class="form-control datepicker-input" placeholder="Select start date" name="dpStart"
+                                        [minDate]="minPickerDate" [(ngModel)]="meetingDate"
+                                        [ngModelOptions]="{standalone: true}" ngbDatepicker
+                                        #dpS="ngbDatepicker" (dateSelect)="onMeetingDateSelect($event)">
+                                    <button class="btn btn-picker-action" (click)="dpS.toggle()" type="button" aria-label="Toggle calendar">
+                                        <i class="fa-solid fa-calendar-days text-accent"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- End Date -->
+                            <div class="col-md-6">
+                                <label class="form-label-styled">
+                                    <i class="fa-regular fa-circle-stop text-danger me-1"></i> End Date <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group" [ngClass]="{'error-field': isSubmitted && meetingForm.controls['endDate'].errors?.['required']}">
+                                    <input class="form-control datepicker-input" placeholder="Select end date" name="dpEnd"
+                                        [minDate]="minEndPickerDate" [(ngModel)]="meetingEndDate"
+                                        [ngModelOptions]="{standalone: true}" ngbDatepicker
+                                        #dpE="ngbDatepicker" (dateSelect)="onMeetingEndDateSelect($event)">
+                                    <button class="btn btn-picker-action" (click)="dpE.toggle()" type="button" aria-label="Toggle calendar">
+                                        <i class="fa-solid fa-calendar-days text-accent"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Part 2: Time & Duration Card -->
+                    <div class="schedule-section-card mb-4">
+                        <div class="schedule-card-header">
+                            <h5 class="schedule-card-title">
+                                <i class="fa-regular fa-clock text-accent me-2"></i> Meeting Time & Duration
+                            </h5>
+                            <span class="tz-pill"><i class="fa-solid fa-globe me-1"></i> (UTC+05:30) IST</span>
+                        </div>
+
+                        <div class="row g-3 align-items-end">
+                            <!-- Start Time -->
+                            <div class="col-md-4">
+                                <label class="form-label-styled">
+                                    <i class="fa-regular fa-hourglass-half text-success me-1"></i> Start Time <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select time-select" formControlName="startTime"
+                                    [ngClass]="{'error-field': isSubmitted && meetingForm.controls['startTime'].errors?.['required']}"
+                                    (change)="onstartTimeSelect()">
+                                    <option [value]="null">Select start time</option>
+                                    @for (item of meetingTimes; track $index) {
+                                    <option [value]="item">{{ item }}</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- End Time -->
+                            <div class="col-md-4">
+                                <label class="form-label-styled">
+                                    <i class="fa-regular fa-hourglass text-danger me-1"></i> End Time <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select time-select" formControlName="endTime"
+                                    [ngClass]="{'error-field': isSubmitted && meetingForm.controls['endTime'].errors?.['required']}"
+                                    (change)="onEndTimeSelect()">
+                                    <option [value]="null">Select end time</option>
+                                    @for (item of endMeetingTimes; track $index) {
+                                    <option [value]="item">{{ item }}</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- Duration Display Box beside Time -->
+                            <div class="col-md-4">
+                                <label class="form-label-styled">
+                                    <i class="fa-solid fa-stopwatch text-accent me-1"></i> Total Duration
+                                </label>
+                                <div class="duration-display-card" [ngbTooltip]="'Duration in seconds: ' + (meetingForm.get('durationInSecond')?.value || 1800) + 's'" container="body">
+                                    <div class="duration-icon-circle">
+                                        <i class="fa-solid fa-hourglass-half"></i>
+                                    </div>
+                                    <div class="duration-info-wrap">
+                                        <span class="duration-value-text">{{ durationText }}</span>
+                                        <span class="duration-sub-text">({{ meetingForm.get('durationInSecond')?.value || 1800 }}s)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Duration Presets -->
+                        <div class="mt-3 pt-3 border-top d-flex align-items-center flex-wrap gap-2">
+                            <span class="preset-label me-1"><i class="fa-solid fa-bolt text-warning me-1"></i> Quick Presets:</span>
+                            @for (minutes of durationPresets; track $index) {
+                            <button type="button" class="btn-preset-pill" [class.active-preset]="(meetingForm.get('durationInSecond')?.value) === (minutes * 60)" (click)="setPresetDuration(minutes)">
+                                {{ minutes < 60 ? minutes + ' min' : (minutes === 60 ? '1 hour' : (minutes === 90 ? '1.5 hr' : '2 hours')) }}
+                            </button>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Recurrence Option Card -->
+                    <div class="schedule-section-card mb-2">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div>
+                                <label class="form-label-styled mb-1"><i class="fa-solid fa-arrows-rotate text-accent me-1"></i> Recurrence & Repetition</label>
+                                <small class="text-muted d-block">Set this meeting to recur daily, weekly, or monthly</small>
+                            </div>
+                            <div style="min-width: 200px;">
+                                <select class="form-select select-styled" formControlName="repeatType">
+                                    <option [ngValue]="0">Does not repeat</option>
+                                    <option [ngValue]="1">Daily (Every day)</option>
+                                    <option [ngValue]="2">Weekly (Every week)</option>
+                                    <option [ngValue]="3">Monthly (Every month)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                }
+
+                <!-- Tab 2: Attendees -->
+                @if (activeTab === 'participants') {
+                <div class="card-section animate-fade-in">
+                    <div class="section-title-bar mb-4">
+                        <h3 class="section-heading">
+                            <i class="fa-solid fa-user-group text-accent me-2"></i>
+                            Meeting Attendees & Invitations
+                        </h3>
+                        <span class="section-subtitle">Search and invite team members and guests</span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label-styled">Search & Add Team Members</label>
+                        <app-multi-user-autocomplete
+                            [placeholder]="'Type a name, email or user ID to invite...'"
+                            [selectedUsers]="selectedParticipants"
+                            [searchResults]="participantSearchResults"
+                            (searchChange)="participantSearchQuery = $event; onParticipantSearch()"
+                            (selectedUsersChange)="selectedParticipants = $event"
+                            [currentUserId]="user?.userId || ''">
+                        </app-multi-user-autocomplete>
+                    </div>
+
+                    <!-- Selected Participants List -->
+                    <div class="participants-container">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h5 class="subheading-text mb-0">
+                                <i class="fa-solid fa-user-check text-success me-2"></i>
+                                Invited Attendees ({{ attendeesCount }})
+                            </h5>
+                            @if (selectedParticipants.length > 0) {
+                            <button type="button" class="btn btn-sm btn-link text-danger p-0 text-decoration-none fw-semibold" (click)="selectedParticipants = []; hasUnsavedChanges = true;">
+                                Clear All
+                            </button>
+                            }
+                        </div>
+
+                        @if (selectedParticipants.length === 0) {
+                        <div class="empty-attendees-state">
+                            <i class="fa-solid fa-users-viewfinder empty-icon-user"></i>
+                            <p class="mb-1 fw-semibold">No participants invited yet</p>
+                            <small class="text-muted">Use the search box above to add attendees to this meeting.</small>
+                        </div>
+                        } @else {
+                        <div class="row g-3">
+                            @for (p of selectedParticipants; track $index) {
+                            <div class="col-md-6">
+                                <div class="participant-card">
+                                    <div class="participant-avatar overflow-hidden">
+                                        @if (p.avatar) {
+                                        <img [src]="p.avatar" alt="Avatar" class="w-100 h-100 object-fit-cover rounded-3">
+                                        } @else {
+                                        {{ (p.name || p.firstName || p.email || 'U').charAt(0).toUpperCase() }}
+                                        }
+                                    </div>
+                                    <div class="participant-info text-truncate">
+                                        <div class="participant-name text-truncate">{{ p.name || (p.firstName + ' ' + (p.lastName || '')) || p.email }}</div>
+                                        <div class="participant-email text-truncate">{{ p.email || p.userId }}</div>
+                                    </div>
+                                    <span class="badge-role">{{ p.role || 'Attendee' }}</span>
+                                    <button type="button" class="btn-remove-attendee" (click)="removeParticipant(p)" [ngbTooltip]="'Remove'" container="body">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            }
+                        </div>
+                        }
+                    </div>
+                </div>
+                }
+
+                <!-- Tab 3: Agenda & Notes -->
+                @if (activeTab === 'agenda') {
+                <div class="card-section animate-fade-in">
+                    <div class="section-title-bar mb-4">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div>
+                                <h3 class="section-heading">
+                                    <i class="fa-solid fa-align-left text-accent me-2"></i>
+                                    Agenda & Meeting Notes
+                                </h3>
+                                <span class="section-subtitle">Provide talking points, goals, or links for attendees</span>
+                            </div>
+
+                            <!-- Templates quick picker -->
+                            <div class="d-flex align-items-center gap-1 flex-wrap">
+                                <span class="template-label me-1"><i class="fa-solid fa-wand-magic-sparkles text-accent me-1"></i> Templates:</span>
+                                <button type="button" class="btn-template-pill" (click)="applyAgendaTemplate('1on1')">1-on-1</button>
+                                <button type="button" class="btn-template-pill" (click)="applyAgendaTemplate('standup')">Standup</button>
+                                <button type="button" class="btn-template-pill" (click)="applyAgendaTemplate('sprint')">Sprint Review</button>
+                                <button type="button" class="btn-template-pill" (click)="applyAgendaTemplate('client')">Client Demo</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rich-editor-wrapper">
+                        <!-- Toolbar -->
+                        <div class="rich-toolbar">
+                            <div class="btn-group me-2">
+                                <button type="button" class="btn-tb" (click)="execCommand('bold')" title="Bold"><i class="fa-solid fa-bold"></i></button>
+                                <button type="button" class="btn-tb" (click)="execCommand('italic')" title="Italic"><i class="fa-solid fa-italic"></i></button>
+                                <button type="button" class="btn-tb" (click)="execCommand('underline')" title="Underline"><i class="fa-solid fa-underline"></i></button>
+                                <button type="button" class="btn-tb" (click)="execCommand('strikeThrough')" title="Strikethrough"><i class="fa-solid fa-strikethrough"></i></button>
+                            </div>
+                            <div class="tb-divider"></div>
+                            <div class="btn-group me-2">
+                                <button type="button" class="btn-tb" (click)="execCommand('insertUnorderedList')" title="Bullet List"><i class="fa-solid fa-list-ul"></i></button>
+                                <button type="button" class="btn-tb" (click)="execCommand('insertOrderedList')" title="Numbered List"><i class="fa-solid fa-list-ol"></i></button>
+                            </div>
+                            <div class="tb-divider"></div>
+                            <div class="btn-group">
+                                <button type="button" class="btn-tb" (click)="execCommand('createLink')" title="Insert Link"><i class="fa-solid fa-link"></i></button>
+                                <button type="button" class="btn-tb" (click)="execCommand('removeFormat')" title="Clear Formatting"><i class="fa-solid fa-text-slash"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Editable Area -->
+                        <div class="rich-content" contenteditable="true" #editorContent (input)="updateAgendaContent($event)"
+                            placeholder="Write meeting agenda, objectives, links to documents or meeting rules..."></div>
+                    </div>
+                </div>
+                }
+
+                <!-- Tab 4: Call Settings -->
+                @if (activeTab === 'settings') {
+                <div class="card-section animate-fade-in">
+                    <div class="section-title-bar mb-4">
+                        <h3 class="section-heading">
+                            <i class="fa-solid fa-sliders text-accent me-2"></i>
+                            Call Security & Video Options
+                        </h3>
+                        <span class="section-subtitle">Configure in-call controls and security parameters</span>
+                    </div>
+
+                    <div class="settings-list">
+                        <!-- Host Video -->
+                        <div class="setting-item">
+                            <div class="setting-icon-box bg-purple-subtle"><i class="fa-solid fa-video text-primary"></i></div>
+                            <div class="setting-text">
+                                <div class="setting-title">Host Video Default</div>
+                                <div class="setting-desc">Turn on host camera automatically upon entering the room</div>
+                            </div>
+                            <div class="form-check form-switch custom-toggle-switch">
+                                <input class="form-check-input" type="checkbox" [(ngModel)]="hostVideoDefault" [ngModelOptions]="{standalone: true}">
+                            </div>
+                        </div>
+
+                        <!-- Participant Video -->
+                        <div class="setting-item">
+                            <div class="setting-icon-box bg-cyan-subtle"><i class="fa-solid fa-camera text-info"></i></div>
+                            <div class="setting-text">
+                                <div class="setting-title">Participant Video Default</div>
+                                <div class="setting-desc">Allow participants to start with their video camera enabled</div>
+                            </div>
+                            <div class="form-check form-switch custom-toggle-switch">
+                                <input class="form-check-input" type="checkbox" [(ngModel)]="participantVideoDefault" [ngModelOptions]="{standalone: true}">
+                            </div>
+                        </div>
+
+                        <!-- Mute on Entry -->
+                        <div class="setting-item">
+                            <div class="setting-icon-box bg-amber-subtle"><i class="fa-solid fa-microphone-slash text-warning"></i></div>
+                            <div class="setting-text">
+                                <div class="setting-title">Mute Attendees Upon Entry</div>
+                                <div class="setting-desc">Automatically mute participant microphones when they join</div>
+                            </div>
+                            <div class="form-check form-switch custom-toggle-switch">
+                                <input class="form-check-input" type="checkbox" [(ngModel)]="muteOnEntry" [ngModelOptions]="{standalone: true}">
+                            </div>
+                        </div>
+
+                        <!-- Waiting Room -->
+                        <div class="setting-item">
+                            <div class="setting-icon-box bg-emerald-subtle"><i class="fa-solid fa-shield-halved text-success"></i></div>
+                            <div class="setting-text">
+                                <div class="setting-title">Waiting Room / Lobby</div>
+                                <div class="setting-desc">Require host approval before attendees can join the meeting room</div>
+                            </div>
+                            <div class="form-check form-switch custom-toggle-switch">
+                                <input class="form-check-input" type="checkbox" [(ngModel)]="enableWaitingRoom" [ngModelOptions]="{standalone: true}">
+                            </div>
+                        </div>
+
+                        <!-- Screen Sharing -->
+                        <div class="setting-item">
+                            <div class="setting-icon-box bg-blue-subtle"><i class="fa-solid fa-desktop text-primary"></i></div>
+                            <div class="setting-text">
+                                <div class="setting-title">Allow Screen Sharing</div>
+                                <div class="setting-desc">Enable participants to share their screen during the call</div>
+                            </div>
+                            <div class="form-check form-switch custom-toggle-switch">
+                                <input class="form-check-input" type="checkbox" [(ngModel)]="allowScreenSharing" [ngModelOptions]="{standalone: true}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                }
+            </div>
+
+            <!-- Right Sidebar: Live Preview & Credentials Card -->
+            <div class="col-xl-4 col-lg-5">
+                <!-- Live Preview Widget with 3D Banner Cover -->
+                <div class="sidebar-preview-card mb-4">
+                    <div class="preview-banner-wrapper">
+                        <img src="assets/meeting_schedule_banner.jpg" alt="Meeting Schedule Cover" class="preview-banner-img">
+                        <div class="preview-banner-overlay">
+                            <span class="preview-banner-badge"><i class="fa-regular fa-eye me-1"></i> Live Card Preview</span>
+                            <span class="preview-banner-duration">{{ durationText }}</span>
+                        </div>
+                    </div>
+
+                    <div class="preview-body">
+                        <h4 class="preview-title text-truncate">
+                            {{ meetingForm.get('title')?.value || 'Untitled Meeting' }}
+                        </h4>
+                        <div class="preview-meta-row">
+                            <i class="fa-regular fa-calendar-days text-accent"></i>
+                            <span>{{ meetingForm.get('startDate')?.value ? toFullDateString(meetingForm.get('startDate')?.value) : 'Select date' }}</span>
+                        </div>
+                        <div class="preview-meta-row">
+                            <i class="fa-regular fa-clock text-accent"></i>
+                            <span>{{ meetingForm.get('startTime')?.value || '--:--' }} - {{ meetingForm.get('endTime')?.value || '--:--' }} (IST)</span>
+                        </div>
+
+                        <!-- Attendees stack -->
+                        <div class="d-flex align-items-center justify-content-between pt-3 mt-3 border-top">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-stack">
+                                    <div class="stack-avatar host-avatar" title="Host">
+                                        <i class="fa-solid fa-crown"></i>
+                                    </div>
+                                    @for (p of selectedParticipants.slice(0, 3); track $index) {
+                                    <div class="stack-avatar" [title]="p.name || p.firstName || p.email">
+                                        {{ (p.name || p.firstName || p.email || 'U').charAt(0).toUpperCase() }}
+                                    </div>
+                                    }
+                                    @if (selectedParticipants.length > 3) {
+                                    <div class="stack-avatar more-avatar">
+                                        +{{ selectedParticipants.length - 3 }}
+                                    </div>
+                                    }
+                                </div>
+                            </div>
+                            <span class="text-muted small fw-semibold">
+                                {{ selectedParticipants.length + 1 }} {{ selectedParticipants.length === 0 ? 'host' : 'people' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Credentials Card -->
+                <div class="sidebar-credentials-card">
+                    <h5 class="credentials-card-title">
+                        <i class="fa-solid fa-shield-halved text-accent me-2"></i>
+                        Meeting Credentials & Security
+                    </h5>
+
+                    <!-- Meeting ID -->
+                    <div class="credential-row">
+                        <div class="credential-meta">
+                            <span class="credential-label"><i class="fa-solid fa-fingerprint me-1"></i> Meeting ID</span>
+                            <span class="credential-val font-monospace">{{ meetingDetail.meetingId || 'Auto-assigned' }}</span>
+                        </div>
+                        @if (meetingDetail.meetingId) {
+                        <button type="button" class="btn-copy-chip" (click)="copyMeetingId(midTip)" [ngbTooltip]="'Copied ID!'" triggers="manual" container="body" #midTip="ngbTooltip">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                        }
+                    </div>
+
+                    <!-- Passcode -->
+                    <div class="credential-row">
+                        <div class="credential-meta">
+                            <span class="credential-label"><i class="fa-solid fa-lock me-1"></i> Passcode</span>
+                            <span class="credential-val font-monospace">
+                                {{ showPassword ? (meetingDetail.meetingPassword || 'None') : '••••••••' }}
+                            </span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <button type="button" class="btn-copy-chip" (click)="showPassword = !showPassword" [title]="showPassword ? 'Hide passcode' : 'Show passcode'">
+                                <i class="fa-regular" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+                            </button>
+                            @if (meetingDetail.meetingPassword) {
+                            <button type="button" class="btn-copy-chip" (click)="copyPasscode(pwTip)" [ngbTooltip]="'Copied Passcode!'" triggers="manual" container="body" #pwTip="ngbTooltip">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Direct Link -->
+                    <div class="credential-row">
+                        <div class="credential-meta text-truncate">
+                            <span class="credential-label"><i class="fa-solid fa-link me-1"></i> Direct Meeting Link</span>
+                            <span class="credential-val text-truncate font-monospace small">
+                                https://www.confeet.com/.../preview?meetingid={{ meetingDetail.meetingId || meetingDetailId }}
+                            </span>
+                        </div>
+                        <button type="button" class="btn-copy-chip" (click)="copyMeetingLink(directTip)" [ngbTooltip]="'Copied Link!'" triggers="manual" container="body" #directTip="ngbTooltip">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+
+                    <!-- Copy Full Invite Button -->
+                    <button type="button" class="btn-copy-full-invite mt-3" (click)="copyInviteText(fullTip)" [ngbTooltip]="'Copied Full Invitation!'" triggers="manual" container="body" #fullTip="ngbTooltip">
+                        <i class="fa-regular fa-envelope-open me-2 text-warning"></i> Copy Full Invitation
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sticky Bottom Action Footer -->
+        <div class="edit-sticky-footer">
+            <div class="footer-content">
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn-footer-cancel" (click)="goBack()">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Cancel
+                    </button>
+                    @if (hasUnsavedChanges) {
+                    <button type="button" class="btn-footer-reset" (click)="resetForm()" [ngbTooltip]="'Reset to original values'" container="body">
+                        <i class="fa-solid fa-arrow-rotate-left me-1"></i> Reset
+                    </button>
+                    }
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                    <span class="shortcut-hint d-none d-md-inline">
+                        <kbd>Ctrl</kbd> + <kbd>S</kbd> to save
+                    </span>
+                    <button type="submit" class="btn-footer-save" [disabled]="isSaving || isLoading">
+                        @if (isSaving) {
+                        <i class="fa-solid fa-circle-notch fa-spin me-2"></i> Saving...
+                        } @else {
+                        <i class="fa-solid fa-floppy-disk me-2"></i> Save Changes
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+    }
+</div>

@@ -1,0 +1,1168 @@
+<div class="manage-container">
+  <!-- Toast Alert -->
+  @if (toastNotification(); as toast) {
+  <div class="toast-floating" [ngClass]="'toast-' + toast.type">
+    <div class="toast-icon">
+      @if (toast.type === 'success') {
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      } @else if (toast.type === 'danger') {
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      } @else {
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      }
+    </div>
+    <span class="toast-text">{{ toast.message }}</span>
+  </div>
+  }
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-titles">
+      <div class="header-icon-badge">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+          <path d="M480-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Zm80-80h480v-32q0-11-5.5-20T700-306q-54-27-109-40.5T480-360q-56 0-111 13.5T260-306q-9 5-14.5 14t-5.5 20v32Zm240-320q33 0 56.5-23.5T560-640q0-33-23.5-56.5T480-720q-33 0-56.5 23.5T400-640q0 33 23.5 56.5T480-560Zm0-80Z" />
+        </svg>
+      </div>
+      <div>
+        <h1 class="page-title">User Management</h1>
+        <p class="page-subtitle">Manage organization accounts, role assignments, permissions, and directory access</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Role Matrix Button -->
+      <button class="btn btn-secondary" (click)="openRoleMatrix()" title="View Roles & Permissions Matrix">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          <line x1="3" y1="9" x2="21" y2="9"/>
+          <line x1="9" y1="21" x2="9" y2="9"/>
+        </svg>
+        <span>Role Matrix</span>
+      </button>
+
+      <!-- Export Button -->
+      <div class="export-dropdown">
+        <button class="btn btn-secondary" (click)="manageService.exportToCsv()" title="Export filtered users to CSV">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>Export CSV</span>
+        </button>
+      </div>
+
+      <!-- Add User CTA Button -->
+      <button class="btn btn-primary" (click)="openAddUserModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        <span>Add User</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Overview Stats KPI Grid -->
+  @if (manageService.stats(); as stats) {
+  <section class="stats-grid">
+    <div class="stat-card stat-total">
+      <div class="stat-icon-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">Total Users</span>
+        <h3 class="stat-value">{{ stats.totalUsers }}</h3>
+        <span class="stat-trend positive">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+          +{{ stats.growthRatePercent }}% this month
+        </span>
+      </div>
+    </div>
+
+    <div class="stat-card stat-online">
+      <div class="stat-icon-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">Active & Online</span>
+        <h3 class="stat-value">{{ stats.activeOnline }}</h3>
+        <span class="stat-subtext">Currently connected</span>
+      </div>
+    </div>
+
+    <div class="stat-card stat-admins">
+      <div class="stat-icon-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">Administrators</span>
+        <h3 class="stat-value">{{ stats.adminsCount }}</h3>
+        <span class="stat-subtext">{{ stats.moderatorsCount }} Moderators</span>
+      </div>
+    </div>
+
+    <div class="stat-card stat-invited">
+      <div class="stat-icon-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">Pending Invitations</span>
+        <h3 class="stat-value">{{ stats.invitedCount }}</h3>
+        <span class="stat-subtext">Awaiting sign up</span>
+      </div>
+    </div>
+
+    <div class="stat-card stat-suspended">
+      <div class="stat-icon-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">Suspended</span>
+        <h3 class="stat-value">{{ stats.suspendedCount }}</h3>
+        <span class="stat-subtext">Access restricted</span>
+      </div>
+    </div>
+  </section>
+  }
+
+  <!-- Filters & Toolbar -->
+  <section class="toolbar-section">
+    <div class="search-box">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search by name, email, ID, role or department..."
+        [ngModel]="searchInput()"
+        (ngModelChange)="onSearchChange($event)"
+      />
+      @if (searchInput()) {
+      <button class="clear-search-btn" (click)="onSearchChange('')" title="Clear search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      }
+    </div>
+
+    <div class="filter-controls">
+      <!-- Role Filter -->
+      <div class="filter-group">
+        <label class="filter-label">Role:</label>
+        <select class="filter-select" [ngModel]="roleFilter()" (ngModelChange)="onRoleFilterChange($event)">
+          <option value="All">All Roles</option>
+          @for (role of availableRoles; track role) {
+          <option [value]="role">{{ role }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Department Filter -->
+      <div class="filter-group">
+        <label class="filter-label">Dept:</label>
+        <select class="filter-select" [ngModel]="departmentFilter()" (ngModelChange)="onDepartmentFilterChange($event)">
+          <option value="All">All Depts</option>
+          @for (dept of availableDepartments; track dept) {
+          <option [value]="dept">{{ dept }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="filter-group">
+        <label class="filter-label">Status:</label>
+        <select class="filter-select" [ngModel]="statusFilter()" (ngModelChange)="onStatusFilterChange($event)">
+          @for (status of availableStatuses; track status.value) {
+          <option [value]="status.value">{{ status.label }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Reset Filters Button -->
+      @if (searchInput() || roleFilter() !== 'All' || statusFilter() !== 'All' || departmentFilter() !== 'All') {
+      <button class="btn btn-ghost-sm" (click)="resetAllFilters()" title="Reset all filters">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="1 4 1 10 7 10"/>
+          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+        </svg>
+        <span>Reset</span>
+      </button>
+      }
+
+      <!-- View Mode Toggle -->
+      <div class="view-toggle-group">
+        <button
+          class="view-btn"
+          [class.active]="viewMode() === 'table'"
+          (click)="toggleViewMode('table')"
+          title="Table View"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"/>
+            <line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/>
+            <line x1="3" y1="12" x2="3.01" y2="12"/>
+            <line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+        </button>
+        <button
+          class="view-btn"
+          [class.active]="viewMode() === 'grid'"
+          (click)="toggleViewMode('grid')"
+          title="Grid Card View"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bulk Action Bar (Visible when rows selected) -->
+  @if (manageService.selectedUserIds().size > 0) {
+  <div class="bulk-action-bar">
+    <div class="bulk-info">
+      <span class="bulk-count-badge">{{ manageService.selectedUserIds().size }}</span>
+      <span class="bulk-text">users selected</span>
+    </div>
+
+    <div class="bulk-actions">
+      <button class="bulk-btn btn-success-sm" (click)="onBulkStatusChange('active')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        <span>Set Active</span>
+      </button>
+
+      <button class="bulk-btn btn-warning-sm" (click)="onBulkStatusChange('suspended')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+        <span>Suspend</span>
+      </button>
+
+      <div class="bulk-role-select">
+        <select #bulkRoleSelect (change)="onBulkRoleChange(bulkRoleSelect.value); bulkRoleSelect.value = ''">
+          <option value="" disabled selected>Assign Role...</option>
+          @for (role of availableRoles; track role) {
+          <option [value]="role">{{ role }}</option>
+          }
+        </select>
+      </div>
+
+      <button class="bulk-btn btn-danger-sm" (click)="onBulkDelete()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        <span>Delete</span>
+      </button>
+
+      <button class="bulk-btn-clear" (click)="manageService.clearSelection()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  }
+
+  <!-- Main Content: Table or Grid View -->
+  <main class="content-body">
+    @if (manageService.totalFilteredCount() === 0) {
+    <!-- Empty State -->
+    <div class="empty-state-card">
+      <div class="empty-icon-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </div>
+      <h3>No users found</h3>
+      <p>No directory users matched your search or active filter criteria.</p>
+      <button class="btn btn-primary btn-sm" (click)="resetAllFilters()">
+        <span>Clear Filters</span>
+      </button>
+    </div>
+    } @else if (viewMode() === 'table') {
+    <!-- TABLE VIEW -->
+    <div class="table-card">
+      <div class="table-responsive">
+        <table class="user-table">
+          <thead>
+            <tr>
+              <th class="col-checkbox">
+                <input
+                  type="checkbox"
+                  class="custom-checkbox"
+                  [checked]="manageService.isAllPageSelected()"
+                  (change)="manageService.toggleSelectAll()"
+                />
+              </th>
+              <th class="col-user sortable" (click)="manageService.setSorting('name')">
+                <div class="th-content">
+                  <span>User & Account</span>
+                  @if (manageService.sortBy() === 'name') {
+                  <span class="sort-icon">{{ manageService.sortDirection() === 'asc' ? '↑' : '↓' }}</span>
+                  }
+                </div>
+              </th>
+              <th class="col-role sortable" (click)="manageService.setSorting('role')">
+                <div class="th-content">
+                  <span>Role</span>
+                  @if (manageService.sortBy() === 'role') {
+                  <span class="sort-icon">{{ manageService.sortDirection() === 'asc' ? '↑' : '↓' }}</span>
+                  }
+                </div>
+              </th>
+              <th class="col-dept">Department & Title</th>
+              <th class="col-status sortable" (click)="manageService.setSorting('status')">
+                <div class="th-content">
+                  <span>Status</span>
+                  @if (manageService.sortBy() === 'status') {
+                  <span class="sort-icon">{{ manageService.sortDirection() === 'asc' ? '↑' : '↓' }}</span>
+                  }
+                </div>
+              </th>
+              <th class="col-activity sortable" (click)="manageService.setSorting('lastLoginAt')">
+                <div class="th-content">
+                  <span>Last Active</span>
+                  @if (manageService.sortBy() === 'lastLoginAt') {
+                  <span class="sort-icon">{{ manageService.sortDirection() === 'asc' ? '↑' : '↓' }}</span>
+                  }
+                </div>
+              </th>
+              <th class="col-meetings">Meetings</th>
+              <th class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of manageService.paginatedUsers(); track user.id) {
+            <tr
+              class="table-row"
+              [class.row-selected]="manageService.isUserSelected(user.id)"
+              (click)="openUserDetails(user)"
+            >
+              <!-- Checkbox -->
+              <td class="col-checkbox" (click)="$event.stopPropagation()">
+                <input
+                  type="checkbox"
+                  class="custom-checkbox"
+                  [checked]="manageService.isUserSelected(user.id)"
+                  (change)="manageService.toggleSelectUser(user.id)"
+                />
+              </td>
+
+              <!-- User & Avatar -->
+              <td class="col-user">
+                <div class="user-cell">
+                  <div class="user-avatar-wrapper" [style.background]="getAvatarBackground(user.firstName + user.lastName)">
+                    {{ getUserInitials(user) }}
+                    <span class="status-dot-mini" [ngClass]="getStatusDotClass(user.status)"></span>
+                  </div>
+                  <div class="user-meta">
+                    <span class="user-fullname">{{ user.firstName }} {{ user.lastName }}</span>
+                    <div class="user-submeta">
+                      <span class="user-uid" (click)="copyToClipboard(user.userId, user.id + '_uid', $event)" title="Click to copy User ID">
+                        {{ user.userId }}
+                        @if (copiedId() === user.id + '_uid') {
+                        <span class="copied-badge">Copied</span>
+                        }
+                      </span>
+                      <span class="meta-dot">•</span>
+                      <span class="user-email" [title]="user.email">{{ user.email }}</span>
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Role -->
+              <td class="col-role">
+                <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
+                  {{ user.role }}
+                </span>
+              </td>
+
+              <!-- Department & Designation -->
+              <td class="col-dept">
+                <div class="dept-cell">
+                  <span class="dept-name">{{ user.department }}</span>
+                  <span class="designation-text">{{ user.designation || 'Team Member' }}</span>
+                </div>
+              </td>
+
+              <!-- Status -->
+              <td class="col-status">
+                <span class="status-badge" [ngClass]="getStatusBadgeClass(user.status)">
+                  <span class="status-dot" [ngClass]="getStatusDotClass(user.status)"></span>
+                  <span class="status-text">{{ user.status | titlecase }}</span>
+                </span>
+              </td>
+
+              <!-- Last Active -->
+              <td class="col-activity">
+                <span class="activity-text">{{ formatRelative(user.lastLoginAt) }}</span>
+              </td>
+
+              <!-- Meetings -->
+              <td class="col-meetings">
+                <div class="meetings-cell">
+                  <span class="meetings-hosted" title="Hosted meetings">{{ user.totalMeetingsHosted }} hosted</span>
+                  <span class="meetings-attended">{{ user.totalMeetingsAttended }} attended</span>
+                </div>
+              </td>
+
+              <!-- Actions -->
+              <td class="col-actions" (click)="$event.stopPropagation()">
+                <div class="action-btn-group">
+                  <!-- View details button -->
+                  <button class="action-icon-btn" (click)="openUserDetails(user)" title="View user details & permissions">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+
+                  <!-- Edit user button -->
+                  <button class="action-icon-btn" (click)="openEditUserModal(user, $event)" title="Edit user profile">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+
+                  <!-- Toggle suspend status -->
+                  <button
+                    class="action-icon-btn"
+                    [class.text-danger]="user.status === 'suspended'"
+                    (click)="toggleUserStatus(user, $event)"
+                    [title]="user.status === 'suspended' ? 'Activate user' : 'Suspend user'"
+                  >
+                    @if (user.status === 'suspended') {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    } @else {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                    }
+                  </button>
+
+                  <!-- Delete button -->
+                  <button class="action-icon-btn text-danger" (click)="openDeleteModal(user, $event)" title="Delete user">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+    } @else {
+    <!-- GRID / CARD VIEW -->
+    <div class="user-cards-grid">
+      @for (user of manageService.paginatedUsers(); track user.id) {
+      <div
+        class="user-card"
+        [class.card-selected]="manageService.isUserSelected(user.id)"
+        (click)="openUserDetails(user)"
+      >
+        <div class="card-top">
+          <div class="card-checkbox" (click)="$event.stopPropagation()">
+            <input
+              type="checkbox"
+              class="custom-checkbox"
+              [checked]="manageService.isUserSelected(user.id)"
+              (change)="manageService.toggleSelectUser(user.id)"
+            />
+          </div>
+
+          <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
+            {{ user.role }}
+          </span>
+        </div>
+
+        <div class="card-avatar-section">
+          <div class="card-avatar" [style.background]="getAvatarBackground(user.firstName + user.lastName)">
+            {{ getUserInitials(user) }}
+            <span class="status-dot-mini" [ngClass]="getStatusDotClass(user.status)"></span>
+          </div>
+          <h4 class="card-name">{{ user.firstName }} {{ user.lastName }}</h4>
+          <span class="card-designation">{{ user.designation || 'Team Member' }}</span>
+          <span class="card-department">{{ user.department }}</span>
+        </div>
+
+        <div class="card-info-list">
+          <div class="card-info-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <span class="card-info-text">{{ user.email }}</span>
+          </div>
+
+          <div class="card-info-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span class="card-info-text">Joined {{ formatDate(user.joinedAt) }}</span>
+          </div>
+
+          <div class="card-info-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span class="card-info-text">Active {{ formatRelative(user.lastLoginAt) }}</span>
+          </div>
+        </div>
+
+        <div class="card-footer" (click)="$event.stopPropagation()">
+          <span class="status-badge-sm" [ngClass]="getStatusBadgeClass(user.status)">
+            <span class="status-dot-sm" [ngClass]="getStatusDotClass(user.status)"></span>
+            {{ user.status | titlecase }}
+          </span>
+
+          <div class="card-actions">
+            <button class="action-icon-btn" (click)="openEditUserModal(user, $event)" title="Edit user">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="action-icon-btn text-danger" (click)="openDeleteModal(user, $event)" title="Delete user">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      }
+    </div>
+    }
+
+    <!-- Pagination Footer -->
+    <div class="pagination-footer">
+      <div class="pagination-info">
+        <span>Showing</span>
+        <strong>
+          {{ (manageService.currentPage() - 1) * manageService.pageSize() + 1 }} -
+          {{ (manageService.currentPage() * manageService.pageSize()) > manageService.totalFilteredCount() ? manageService.totalFilteredCount() : (manageService.currentPage() * manageService.pageSize()) }}
+        </strong>
+        <span>of</span>
+        <strong>{{ manageService.totalFilteredCount() }}</strong>
+        <span>users</span>
+      </div>
+
+      <div class="pagination-controls">
+        <div class="page-size-selector">
+          <label>Rows:</label>
+          <select [ngModel]="manageService.pageSize()" (ngModelChange)="manageService.setPageSize($event)">
+            <option [value]="5">5</option>
+            <option [value]="10">10</option>
+            <option [value]="20">20</option>
+            <option [value]="50">50</option>
+          </select>
+        </div>
+
+        <button
+          class="page-nav-btn"
+          [disabled]="manageService.currentPage() <= 1"
+          (click)="manageService.setPage(manageService.currentPage() - 1)"
+          title="Previous page"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+
+        <span class="page-current">Page {{ manageService.currentPage() }} of {{ manageService.totalPages() }}</span>
+
+        <button
+          class="page-nav-btn"
+          [disabled]="manageService.currentPage() >= manageService.totalPages()"
+          (click)="manageService.setPage(manageService.currentPage() + 1)"
+          title="Next page"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- USER DETAILS DRAWER -->
+  @if (isDrawerOpen() && selectedUser(); as user) {
+  <div class="drawer-backdrop" (click)="closeUserDetails()">
+    <aside class="drawer-panel" (click)="$event.stopPropagation()">
+      <!-- Drawer Header -->
+      <div class="drawer-header">
+        <div class="drawer-user-lead">
+          <div class="drawer-avatar" [style.background]="getAvatarBackground(user.firstName + user.lastName)">
+            {{ getUserInitials(user) }}
+            <span class="status-dot-mini" [ngClass]="getStatusDotClass(user.status)"></span>
+          </div>
+          <div class="drawer-lead-text">
+            <h2 class="drawer-name">{{ user.firstName }} {{ user.lastName }}</h2>
+            <p class="drawer-email">{{ user.email }}</p>
+            <div class="drawer-badges">
+              <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">{{ user.role }}</span>
+              <span class="status-badge-sm" [ngClass]="getStatusBadgeClass(user.status)">{{ user.status | titlecase }}</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="drawer-close-btn" (click)="closeUserDetails()" title="Close drawer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Drawer Tabs -->
+      <nav class="drawer-tabs">
+        <button class="drawer-tab" [class.active]="activeDrawerTab() === 'overview'" (click)="setDrawerTab('overview')">
+          Overview
+        </button>
+        <button class="drawer-tab" [class.active]="activeDrawerTab() === 'permissions'" (click)="setDrawerTab('permissions')">
+          Permissions
+        </button>
+        <button class="drawer-tab" [class.active]="activeDrawerTab() === 'sessions'" (click)="setDrawerTab('sessions')">
+          Active Sessions
+        </button>
+        <button class="drawer-tab" [class.active]="activeDrawerTab() === 'activity'" (click)="setDrawerTab('activity')">
+          Activity Log
+        </button>
+      </nav>
+
+      <!-- Drawer Tab Content -->
+      <div class="drawer-content">
+        @if (activeDrawerTab() === 'overview') {
+        <!-- OVERVIEW TAB -->
+        <div class="tab-pane">
+          <div class="info-section">
+            <h4 class="section-heading">Account Profile</h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">User ID</span>
+                <span class="info-value font-mono">{{ user.userId }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Username</span>
+                <span class="info-value">&#64;{{ user.username }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Department</span>
+                <span class="info-value">{{ user.department }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Designation</span>
+                <span class="info-value">{{ user.designation || 'Team Member' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Phone</span>
+                <span class="info-value">{{ user.phone || 'Not provided' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Two-Factor Auth</span>
+                <span class="info-value">
+                  @if (user.isTwoFactorEnabled) {
+                  <span class="text-success font-semibold">Enabled (2FA)</span>
+                  } @else {
+                  <span class="text-muted">Disabled</span>
+                  }
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Member Since</span>
+                <span class="info-value">{{ formatDate(user.joinedAt) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Last Login</span>
+                <span class="info-value">{{ formatRelative(user.lastLoginAt) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <h4 class="section-heading">Conference Metrics</h4>
+            <div class="stats-mini-row">
+              <div class="stat-mini-box">
+                <span class="stat-mini-number">{{ user.totalMeetingsHosted }}</span>
+                <span class="stat-mini-label">Hosted Sessions</span>
+              </div>
+              <div class="stat-mini-box">
+                <span class="stat-mini-number">{{ user.totalMeetingsAttended }}</span>
+                <span class="stat-mini-label">Attended Meetings</span>
+              </div>
+            </div>
+          </div>
+
+          @if (user.notes) {
+          <div class="info-section">
+            <h4 class="section-heading">Administrator Notes</h4>
+            <p class="notes-text">{{ user.notes }}</p>
+          </div>
+          }
+        </div>
+        }
+
+        @if (activeDrawerTab() === 'permissions') {
+        <!-- PERMISSIONS TAB -->
+        <div class="tab-pane">
+          <div class="permissions-list">
+            <div class="perm-card">
+              <div class="perm-info">
+                <h5 class="perm-title">Start / Host Meetings</h5>
+                <p class="perm-desc">Create instant rooms or schedule conference sessions</p>
+              </div>
+              <span class="perm-status" [class.enabled]="user.permissions.canStartMeeting">
+                {{ user.permissions.canStartMeeting ? 'Granted' : 'Restricted' }}
+              </span>
+            </div>
+
+            <div class="perm-card">
+              <div class="perm-info">
+                <h5 class="perm-title">Cloud Recording</h5>
+                <p class="perm-desc">Record audio, video, and screen shares to cloud vault</p>
+              </div>
+              <span class="perm-status" [class.enabled]="user.permissions.canRecordMeeting">
+                {{ user.permissions.canRecordMeeting ? 'Granted' : 'Restricted' }}
+              </span>
+            </div>
+
+            <div class="perm-card">
+              <div class="perm-info">
+                <h5 class="perm-title">Screen Sharing</h5>
+                <p class="perm-desc">Transmit desktop, window, or browser tab video feeds</p>
+              </div>
+              <span class="perm-status" [class.enabled]="user.permissions.canShareScreen">
+                {{ user.permissions.canShareScreen ? 'Granted' : 'Restricted' }}
+              </span>
+            </div>
+
+            <div class="perm-card">
+              <div class="perm-info">
+                <h5 class="perm-title">Invite External Guests</h5>
+                <p class="perm-desc">Generate external meeting links for non-registered users</p>
+              </div>
+              <span class="perm-status" [class.enabled]="user.permissions.canInviteGuests">
+                {{ user.permissions.canInviteGuests ? 'Granted' : 'Restricted' }}
+              </span>
+            </div>
+
+            <div class="perm-card">
+              <div class="perm-info">
+                <h5 class="perm-title">Mute & Moderate Participants</h5>
+                <p class="perm-desc">Mute microphones, disable cameras, or remove attendees</p>
+              </div>
+              <span class="perm-status" [class.enabled]="user.permissions.canMuteParticipants">
+                {{ user.permissions.canMuteParticipants ? 'Granted' : 'Restricted' }}
+              </span>
+            </div>
+
+            <div class="perm-card">
+              <div class="perm-info">
+                <h5 class="perm-title">User Directory Management</h5>
+                <p class="perm-desc">Create, edit, suspend, or delete company directory members</p>
+              </div>
+              <span class="perm-status" [class.enabled]="user.permissions.canManageUsers">
+                {{ user.permissions.canManageUsers ? 'Granted' : 'Restricted' }}
+              </span>
+            </div>
+
+            <div class="perm-card">
+              <div class="perm-info">
+                <h5 class="perm-title">Admin Monitor Dashboard</h5>
+                <p class="perm-desc">Access server diagnostics, presence watchers, and Redis stats</p>
+              </div>
+              <span class="perm-status" [class.enabled]="user.permissions.canAccessAdminMonitor">
+                {{ user.permissions.canAccessAdminMonitor ? 'Granted' : 'Restricted' }}
+              </span>
+            </div>
+          </div>
+        </div>
+        }
+
+        @if (activeDrawerTab() === 'sessions') {
+        <!-- SESSIONS TAB -->
+        <div class="tab-pane">
+          @if (user.sessions && user.sessions.length > 0) {
+          <div class="sessions-list">
+            @for (session of user.sessions; track session.sessionId) {
+            <div class="session-card" [class.current-session]="session.isCurrent">
+              <div class="session-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+              </div>
+              <div class="session-details">
+                <div class="session-header-row">
+                  <span class="session-device-name">{{ session.device }}</span>
+                  @if (session.isCurrent) {
+                  <span class="session-current-pill">Current Session</span>
+                  }
+                </div>
+                <span class="session-platform">{{ session.platform }}</span>
+                <div class="session-network-info">
+                  <span>{{ session.location || 'Unknown Location' }}</span>
+                  <span>•</span>
+                  <span>IP: {{ session.ipAddress || '127.0.0.1' }}</span>
+                  <span>•</span>
+                  <span>{{ session.lastActive }}</span>
+                </div>
+              </div>
+            </div>
+            }
+          </div>
+          } @else {
+          <div class="empty-tab-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <p>No active sessions detected for this user.</p>
+          </div>
+          }
+        </div>
+        }
+
+        @if (activeDrawerTab() === 'activity') {
+        <!-- ACTIVITY LOG TAB -->
+        <div class="tab-pane">
+          @if (user.recentActivities && user.recentActivities.length > 0) {
+          <div class="activity-timeline">
+            @for (act of user.recentActivities; track act.id) {
+            <div class="timeline-item">
+              <div class="timeline-dot" [ngClass]="'dot-' + act.category"></div>
+              <div class="timeline-content">
+                <div class="timeline-header">
+                  <span class="timeline-action">{{ act.action }}</span>
+                  <span class="timeline-time">{{ act.timestamp }}</span>
+                </div>
+                <p class="timeline-desc">{{ act.description }}</p>
+              </div>
+            </div>
+            }
+          </div>
+          } @else {
+          <div class="empty-tab-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <p>No recent activity logs recorded.</p>
+          </div>
+          }
+        </div>
+        }
+      </div>
+
+      <!-- Drawer Footer Actions -->
+      <div class="drawer-footer">
+        <button class="btn btn-secondary" (click)="openEditUserModal(user)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          <span>Edit Profile</span>
+        </button>
+
+        <button
+          class="btn"
+          [ngClass]="user.status === 'suspended' ? 'btn-success' : 'btn-warning'"
+          (click)="toggleUserStatus(user)"
+        >
+          <span>{{ user.status === 'suspended' ? 'Activate Account' : 'Suspend Account' }}</span>
+        </button>
+      </div>
+    </aside>
+  </div>
+  }
+
+  <!-- ADD / EDIT USER MODAL -->
+  @if (isModalOpen()) {
+  <div class="modal-backdrop" (click)="closeUserModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon-badge">
+            @if (modalMode() === 'add') {
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            } @else {
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            }
+          </div>
+          <div>
+            <h3 class="modal-title">{{ modalMode() === 'add' ? 'Add New Directory User' : 'Edit User Profile' }}</h3>
+            <p class="modal-subtitle">{{ modalMode() === 'add' ? 'Create a user profile with role and access permissions' : 'Update account info, department, and capabilities' }}</p>
+          </div>
+        </div>
+
+        <button class="modal-close-btn" (click)="closeUserModal()" title="Close modal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form class="user-form" (ngSubmit)="saveUserModal()">
+          <!-- Names Row -->
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label class="form-label">First Name <span class="required">*</span></label>
+              <input type="text" class="form-input" placeholder="e.g. Alex" [(ngModel)]="modalUserForm.firstName" name="firstName" required />
+            </div>
+            <div class="form-group col-6">
+              <label class="form-label">Last Name</label>
+              <input type="text" class="form-input" placeholder="e.g. Morgan" [(ngModel)]="modalUserForm.lastName" name="lastName" />
+            </div>
+          </div>
+
+          <!-- Email & Phone / Mobile Row -->
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label class="form-label">Email Address <span class="required">*</span></label>
+              <input type="email" class="form-input" placeholder="name@confeet.com" [(ngModel)]="modalUserForm.email" name="email" required />
+            </div>
+            <div class="form-group col-6">
+              <label class="form-label">Mobile / Phone Number</label>
+              <input type="tel" class="form-input" placeholder="+1 (555) 000-0000" [(ngModel)]="modalUserForm.phone" name="phone" />
+            </div>
+          </div>
+
+          <!-- Username & Password Row -->
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label class="form-label">Username</label>
+              <input type="text" class="form-input" placeholder="e.g. alex.morgan" [(ngModel)]="modalUserForm.username" name="username" />
+            </div>
+            @if (modalMode() === 'add') {
+            <div class="form-group col-6">
+              <label class="form-label">Password</label>
+              <input type="password" class="form-input" placeholder="Min. 8 characters (default: TempPass@123)" [(ngModel)]="modalUserForm.password" name="password" />
+            </div>
+            } @else {
+            <div class="form-group col-6">
+              <label class="form-label">Avatar URL</label>
+              <input type="text" class="form-input" placeholder="https://..." [(ngModel)]="modalUserForm.avatarUrl" name="avatarUrl" />
+            </div>
+            }
+          </div>
+
+          <!-- Role & Department Row -->
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label class="form-label">System Role</label>
+              <select class="form-select" [ngModel]="modalUserForm.role" (ngModelChange)="onModalRoleChange($event)" name="role">
+                @for (role of availableRoles; track role) {
+                <option [value]="role">{{ role }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-group col-6">
+              <label class="form-label">Department</label>
+              <select class="form-select" [(ngModel)]="modalUserForm.department" name="department">
+                @for (dept of availableDepartments; track dept) {
+                <option [value]="dept">{{ dept }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- Designation & Status Row -->
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label class="form-label">Job Title / Designation</label>
+              <input type="text" class="form-input" placeholder="e.g. Senior Software Engineer" [(ngModel)]="modalUserForm.designation" name="designation" />
+            </div>
+            <div class="form-group col-6">
+              <label class="form-label">Account Status</label>
+              <select class="form-select" [(ngModel)]="modalUserForm.status" name="status">
+                <option value="active">Active</option>
+                <option value="online">Online</option>
+                <option value="away">Away</option>
+                <option value="busy">Busy</option>
+                <option value="offline">Offline</option>
+                <option value="invited">Invited / Pending</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Granular Permissions Section -->
+          @if (modalUserForm.permissions) {
+          <div class="form-section">
+            <h5 class="form-section-title">Granular Permissions</h5>
+            <div class="checkbox-grid">
+              <label class="checkbox-label">
+                <input type="checkbox" class="custom-checkbox" [(ngModel)]="modalUserForm.permissions.canStartMeeting" name="permStartMeeting" />
+                <span>Host Meetings</span>
+              </label>
+
+              <label class="checkbox-label">
+                <input type="checkbox" class="custom-checkbox" [(ngModel)]="modalUserForm.permissions.canRecordMeeting" name="permRecordMeeting" />
+                <span>Cloud Recording</span>
+              </label>
+
+              <label class="checkbox-label">
+                <input type="checkbox" class="custom-checkbox" [(ngModel)]="modalUserForm.permissions.canShareScreen" name="permShareScreen" />
+                <span>Screen Share</span>
+              </label>
+
+              <label class="checkbox-label">
+                <input type="checkbox" class="custom-checkbox" [(ngModel)]="modalUserForm.permissions.canInviteGuests" name="permInviteGuests" />
+                <span>Invite Guests</span>
+              </label>
+
+              <label class="checkbox-label">
+                <input type="checkbox" class="custom-checkbox" [(ngModel)]="modalUserForm.permissions.canMuteParticipants" name="permMute" />
+                <span>Mute Attendees</span>
+              </label>
+
+              <label class="checkbox-label">
+                <input type="checkbox" class="custom-checkbox" [(ngModel)]="modalUserForm.permissions.canManageUsers" name="permManageUsers" />
+                <span>Manage Users</span>
+              </label>
+
+              <label class="checkbox-label">
+                <input type="checkbox" class="custom-checkbox" [(ngModel)]="modalUserForm.permissions.canAccessAdminMonitor" name="permAdminMonitor" />
+                <span>Admin Monitor</span>
+              </label>
+            </div>
+          </div>
+          }
+
+          <!-- Notes -->
+          <div class="form-group">
+            <label class="form-label">Admin Notes</label>
+            <textarea class="form-textarea" rows="2" placeholder="Optional notes about this account..." [(ngModel)]="modalUserForm.notes" name="notes"></textarea>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeUserModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" (click)="saveUserModal()">
+          <span>{{ modalMode() === 'add' ? 'Create User' : 'Save Changes' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- DELETE CONFIRMATION MODAL -->
+  @if (isDeleteModalOpen() && userToDelete(); as user) {
+  <div class="modal-backdrop" (click)="closeDeleteModal()">
+    <div class="modal-card modal-card-sm" (click)="$event.stopPropagation()">
+      <div class="delete-icon-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+
+      <h3 class="delete-title">Remove User Account?</h3>
+      <p class="delete-desc">
+        Are you sure you want to delete <strong>{{ user.firstName }} {{ user.lastName }}</strong> ({{ user.email }})? This will revoke all conference access and cancel active sessions.
+      </p>
+
+      <div class="modal-footer justify-center">
+        <button type="button" class="btn btn-secondary" (click)="closeDeleteModal()">Cancel</button>
+        <button type="button" class="btn btn-danger" (click)="confirmDeleteUser()">
+          <span>Delete User</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- ROLES & PERMISSIONS MATRIX MODAL -->
+  @if (isRoleMatrixOpen()) {
+  <div class="modal-backdrop" (click)="closeRoleMatrix()">
+    <div class="modal-card modal-card-lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <line x1="3" y1="9" x2="21" y2="9"/>
+              <line x1="9" y1="21" x2="9" y2="9"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="modal-title">Roles & Access Matrix</h3>
+            <p class="modal-subtitle">Summary of permission levels and system capabilities assigned per role</p>
+          </div>
+        </div>
+
+        <button class="modal-close-btn" (click)="closeRoleMatrix()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th>Capability</th>
+                <th>Admin</th>
+                <th>Moderator</th>
+                <th>Host</th>
+                <th>Member</th>
+                <th>Guest</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Host Meetings</td>
+                <td class="check">✓</td>
+                <td class="check">✓</td>
+                <td class="check">✓</td>
+                <td class="check">✓</td>
+                <td class="cross">✕</td>
+              </tr>
+              <tr>
+                <td>Cloud Recording</td>
+                <td class="check">✓</td>
+                <td class="check">✓</td>
+                <td class="check">✓</td>
+                <td class="cross">✕</td>
+                <td class="cross">✕</td>
+              </tr>
+              <tr>
+                <td>Screen Share</td>
+                <td class="check">✓</td>
+                <td class="check">✓</td>
+                <td class="check">✓</td>
+                <td class="check">✓</td>
+                <td class="cross">✕</td>
+              </tr>
+              <tr>
+                <td>Invite External Guests</td>
+                <td class="check">✓</td>
+                <td class="check">✓</td>
+                <td class="check">✓</td>
+                <td class="check">✓</td>
+                <td class="cross">✕</td>
+              </tr>
+              <tr>
+                <td>Mute & Moderate</td>
+                <td class="check">✓</td>
+                <td class="check">✓</td>
+                <td class="check">✓</td>
+                <td class="cross">✕</td>
+                <td class="cross">✕</td>
+              </tr>
+              <tr>
+                <td>User Directory Management</td>
+                <td class="check">✓</td>
+                <td class="cross">✕</td>
+                <td class="cross">✕</td>
+                <td class="cross">✕</td>
+                <td class="cross">✕</td>
+              </tr>
+              <tr>
+                <td>Admin Redis Monitor</td>
+                <td class="check">✓</td>
+                <td class="check">✓</td>
+                <td class="cross">✕</td>
+                <td class="cross">✕</td>
+                <td class="cross">✕</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" (click)="closeRoleMatrix()">Done</button>
+      </div>
+    </div>
+  </div>
+  }
+</div>
