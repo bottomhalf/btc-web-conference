@@ -56,7 +56,7 @@
                   "maximumError": "90kB"
                 }
               ],
-              "outputHashing": "all",
+              "outputHashing": "none",
               "optimization": true,
               "sourceMap": false,
               "extractLicenses": true,
