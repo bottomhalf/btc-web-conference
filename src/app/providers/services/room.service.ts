@@ -10,6 +10,7 @@ import {
   RoomEvent,
   Track,
   TrackPublication,
+  VideoPresets,
 } from 'livekit-client';
 import { BehaviorSubject, lastValueFrom, Subject } from 'rxjs';
 import { HttpHandlerService } from './http-handler.service';
@@ -34,7 +35,7 @@ export class RoomService {
   remoteParticipants = signal<Map<string, RemoteParticipant>>(new Map());
   activeSpeakers = signal<Set<string>>(new Set());
   lastActiveSpeaker = signal<string | null>(null);
-  
+
   isRecording = signal<boolean>(false);
 
   latestScreenShare = new BehaviorSubject<{ participant: Participant; track: RemoteVideoTrack; } | null>(null);
@@ -45,7 +46,7 @@ export class RoomService {
   private counter = 0;
   private _newMessage = signal<{ id: string, message: string } | null>(null);
   newMessage = this._newMessage.asReadonly(); // expose readonly signal
-  
+
   // Commands received from DataChannel (e.g. MUTE_ALL)
   public incomingCommands = new Subject<any>();
 
@@ -86,7 +87,28 @@ export class RoomService {
   }
 
   async joinRoom(roomName: string, participantName: string): Promise<Room> {
-    const room = new Room();
+    // BEFORE (Line 89)
+    // const room = new Room();
+
+    // AFTER
+    const room = new Room({
+      adaptiveStream: true,
+      dynacast: true,
+      videoCaptureDefaults: {
+        resolution: VideoPresets.h720.resolution,  // 1280×720
+        facingMode: 'user',
+      },
+      publishDefaults: {
+        videoSimulcastLayers: [
+          VideoPresets.h180,
+          VideoPresets.h360,
+        ],
+        videoCodec: 'vp8',
+        dtx: true,          // Discontinuous Transmission for audio
+        red: true,          // Redundant Encoding for audio
+        stopMicTrackOnMute: false,
+      },
+    });
     this.room.set(room);
 
     // Listen for active speakers changed
@@ -226,7 +248,7 @@ export class RoomService {
         room.remoteParticipants.forEach((participant) => {
           newMap.set(participant.identity, participant);
           this.updateParticipantMediaStatus(participant);
-          
+
           // Check for existing screen share tracks
           participant.trackPublications.forEach((publication) => {
             if (publication.source === Track.Source.ScreenShare && publication.track) {
