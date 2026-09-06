@@ -15,19 +15,26 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       - name: Setup SSH credentials
         run: |
           install -m 600 -D /dev/null ~/.ssh/id_rsa
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
 
-      - name: Apply Kubernetes configuration & Rollout
+      - name: Sync manifest & Apply Kubernetes configuration
         run: |
-          echo "Applying new Kubernetes configuration on remote server..."
+          echo "Copying latest k8s manifest to remote server..."
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p /root/kube.ws/confeet/confeet-web"
+          scp -o StrictHostKeyChecking=no k8s/conf-web-deploy.yml ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/root/kube.ws/confeet/confeet-web/conf-web-deploy.yml
+
+          echo "Applying Kubernetes configuration..."
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
             microk8s kubectl apply -f /root/kube.ws/confeet/confeet-web/conf-web-deploy.yml && \
             microk8s kubectl rollout restart deployment/btc-web-conference -n cf && \
-            microk8s kubectl rollout status deployment/btc-web-conference -n cf --timeout=120s
+            microk8s kubectl rollout status deployment/btc-web-conference -n cf --timeout=180s
           "
 
       - name: Cleanup SSH credentials
