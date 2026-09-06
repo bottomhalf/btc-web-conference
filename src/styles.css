@@ -260,3 +260,28 @@ ngb-datepicker {
 ngb-datepicker.dropdown-menu {
     background: #f8f9fa !important;
 }
+
+/* Global styles for ngbTooltip */
+ngb-tooltip-window,
+.tooltip {
+    z-index: 100000 !important;
+    pointer-events: none;
+}
+
+.tooltip .tooltip-inner {
+    background-color: rgba(20, 20, 25, 0.95) !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+}
+
+.tooltip.bs-tooltip-top .tooltip-arrow::before {
+    border-top-color: rgba(20, 20, 25, 0.95) !important;
+}
+
+.tooltip.bs-tooltip-bottom .tooltip-arrow::before {
+    border-bottom-color: rgba(20, 20, 25, 0.95) !important;
+}

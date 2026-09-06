@@ -20,7 +20,7 @@ import { ChatService } from '../chat.service';
 import { LocalService } from '../../providers/services/local.service';
 import { InitiateAudioCallService } from '../../providers/socket/client-events/call/initiate-audio-call.service';
 import { NotifyGroupCreatedService } from '../../providers/socket/client-events/group/notify-group-created.service';
-import { Conversation, Participant, SearchResult } from '../../components/global-search/search.models';
+import { Conversation, Participant, SearchResult, UpdateChatDetailRequest } from '../../components/global-search/search.models';
 import { ResponseModel, User } from '../../models/model';
 import { CallType } from '../../models/conference_call/call_model';
 import { ChatDbService } from '../../core/services/chat-db.service';
@@ -79,6 +79,25 @@ export class ChatContainerComponent implements AfterViewChecked {
     memberSearchQuery: string = '';
     memberSearchResults: SearchResult[] = [];
     memberSearchSelectedIndex: number = -1;
+
+    // More Options dropdown & Modals state
+    showMoreMenu: boolean = false;
+    moreMenuTop: number = 0;
+    moreMenuLeft: number = 0;
+
+    // Modals
+    showViewDetailsModal: boolean = false;
+    showEditConversationModal: boolean = false;
+    showDeleteConversationModal: boolean = false;
+    showClearChatModal: boolean = false;
+
+    // Edit form fields & actions
+    editConversationName: string = '';
+    editConversationTopic: string = '';
+    isSavingConversationEdit: boolean = false;
+    isDeletingConversation: boolean = false;
+    isClearingChat: boolean = false;
+    copySuccessNotification: string | null = null;
 
     // Emoji Picker state & categories
     showEmojiPicker = signal<boolean>(false);
@@ -1017,6 +1036,185 @@ export class ChatContainerComponent implements AfterViewChecked {
         this.newGroupMembers = [];
         this.memberSearchQuery = '';
         this.memberSearchResults = [];
+    }
+
+    // ===== More Options Dropdown & Modals Handlers =====
+    private moreMenuCloseHandler = (event: Event) => {
+        if (event.target instanceof Node && !document.contains(event.target)) {
+            return;
+        }
+        this.showMoreMenu = false;
+        document.removeEventListener('click', this.moreMenuCloseHandler);
+    };
+
+    toggleMoreMenu(event: Event): void {
+        event.stopPropagation();
+        this.showMoreMenu = !this.showMoreMenu;
+
+        if (this.showMoreMenu) {
+            const trigger = event.currentTarget as HTMLElement;
+            const rect = trigger.getBoundingClientRect();
+            this.moreMenuTop = rect.bottom + 6;
+            this.moreMenuLeft = Math.max(10, rect.right - 220);
+
+            setTimeout(() => {
+                document.addEventListener('click', this.moreMenuCloseHandler);
+            }, 0);
+        } else {
+            document.removeEventListener('click', this.moreMenuCloseHandler);
+        }
+    }
+
+    stopMoreMenuPropagation(event: Event): void {
+        event.stopPropagation();
+    }
+
+    openViewDetailsModal(): void {
+        this.showMoreMenu = false;
+        document.removeEventListener('click', this.moreMenuCloseHandler);
+        this.showViewDetailsModal = true;
+    }
+
+    closeViewDetailsModal(): void {
+        this.showViewDetailsModal = false;
+    }
+
+    openEditConversationModal(): void {
+        this.showMoreMenu = false;
+        document.removeEventListener('click', this.moreMenuCloseHandler);
+        const conv = this.ws.currentConversation();
+        this.editConversationName = this.getConversationName(conv) || '';
+        this.editConversationTopic = (conv as any)?.topic || (conv as any)?.description || '';
+        this.showEditConversationModal = true;
+    }
+
+    closeEditConversationModal(): void {
+        this.showEditConversationModal = false;
+    }
+
+    async saveConversationEdit(): Promise<void> {
+        const conv = this.ws.currentConversation();
+        if (!conv || !conv.id || !this.editConversationName.trim() || this.isSavingConversationEdit) return;
+
+        this.isSavingConversationEdit = true;
+        const newTitle = this.editConversationName.trim();
+        const newDesc = this.editConversationTopic.trim();
+        const chatId = conv.id;
+
+        const request: UpdateChatDetailRequest = {
+            chatId: chatId,
+            title: newTitle,
+            description: newDesc,
+            avatar: conv.avatar || (conv as any).conversationAvatar || '',
+            type: conv.type || (conv as any).conversationType || '',
+            settings: conv.settings || null,
+            memberUpdates: []
+        };
+
+        try {
+            const res: ResponseModel = await this.chatService.updateChatDetail(chatId, request);
+            if (res && res.isSuccess) {
+                conv.conversationName = newTitle;
+                conv.title = newTitle;
+                conv.description = newDesc;
+                (conv as any).topic = newDesc;
+                if (res.responseBody) {
+                    Object.assign(conv, res.responseBody);
+                }
+                this.ws.currentConversation.set({ ...conv });
+
+                this.chatService.meetingRooms.update((rooms) =>
+                    rooms.map((r) => (r.id === conv.id ? { ...r, conversationName: newTitle, title: newTitle, description: newDesc } : r))
+                );
+
+                this.closeEditConversationModal();
+            } else {
+                alert(res?.message || 'Failed to update conversation details.');
+            }
+        } catch (err: any) {
+            console.error('Error updating chat detail:', err);
+            alert(err?.message || 'An error occurred while updating the conversation details.');
+        } finally {
+            this.isSavingConversationEdit = false;
+        }
+    }
+
+    openDeleteConversationModal(): void {
+        this.showMoreMenu = false;
+        document.removeEventListener('click', this.moreMenuCloseHandler);
+        this.showDeleteConversationModal = true;
+    }
+
+    closeDeleteConversationModal(): void {
+        this.showDeleteConversationModal = false;
+        this.isDeletingConversation = false;
+    }
+
+    async confirmDeleteConversation(): Promise<void> {
+        const conv = this.ws.currentConversation();
+        if (!conv || !conv.id || this.isDeletingConversation) return;
+
+        this.isDeletingConversation = true;
+        const targetId = conv.id;
+
+        try {
+            const res: ResponseModel = await this.chatService.deleteChat(targetId, true);
+            if (res && res.isSuccess) {
+                // Remove from conversation list
+                this.chatService.meetingRooms.update((rooms) => rooms.filter((r) => r.id !== targetId));
+
+                // Clear current active conversation & messages
+                this.ws.currentConversation.set(null as any);
+                this.chatService.messages.set([]);
+
+                // Close modal
+                this.closeDeleteConversationModal();
+
+                // If on mobile mode, go back to list
+                if (this.isMobileMode) {
+                    this.backToList.emit();
+                }
+
+                // Sync rooms with socket
+                this.ws.getInitUser();
+            } else {
+                alert(res?.message || 'Failed to delete conversation.');
+            }
+        } catch (err: any) {
+            console.error('Error deleting conversation:', err);
+            alert(err?.message || 'An error occurred while deleting the conversation.');
+        } finally {
+            this.isDeletingConversation = false;
+        }
+    }
+
+    openClearChatModal(): void {
+        this.showMoreMenu = false;
+        document.removeEventListener('click', this.moreMenuCloseHandler);
+        this.showClearChatModal = true;
+    }
+
+    closeClearChatModal(): void {
+        this.showClearChatModal = false;
+    }
+
+    confirmClearChat(): void {
+        this.isClearingChat = true;
+        setTimeout(() => {
+            this.chatService.messages.set([]);
+            this.isClearingChat = false;
+            this.showClearChatModal = false;
+        }, 400);
+    }
+
+    copyConversationId(id?: string): void {
+        const convId = id || this.ws.currentConversation()?.id || '';
+        if (convId) {
+            navigator.clipboard.writeText(convId).then(() => {
+                this.copySuccessNotification = 'Conversation ID copied!';
+                setTimeout(() => this.copySuccessNotification = null, 2500);
+            });
+        }
     }
 
     getDefaultGroupName(): string {

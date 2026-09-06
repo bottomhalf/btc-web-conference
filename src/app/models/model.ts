@@ -9,6 +9,22 @@ export interface ResponseModel {
   message: string;
 }
 
+export interface ParticipantDetail {
+  userId?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  avatar?: string;
+  joinedAt?: any;
+  role?: string;
+  status?: string;
+  user_id?: string;
+  first_name?: string;
+  last_name?: string;
+  name?: string;
+  participantsId?: Array<string>;
+}
+
 export interface MeetingDetail {
   meetingDetailId?: number;
   meetingId: string;
@@ -16,17 +32,20 @@ export interface MeetingDetail {
   organizedBy?: number;
   agenda?: string;
   title?: string;
-  startDate?: Date;
+  startDate?: Date | string;
   durationInSecond?: number;
-  endDate?: Date;
-  startTime?: string;
-  endTime?: string;
+  endDate?: Date | string;
+  startTime?: Date | string;
+  endTime?: Date | string;
   organizerName?: string;
   hasQuickMeeting?: boolean;
   conversationId?: string;
   isAllDay?: boolean;
   repeatType?: number;
   participants?: string; // Stored as string for the backend, can contain JSON or CSV
+  participantsId?: Array<string>;
+  participantCount?: number;
+  participantsDetail?: Array<ParticipantDetail>;
 }
 
 

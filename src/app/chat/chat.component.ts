@@ -117,6 +117,13 @@ export class ChatComponent implements OnInit, OnDestroy {
             })
         );
 
+        // Listen for Create Group modal trigger from header or elsewhere
+        this.subscriptions.add(
+            this.chatService.openCreateGroupModal$.subscribe(() => {
+                this.openNewChatPopupWithMode('create-group');
+            })
+        );
+
         // Listen for user status updates from other users
         this.subscriptions.add(
             this.ws.userStatus$.subscribe((statusUpdate: any) => {
@@ -143,7 +150,9 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.getConversations();
 
         var navigation = this.router.getCurrentNavigation();
-        if (navigation?.extras.state?.['channel']) {
+        if (navigation?.extras.state?.['openCreateGroup'] || history.state?.['openCreateGroup']) {
+            this.openNewChatPopupWithMode('create-group');
+        } else if (navigation?.extras.state?.['channel']) {
             this.startConversation(navigation?.extras.state['channel']);
         } else if (navigation?.extras.state?.['id']) {
             const conversationId = navigation?.extras.state['id'];

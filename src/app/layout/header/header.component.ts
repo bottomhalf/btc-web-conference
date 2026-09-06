@@ -55,6 +55,17 @@ export class HeaderComponent {
         this.user = this.localService.getUser();
     }
 
+    // ===== Trigger Existing Create Group Chat Modal =====
+    openCreateGroupModal(): void {
+        if (this.router.url.includes('/btc/chat')) {
+            this.chatService.triggerCreateGroup();
+        } else {
+            this.router.navigate(['/btc/chat'], { state: { openCreateGroup: true } }).then(() => {
+                this.chatService.triggerCreateGroup();
+            });
+        }
+    }
+
     // ===== Status Popover =====
     private popoverCloseHandler = () => {
         this.showStatusPopover = false;

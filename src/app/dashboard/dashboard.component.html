@@ -1,25 +1,39 @@
 @if (isPageReady) {
 <div class="container-fluid py-4 main-container">
-    <div class="col-xl-10 col-lg-11 mx-auto">
-        <!-- Hero Banner (Option 4 Style) -->
+    <div class="col-xl-11 col-lg-12 mx-auto">
+        <!-- Hero Banner with 3D Holographic Collaboration Hub -->
         <div class="hero-banner">
+            <div class="hero-bg-overlay"></div>
             <div class="hero-content">
                 <div class="hero-left">
-                    <p class="hero-greeting">Welcome back</p>
-                    <h1 class="hero-title">Your Meetings Dashboard</h1>
-                    <p class="hero-subtitle">Manage your video conferences and schedule new meetings</p>
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="live-indicator-dot"></span>
+                        <p class="hero-greeting mb-0">Welcome back, {{ user?.firstName || 'Host' }}</p>
+                    </div>
+                    <h1 class="hero-title">Video Conferences & Collaboration Hub</h1>
+                    <p class="hero-subtitle">Start instant meetings, join active rooms, or schedule ahead with your team.</p>
+                    
                     <div class="hero-stats">
-                        <div class="stat-item">
-                            <div class="stat-icon">
-                                <i class="fa-solid fa-video"></i>
+                        <div class="stat-item" (click)="activeMeetingFilter = 'all'" [class.active-stat]="activeMeetingFilter === 'all'">
+                            <div class="stat-icon stat-total-icon">
+                                <i class="fa-solid fa-layer-group"></i>
                             </div>
                             <div class="stat-info">
-                                <h4>{{ allQuickMeeting?.length || 0 }}</h4>
+                                <h4>{{ totalMeetingCount }}</h4>
+                                <p>Total Meetings</p>
+                            </div>
+                        </div>
+                        <div class="stat-item" (click)="activeMeetingFilter = 'quick'" [class.active-stat]="activeMeetingFilter === 'quick'">
+                            <div class="stat-icon stat-quick-icon">
+                                <i class="fa-solid fa-bolt"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h4>{{ recentMeetings?.length || 0 }}</h4>
                                 <p>Quick Meetings</p>
                             </div>
                         </div>
-                        <div class="stat-item">
-                            <div class="stat-icon">
+                        <div class="stat-item" (click)="activeMeetingFilter = 'scheduled'" [class.active-stat]="activeMeetingFilter === 'scheduled'">
+                            <div class="stat-icon stat-sched-icon">
                                 <i class="fa-regular fa-calendar-check"></i>
                             </div>
                             <div class="stat-info">
@@ -29,49 +43,99 @@
                         </div>
                     </div>
                 </div>
-                <div class="hero-right">
-                    <p class="hero-time">{{ today | date: 'HH:mm' }}</p>
-                    <p class="hero-date">{{ today | date: 'EEEE, MMMM d, y' }}</p>
+
+                <div class="hero-right d-none d-lg-flex">
+                    <div class="hero-art-container">
+                        <img src="assets/dashboard_hero_art.jpg" alt="Conference Hub Artwork" class="hero-art-img">
+                        <div class="hero-time-badge">
+                            <p class="hero-time mb-0">{{ today | date: 'HH:mm' }}</p>
+                            <p class="hero-date mb-0">{{ today | date: 'EEEE, MMM d' }}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Action Cards -->
+        <!-- Action Cards Grid -->
         <div class="row g-4 mb-5">
             <div class="col-md-4">
                 <div class="action-card create" (click)="quickMeetingModal()">
+                    <div class="card-accent-tag"><i class="fa-solid fa-bolt me-1"></i> Instant</div>
                     <div class="icon-wrapper">
-                        <i class="fa-solid fa-plus"></i>
+                        <i class="fa-solid fa-video"></i>
                     </div>
-                    <h5>Create Meeting</h5>
-                    <p>Start an instant meeting now</p>
+                    <h5>Start Quick Meeting</h5>
+                    <p>Launch an instant conference room in 1 click</p>
+                    <div class="action-card-footer">
+                        <span>Launch Now</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="action-card join" (click)="joinMeetingPopup()">
+                    <div class="card-accent-tag join-tag"><i class="fa-solid fa-key me-1"></i> ID / Code</div>
                     <div class="icon-wrapper">
                         <i class="fa-solid fa-right-to-bracket"></i>
                     </div>
-                    <h5>Join Meeting</h5>
-                    <p>Enter a meeting ID to connect</p>
+                    <h5>Join with Code</h5>
+                    <p>Connect to an ongoing room via ID & passcode</p>
+                    <div class="action-card-footer">
+                        <span>Enter Code</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="action-card schedule" (click)="scheduleMeetingPopup()">
+                    <div class="card-accent-tag sched-tag"><i class="fa-regular fa-calendar me-1"></i> Calendar</div>
                     <div class="icon-wrapper">
                         <i class="fa-regular fa-calendar-plus"></i>
                     </div>
                     <h5>Schedule Meeting</h5>
-                    <p>Plan a meeting for later</p>
+                    <p>Set up calendar invite, recurrence & attendees</p>
+                    <div class="action-card-footer">
+                        <span>Plan Call</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filter Bar -->
+        <div class="dashboard-controls-bar mb-4">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="search-input-box">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" [(ngModel)]="searchQuery" placeholder="Search meetings by title, ID or host..." class="form-control form-control-search">
+                    @if (searchQuery) {
+                    <button class="btn-clear-search" (click)="searchQuery = ''">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    }
+                </div>
+
+                <div class="filter-pills-group">
+                    <button class="filter-pill" [class.active]="activeMeetingFilter === 'all'" (click)="activeMeetingFilter = 'all'">
+                        <i class="fa-solid fa-list-ul me-1"></i> All ({{ totalMeetingCount }})
+                    </button>
+                    <button class="filter-pill" [class.active]="activeMeetingFilter === 'quick'" (click)="activeMeetingFilter = 'quick'">
+                        <i class="fa-solid fa-bolt me-1 text-warning"></i> Quick ({{ recentMeetings?.length || 0 }})
+                    </button>
+                    <button class="filter-pill" [class.active]="activeMeetingFilter === 'scheduled'" (click)="activeMeetingFilter = 'scheduled'">
+                        <i class="fa-regular fa-calendar-check me-1 text-info"></i> Scheduled ({{ allSchedularMeeting?.length || 0 }})
+                    </button>
                 </div>
             </div>
         </div>
 
         <!-- Quick Meetings Section -->
+        @if (activeMeetingFilter === 'all' || activeMeetingFilter === 'quick') {
         <div class="section-header">
             <h2 class="section-title">
-                <i class="fa-solid fa-bolt"></i>
+                <div class="section-icon-pill bg-bolt"><i class="fa-solid fa-bolt"></i></div>
                 Quick Meetings
+                <span class="count-badge ms-2">{{ filteredRecentMeetings.length }}</span>
             </h2>
             @if (recentMeetings != null && recentMeetings.length > 6) {
             <a href="javascript:void(0)" class="section-link" (click)="toggleView()">
@@ -82,22 +146,39 @@
         </div>
 
         <div class="row g-4 mb-5">
-            @for (item of recentMeetings; track $index) {
+            @for (item of filteredRecentMeetings; track $index) {
             <div class="col-md-4">
                 <div class="meeting-card">
                     <div class="d-flex align-items-start justify-content-between mb-3">
-                        <div class="meeting-icon">
-                            <i class="fa-solid fa-star"></i>
+                        <div class="meeting-badge-thumb">
+                            <img src="assets/meeting_camera_badge.jpg" alt="Meeting Badge" class="badge-thumb-img">
                         </div>
-                        <button class="menu-btn">
-                            <i class="fa-solid fa-ellipsis-vertical"></i>
-                        </button>
+                        <div class="d-flex align-items-center gap-1">
+                            <button class="menu-btn" (click)="editMeeting(item)" [ngbTooltip]="'Edit meeting'" placement="top" container="body" aria-label="Edit meeting">
+                                <i class="fa-solid fa-pen-to-square text-accent"></i>
+                            </button>
+                            <div class="dropdown" ngbDropdown placement="bottom-end" container="body">
+                                <button class="menu-btn" ngbDropdownToggle [ngbTooltip]="'More options'" placement="top" container="body" aria-label="More options">
+                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                </button>
+                                <div ngbDropdownMenu class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-2">
+                                    <button ngbDropdownItem (click)="editMeeting(item)" class="d-flex align-items-center gap-2">
+                                        <i class="fa-solid fa-pen-to-square text-primary"></i>
+                                        <span>Edit Meeting</span>
+                                    </button>
+                                    <button ngbDropdownItem (click)="copyLink(item, t)" class="d-flex align-items-center gap-2">
+                                        <i class="fa-solid fa-share-nodes text-secondary"></i>
+                                        <span>Copy Link</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <h5 class="meeting-title text-truncate mb-2" [ngbTooltip]="item.title" placement="top">
+                    <h5 class="meeting-title text-truncate mb-2" [ngbTooltip]="item.title" placement="top" container="body">
                         {{ item.title }}
                     </h5>
                     <div class="meeting-meta mb-3">
-                        <i class="fa-regular fa-clock"></i>
+                        <i class="fa-regular fa-clock text-accent me-1"></i>
                         {{ item.startDate | date: 'MMM d, y • h:mm a' }}
                     </div>
                     <div class="d-flex gap-2">
@@ -105,7 +186,7 @@
                             <i class="fa-solid fa-play me-1"></i> Join
                         </button>
                         <button class="btn-action-secondary flex-grow-1" (click)="copyLink(item, t)"
-                            [ngbTooltip]="'Copied!'" triggers="manual" #t="ngbTooltip">
+                            [ngbTooltip]="'Copied!'" triggers="manual" container="body" #t="ngbTooltip">
                             <i class="fa-solid fa-share-nodes me-1"></i> Share
                         </button>
                     </div>
@@ -113,26 +194,31 @@
             </div>
             }
 
-            <!-- Empty State -->
-            @if (!recentMeetings || recentMeetings.length === 0) {
+            <!-- Empty State for Quick Meetings -->
+            @if (!filteredRecentMeetings || filteredRecentMeetings.length === 0) {
             <div class="col-12">
                 <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fa-solid fa-video-slash"></i>
+                    <div class="empty-icon-box">
+                        <img src="assets/meeting_camera_badge.jpg" alt="No Meetings" class="empty-art-img">
                     </div>
-                    <h3 class="empty-title">No meetings yet</h3>
-                    <p class="empty-desc">Create your first meeting to get started!</p>
+                    <h3 class="empty-title">No quick meetings found</h3>
+                    <p class="empty-desc">Create your first instant meeting to get started!</p>
+                    <button class="btn-empty-action" (click)="quickMeetingModal()">
+                        <i class="fa-solid fa-plus me-1"></i> Start Instant Meeting
+                    </button>
                 </div>
             </div>
             }
         </div>
+        }
 
         <!-- Scheduled Meetings Section -->
-        @if (allSchedularMeeting && allSchedularMeeting.length > 0) {
+        @if ((activeMeetingFilter === 'all' || activeMeetingFilter === 'scheduled') && allSchedularMeeting && allSchedularMeeting.length > 0) {
         <div class="section-header">
             <h2 class="section-title">
-                <i class="fa-regular fa-calendar-days"></i>
+                <div class="section-icon-pill bg-sched"><i class="fa-regular fa-calendar-days"></i></div>
                 Scheduled Meetings
+                <span class="count-badge ms-2">{{ filteredSchedularMeetings.length }}</span>
             </h2>
             @if (allSchedularMeeting.length > 6) {
             <a href="javascript:void(0)" class="section-link">
@@ -142,8 +228,8 @@
             }
         </div>
 
-        <div class="row g-4">
-            @for (item of allSchedularMeeting; track $index) {
+        <div class="row g-4 mb-5">
+            @for (item of filteredSchedularMeetings; track $index) {
             <div class="col-lg-6">
                 <div class="schedule-card">
                     <div class="date-badge">
@@ -151,30 +237,39 @@
                         <span class="day">{{ item.startDate | date: 'dd' }}</span>
                     </div>
                     <div class="schedule-content">
-                        <h5 class="schedule-title text-truncate">{{ item.title || 'Meeting' }}</h5>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <h5 class="schedule-title text-truncate mb-0" [ngbTooltip]="item.title" container="body">{{ item.title || 'Meeting' }}</h5>
+                            <button class="btn-icon-sm" (click)="editMeeting(item)" [ngbTooltip]="'Edit meeting'" container="body">
+                                <i class="fa-solid fa-pen-to-square text-accent"></i>
+                            </button>
+                        </div>
                         <div class="time-box">
                             <div class="time-row">
-                                <i class="fa-solid fa-play"></i>
+                                <i class="fa-solid fa-play text-success"></i>
                                 {{ item.startDate | date: 'EEEE, MMM d, y' }} • {{ item.startDate | date: 'h:mm a' }}
                             </div>
                             <div class="time-row">
-                                <i class="fa-solid fa-stop"></i>
+                                <i class="fa-solid fa-stop text-danger"></i>
                                 {{ item.endDate | date: 'EEEE, MMM d, y' }} • {{ item.endDate | date: 'h:mm a' }}
                             </div>
                         </div>
                         <div class="organizer">
-                            <i class="fa-solid fa-user"></i>
-                            {{ item.organizerName }}
+                            <div class="organizer-avatar-sm">
+                                <i class="fa-solid fa-user"></i>
+                            </div>
+                            <span>{{ item.organizerName || 'Host' }}</span>
                         </div>
-                        <div class="d-flex gap-2 flex-wrap">
-                            <button class="btn-action-primary" (click)="joinMeeting(item)">Join</button>
+                        <div class="d-flex gap-2 flex-wrap mt-2">
+                            <button class="btn-action-primary" (click)="joinMeeting(item)">
+                                <i class="fa-solid fa-play me-1"></i> Join
+                            </button>
                             <button class="btn-action-secondary" (click)="shareInviteLink(item, st)"
-                                [ngbTooltip]="'Copied!'" triggers="manual" #st="ngbTooltip">
-                                Share invite
+                                [ngbTooltip]="'Copied!'" triggers="manual" container="body" #st="ngbTooltip">
+                                <i class="fa-solid fa-share-nodes me-1"></i> Share invite
                             </button>
                             <button class="btn-action-secondary" (click)="shareIdPasscodeLink(item, pt)"
-                                [ngbTooltip]="'Copied!'" triggers="manual" #pt="ngbTooltip">
-                                ID & Code
+                                [ngbTooltip]="'Copied!'" triggers="manual" container="body" #pt="ngbTooltip">
+                                <i class="fa-solid fa-key me-1"></i> ID & Code
                             </button>
                         </div>
                     </div>
@@ -198,8 +293,8 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="createMeetingLabel">
-                    <i class="fa-regular fa-calendar-plus me-2 text-primary"></i>
-                    Schedule a Meeting
+                    <i class="me-2 text-primary" [ngClass]="isEditing ? 'fa-solid fa-pen-to-square' : 'fa-regular fa-calendar-plus'"></i>
+                    {{ isEditing ? 'Edit Meeting' : 'Schedule a Meeting' }}
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -344,7 +439,7 @@
                     @if (isLoading) {
                     <i class="fa-solid fa-spinner fa-spin me-1"></i>
                     }
-                    {{ isLoading ? 'Scheduling...' : 'Schedule Meeting' }}
+                    {{ isLoading ? (isEditing ? 'Saving...' : 'Scheduling...') : (isEditing ? 'Save Changes' : 'Schedule Meeting') }}
                 </button>
             </div>
         </div>

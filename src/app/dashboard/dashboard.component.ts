@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { FormGroup, FormControl, Validators, FormsModule, ReactiveFormsModule, FormBuilder } from '@angular/forms';
-import { NgbDatepickerModule, NgbDateStruct, NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
+import { NgbDatepickerModule, NgbDateStruct, NgbDropdownModule, NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
 import { AjaxService } from '../providers/services/ajax.service';
 import { HideModal, ShowModal, ToLocateDate } from '../providers/services/common.service';
 import { iNavigation } from '../providers/services/iNavigation';
@@ -17,7 +17,7 @@ import { MultiUserAutocompleteComponent } from '../shared/components/multi-user-
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, NgbDatepickerModule, NgbTooltipModule, MultiUserAutocompleteComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, NgbDatepickerModule, NgbDropdownModule, NgbTooltipModule, MultiUserAutocompleteComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
@@ -37,6 +37,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   isSubmitted: boolean = false;
   isLoading: boolean = false;
   isPageReady: boolean = false;
+  isEditing: boolean = false;
   quickMeetingTitle: string = "";
   showAll: boolean = false;
   duration: string = "00:00";
@@ -44,6 +45,30 @@ export class DashboardComponent implements OnInit, OnDestroy {
   recentMeetings: Array<MeetingDetail> = [];
   allSchedularMeeting: Array<MeetingDetail> = [];
   user: User = null;
+  searchQuery: string = '';
+  activeMeetingFilter: 'all' | 'quick' | 'scheduled' = 'all';
+
+  get totalMeetingCount(): number {
+    return (this.recentMeetings?.length || 0) + (this.allSchedularMeeting?.length || 0);
+  }
+
+  get filteredRecentMeetings(): MeetingDetail[] {
+    let list = this.recentMeetings || [];
+    if (this.searchQuery) {
+      const q = this.searchQuery.toLowerCase().trim();
+      list = list.filter(m => (m.title && m.title.toLowerCase().includes(q)) || (m.meetingId && m.meetingId.toLowerCase().includes(q)));
+    }
+    return this.showAll ? list : list.slice(0, 6);
+  }
+
+  get filteredSchedularMeetings(): MeetingDetail[] {
+    let list = this.allSchedularMeeting || [];
+    if (this.searchQuery) {
+      const q = this.searchQuery.toLowerCase().trim();
+      list = list.filter(m => (m.title && m.title.toLowerCase().includes(q)) || (m.meetingId && m.meetingId.toLowerCase().includes(q)) || (m.organizerName && m.organizerName.toLowerCase().includes(q)));
+    }
+    return list;
+  }
 
   private timer!: any;
   constructor(private nav: iNavigation,
@@ -195,6 +220,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         HideModal("createMeeting");
         this.isLoading = false;
         this.isSubmitted = false;
+        this.isEditing = false;
       }
     }).catch(e => {
       this.isLoading = false;
@@ -272,12 +298,39 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   scheduleMeetingPopup() {
+    this.isEditing = false;
     this.isSubmitted = false;
     this.meetingDetail = { agenda: '', durationInSecond: 0, repeatType: 0, meetingDetailId: 0, meetingId: '', meetingPassword: '', organizedBy: 0, title: '', startTime: null, endTime: null };
     this.meetingDate = null;
     this.meetingEndDate = null;
+    this.selectedParticipants = [];
+    if (this.editorContent && this.editorContent.nativeElement) {
+      this.editorContent.nativeElement.innerHTML = '';
+    }
     this.initForm();
     ShowModal("createMeeting");
+  }
+
+  editMeeting(item: MeetingDetail) {
+    const id = item.meetingDetailId || item.meetingId;
+    if (id) {
+      this.router.navigate(['/btc/edit-meeting', id]);
+    }
+  }
+
+  private roundToNearestSlot(date: Date): string {
+    const d = new Date(date);
+    let mins = d.getMinutes();
+    if (mins < 15) {
+      mins = 0;
+    } else if (mins < 45) {
+      mins = 30;
+    } else {
+      mins = 0;
+      d.setHours(d.getHours() + 1);
+    }
+    d.setMinutes(mins);
+    return this.formatTime(d);
   }
 
   quickMeetingModal() {
