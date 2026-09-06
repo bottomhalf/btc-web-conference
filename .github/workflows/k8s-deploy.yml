@@ -1,0 +1,37 @@
+name: Kubernetes Deploy
+
+on:
+  workflow_run:
+    workflows: ["Docker Build & Push"]
+    types:
+      - completed
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Only run if triggered manually or if the build-push workflow completed successfully
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Setup SSH credentials
+        run: |
+          install -m 600 -D /dev/null ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
+
+      - name: Apply Kubernetes configuration & Rollout
+        run: |
+          echo "Applying new Kubernetes configuration on remote server..."
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+            microk8s kubectl apply -f /root/kube.ws/confeet/confeet-web/conf-web-deploy.yml && \
+            microk8s kubectl rollout restart deployment/btc-web-conference -n cf && \
+            microk8s kubectl rollout status deployment/btc-web-conference -n cf --timeout=120s
+          "
+
+      - name: Cleanup SSH credentials
+        if: always()
+        run: |
+          echo "Cleaning up SSH credentials"
+          rm -rf ~/.ssh

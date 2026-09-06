@@ -1,0 +1,86 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cf
+  labels:
+    app.kubernetes.io/part-of: confeet
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: btc-web-conference
+  namespace: cf
+  labels:
+    app.kubernetes.io/name: btc-web-conference
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: confeet
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: btc-web-conference
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: btc-web-conference
+        app.kubernetes.io/component: frontend
+        app.kubernetes.io/part-of: confeet
+    spec:
+      containers:
+        - name: btc-web-conference
+          image: bottomhalflimited/btc-web-conference:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 64Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: btc-web-conference
+  namespace: cf
+  labels:
+    app.kubernetes.io/name: btc-web-conference
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: confeet
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: btc-web-conference
