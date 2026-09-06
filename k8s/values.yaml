@@ -37,7 +37,7 @@ securityContext: {}
 
 service:
   type: ClusterIP
-  port: 80
+  port: 7800
   targetPort: 80
   nodePort: null
 
