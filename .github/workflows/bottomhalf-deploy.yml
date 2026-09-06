@@ -32,7 +32,7 @@ jobs:
     - name: Build & push Docker image
       uses: mr-smithers-excellent/docker-build-push@v6      
       with:
-        image: bottomhalflimited/conf.app.web
+        image: bottomhalflimited/btc-web-conference
         tags: latest
         registry: docker.io
         dockerfile: Dockerfile

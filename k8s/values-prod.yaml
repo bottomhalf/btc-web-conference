@@ -1,0 +1,21 @@
+# Production overrides for btc-web-conference
+replicaCount: 2
+
+image:
+  repository: bottomhalflimited/btc-web-conference
+  pullPolicy: Always
+  tag: "latest"
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 128Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 75
