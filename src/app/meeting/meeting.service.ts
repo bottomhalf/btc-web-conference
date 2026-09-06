@@ -2,7 +2,7 @@ import { computed, Injectable, signal } from '@angular/core';
 import { RoomService } from './../providers/services/room.service';
 import { LocalService } from './../providers/services/local.service';
 import { iNavigation } from './../providers/services/iNavigation';
-import { LocalVideoTrack, RemoteParticipant, RemoteVideoTrack, Room } from 'livekit-client';
+import { LocalVideoTrack, RemoteParticipant, RemoteVideoTrack, Room, Track } from 'livekit-client';
 import { CameraService } from './../providers/services/camera.service';
 import { VideoBackgroundService } from './../providers/services/video-background.service';
 import { DeviceService } from '../layout/device.service';
@@ -15,6 +15,7 @@ import { Dashboard, Login } from '../models/constant';
 import { CallParticipant, ParticipantStatus } from '../models/conference_call/call_model';
 import { InvitedParticipant } from './meeting.component';
 import { NotificationService } from '../notifications/services/notification.service';
+import { DiagnosticsService } from '../providers/services/diagnostics.service';
 
 @Injectable({
   providedIn: 'root'
@@ -93,8 +94,9 @@ export class MeetingService {
     private inviteCallEventService: InviteCallEventService,
     private endCallService: EndCallService,
     private videoBackgroundService: VideoBackgroundService,
-    private notificationService: NotificationService
-  ) { 
+    private notificationService: NotificationService,
+    private diagnosticsService: DiagnosticsService
+  ) {
     this.roomService.incomingCommands.subscribe(cmd => {
       if (cmd.type === 'MUTE_ALL' && this.isMicOn()) {
         this.toggleMic();
@@ -180,7 +182,7 @@ export class MeetingService {
 
   requestToJoin(participant: CallParticipant): void {
     const request = this.serverEventService.incomingCall();
-    if(request) {
+    if (request) {
       this.inviteCallEventService.execute(participant.userId, request.conversationId, 'audio');
     }
   }
@@ -256,6 +258,9 @@ export class MeetingService {
       this.maximize();
       this._inMeeting.set(true);
 
+      // Start video quality diagnostics
+      this.diagnosticsService.start(joinedRoom);
+
       // Enable microphone if user wants it and device is available
       if (this.isMicOn() && hasMic) {
         await this.enableMicInternal(joinedRoom);
@@ -303,6 +308,9 @@ export class MeetingService {
         console.warn('Error during media cleanup:', error);
       }
     }
+
+    // Stop diagnostics
+    this.diagnosticsService.stop();
 
     // Disconnect from room
     await this.roomService.leaveRoom();
@@ -485,7 +493,7 @@ export class MeetingService {
    * Release all media resources (preview + meeting)
    * Call this when completely leaving the meeting flow
    */
-  releaseAllMedia(): void {
+  async releaseAllMedia(): Promise<void> {
     // Stop preview stream
     this.stopMediaPreview();
 
@@ -493,8 +501,8 @@ export class MeetingService {
     const room = this.room();
     if (room) {
       try {
-        room.localParticipant.setCameraEnabled(false);
-        room.localParticipant.setMicrophoneEnabled(false);
+        await room.localParticipant.setCameraEnabled(false);
+        await room.localParticipant.setMicrophoneEnabled(false);
         this.cameraService.stopAllTracks(room);
       } catch (error) {
         console.warn('Error releasing room media:', error);
@@ -517,7 +525,9 @@ export class MeetingService {
   private async enableCameraInternal(room: Room): Promise<void> {
     await this.cameraService.enableCamera(room);
 
-    const videoPub = room.localParticipant.videoTrackPublications.values().next().value;
+    // const videoPub = room.localParticipant.videoTrackPublications.values().next().value;
+    const videoPub = [...room.localParticipant.videoTrackPublications.values()]
+      .find(p => p.source === Track.Source.Camera);
     if (videoPub?.track) {
       this.localTrack.set(videoPub.track as LocalVideoTrack);
     }
@@ -535,13 +545,17 @@ export class MeetingService {
    * Turn camera on - creates track if needed
    */
   private async turnCameraOn(room: Room): Promise<void> {
-    const existingTrack = room.localParticipant.videoTrackPublications.values().next().value;
+    //  const existingTrack = room.localParticipant.videoTrackPublications.values().next().value;
+    const existingTrack = [...room.localParticipant.videoTrackPublications.values()]
+      .find(p => p.source === Track.Source.Camera);
 
     if (!existingTrack) {
       // No track exists (audio-only call) - create and publish one
       await this.cameraService.enableCamera(room, this.deviceService.selectedCamera());
 
-      const videoPub = room.localParticipant.videoTrackPublications.values().next().value;
+      // const videoPub = room.localParticipant.videoTrackPublications.values().next().value;
+      const videoPub = [...room.localParticipant.videoTrackPublications.values()]
+        .find(p => p.source === Track.Source.Camera);
       if (videoPub?.track) {
         this.localTrack.set(videoPub.track as LocalVideoTrack);
       }
@@ -549,7 +563,9 @@ export class MeetingService {
       // Track exists - just enable it
       await room.localParticipant.setCameraEnabled(true);
       // Also update localTrack signal in case it wasn't set
-      const videoPub = room.localParticipant.videoTrackPublications.values().next().value;
+      // const videoPub = room.localParticipant.videoTrackPublications.values().next().value;
+      const videoPub = [...room.localParticipant.videoTrackPublications.values()]
+        .find(p => p.source === Track.Source.Camera);
       if (videoPub?.track) {
         this.localTrack.set(videoPub.track as LocalVideoTrack);
       }
@@ -560,7 +576,7 @@ export class MeetingService {
    * Turn camera off and remove background effects
    */
   private async turnCameraOff(room: Room): Promise<void> {
-    room.localParticipant.setCameraEnabled(false);
+    await room.localParticipant.setCameraEnabled(false);
 
     const track = this.localTrack();
     if (track) {
@@ -610,4 +626,3 @@ export class MeetingService {
     return fullName;
   }
 }
-

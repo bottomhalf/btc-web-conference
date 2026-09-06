@@ -11,6 +11,7 @@ import {
   RoomEvent,
   Track,
   LocalTrackPublication,
+  VideoPresets,
 } from 'livekit-client';
 
 type TrackInfo = {
@@ -31,43 +32,83 @@ export class CameraService {
     this.roomInstance = new Room();
   }
 
-  async enableCamera(room: Room, deviceId?: string) {
-    // Find camera track only (exclude screen share)
-    let existingCameraTrack: LocalVideoTrack | undefined;
-    room.localParticipant.videoTrackPublications.forEach((pub) => {
-      if (pub.source === Track.Source.Camera && pub.track) {
-        existingCameraTrack = pub.track as LocalVideoTrack;
-      }
+  /**
+   * Central camera track creation with standardized quality settings.
+   * All camera creation paths should go through this method.
+  */
+  private async createCameraTrack(deviceId?: string): Promise<LocalVideoTrack> {
+    const tracks = await createLocalTracks({
+      video: {
+        deviceId: deviceId || undefined,
+        resolution: VideoPresets.h720.resolution,
+      },
     });
 
-    if (existingCameraTrack) {
-      // If camera track exists but is muted, unmute it
-      await existingCameraTrack.unmute();
-    } else {
-      // If no camera track exists, create and publish one
-      const tracks = await createLocalTracks({
-        video: { deviceId: deviceId || undefined },
-      });
-      const videoTrack = tracks.find((t) => t.kind === 'video');
-      if (videoTrack) {
-        await room.localParticipant.publishTrack(videoTrack);
-      }
+    const videoTrack = tracks.find((t) => t.kind === 'video') as LocalVideoTrack;
+    if (!videoTrack) {
+      throw new Error('Failed to create camera track');
     }
+
+    // Diagnostic log — safe for production
+    const settings = videoTrack.mediaStreamTrack?.getSettings();
+    console.log('[CameraService] Track created:', {
+      width: settings?.width,
+      height: settings?.height,
+      frameRate: settings?.frameRate,
+      deviceId: settings?.deviceId,
+    });
+
+    return videoTrack;
+  }
+
+  async enableCamera(room: Room, deviceId?: string) {
+    const videoTrack = await this.createCameraTrack(deviceId);
+    if (videoTrack) {
+      console.log('Publishing video track');
+      await room.localParticipant.publishTrack(videoTrack);
+    }
+    // Find camera track only (exclude screen share)
+    // let existingCameraTrack: LocalVideoTrack | undefined;
+    // room.localParticipant.videoTrackPublications.forEach((pub) => {
+    //   if (pub.source === Track.Source.Camera && pub.track) {
+    //     existingCameraTrack = pub.track as LocalVideoTrack;
+    //   }
+    // });
+
+    // if (existingCameraTrack) {
+    //   // If camera track exists but is muted, unmute it
+    //   await existingCameraTrack.unmute();
+    // } else {
+    //   // If no camera track exists, create and publish one
+    //   const tracks = await createLocalTracks({
+    //     video: { deviceId: deviceId || undefined },
+    //   });
+    //   const videoTrack = tracks.find((t) => t.kind === 'video');
+    //   if (videoTrack) {
+    //     await room.localParticipant.publishTrack(videoTrack);
+    //   }
+    // }
   }
 
   async disableCamera(room: Room) {
     // Only stop camera tracks, not screen share
-    room.localParticipant.videoTrackPublications.forEach((trackPub: LocalTrackPublication) => {
-      if (trackPub.source === Track.Source.Camera && trackPub.track) {
-        trackPub.track.stop();
-        room.localParticipant.unpublishTrack(trackPub.track);
-      }
-    });
+    // room.localParticipant.videoTrackPublications.forEach((trackPub: LocalTrackPublication) => {
+    //   if (trackPub.source === Track.Source.Camera && trackPub.track) {
+    //     trackPub.track.stop();
+    //     room.localParticipant.unpublishTrack(trackPub.track);
+    //   }
+    // });
+    await room.localParticipant.setCameraEnabled(false);
   }
 
   async switchCamera(room: Room, deviceId: string) {
-    await this.disableCamera(room);
-    await this.enableCamera(room, deviceId);
+    // await this.disableCamera(room);
+    // await this.enableCamera(room, deviceId);
+    const videoTrack = await this.createCameraTrack(deviceId);
+    if (videoTrack) {
+      console.log('Publishing video track');
+      await room.localParticipant.publishTrack(videoTrack);
+    }
   }
 
   async enableMic(room: Room, deviceId?: string) {
@@ -186,7 +227,9 @@ export class CameraService {
 
   /** Switch camera to another deviceId (uses setDeviceId with restartTrack fallback) */
   async switchCamera_Old(room: Room, deviceId: string) {
-    const pub = [...room.localParticipant.videoTrackPublications.values()][0];
+    //const pub = [...room.localParticipant.videoTrackPublications.values()][0];
+    const pub = [...room.localParticipant.videoTrackPublications.values()]
+      .find(p => p.source === Track.Source.Camera);
     const videoTrack = pub?.track as LocalVideoTrack | undefined;
     if (!videoTrack) throw new Error('No local video track to switch');
 
@@ -245,7 +288,9 @@ export class CameraService {
 
   /** Attach a local video track to a <video> element */
   attachLocalVideo(room: Room, el: HTMLVideoElement) {
-    const pub = [...room.localParticipant.videoTrackPublications.values()][0];
+    //const pub = [...room.localParticipant.videoTrackPublications.values()][0];
+    const pub = [...room.localParticipant.videoTrackPublications.values()]
+      .find(p => p.source === Track.Source.Camera);
     const track = pub?.track as LocalVideoTrack | undefined;
     if (!track) return;
     track.attach(el);
@@ -253,7 +298,9 @@ export class CameraService {
 
   /** Detach a local video track from a <video> element */
   detachLocalVideo(room: Room, el: HTMLVideoElement) {
-    const pub = [...room.localParticipant.videoTrackPublications.values()][0];
+    // const pub = [...room.localParticipant.videoTrackPublications.values()][0];
+    const pub = [...room.localParticipant.videoTrackPublications.values()]
+      .find(p => p.source === Track.Source.Camera);
     const track = pub?.track as LocalVideoTrack | undefined;
     if (!track) return;
     track.detach(el);
