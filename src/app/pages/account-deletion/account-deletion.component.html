@@ -1,0 +1,54 @@
+<div class="legal-page">
+  <div class="bg-blur bg1"></div>
+  <div class="bg-blur bg-danger"></div>
+
+  <div class="container">
+    <div class="content-card glass-panel">
+
+      <div class="icon-warning">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+
+      <h1>Account Deletion</h1>
+      <p class="subtitle">Permanently delete your account and associated data.</p>
+
+      <div *ngIf="successMessage" class="alert-success">
+        {{ successMessage }}
+      </div>
+
+      <div *ngIf="!successMessage" class="deletion-content">
+        <section class="policy-section">
+          <h2>What happens when you delete your account?</h2>
+          <ul>
+            <li>Your profile, including name, email, and preferences will be permanently removed.</li>
+            <li>Any meeting history, chat logs, and local Dexie indexed data linked to your profile will be purged.</li>
+            <li>You will lose access to the BTC Web Conference platform.</li>
+            <li><strong>This action is irreversible.</strong></li>
+          </ul>
+        </section>
+
+        <!-- <div class="action-box">
+          <label class="checkbox-container">
+            <input type="checkbox" (change)="toggleConfirmation($event)" [checked]="isConfirmed">
+            <span class="checkmark"></span>
+            I understand that deleting my account is permanent and cannot be undone.
+          </label>
+          
+          <button 
+            class="btn-delete" 
+            [disabled]="!isConfirmed || isSubmitting"
+            (click)="requestDeletion()">
+            <span *ngIf="!isSubmitting">Request Account Deletion</span>
+            <span *ngIf="isSubmitting" class="loader"></span>
+          </button>
+        </div> -->
+      </div>
+
+    </div>
+  </div>
+</div>

@@ -1,0 +1,52 @@
+<div class="help-page">
+  <div class="bg-blur bg1"></div>
+  <div class="bg-blur bg2"></div>
+
+  <div class="container">
+    
+    <div class="header-section">
+      <h1>Help Center</h1>
+      <p>How can we help you today?</p>
+      
+      <div class="search-box">
+        <svg xmlns="http://www.w3.org/2000/svg" class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" placeholder="Search for articles, guides, and more...">
+      </div>
+    </div>
+
+    <div class="faq-section glass-panel">
+      <h2>Frequently Asked Questions</h2>
+      
+      <div class="faq-list">
+        <div 
+          class="faq-item" 
+          *ngFor="let faq of faqs; let i = index"
+          [class.open]="faq.isOpen"
+          (click)="toggleFaq(i)">
+          
+          <div class="faq-question">
+            <h3>{{ faq.question }}</h3>
+            <div class="icon-toggle">
+              <svg *ngIf="!faq.isOpen" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <svg *ngIf="faq.isOpen" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </div>
+          </div>
+          
+          <div class="faq-answer">
+            <p>{{ faq.answer }}</p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="contact-section">
+      <p>Still need help?</p>
+      <a routerLink="/" class="btn-support">Contact Support</a>
+    </div>
+
+  </div>
+</div>

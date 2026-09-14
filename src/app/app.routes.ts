@@ -3,6 +3,9 @@ import { authGuard, guestGuard } from "./providers/auth.guard";
 import { SplashComponent } from "./splash/splash.component";
 // Import our new fallback component
 import { UnderConstructionComponent } from "./shared/components/under-construction/under-construction.component";
+import { PrivacyPolicyComponent } from "./pages/privacy-policy/privacy-policy.component";
+import { AccountDeletionComponent } from "./pages/account-deletion/account-deletion.component";
+import { HelpCenterComponent } from "./pages/help-center/help-center.component";
 
 // Custom route matcher
 export function btcRouteMatcher(segments: UrlSegment[]) {
@@ -114,7 +117,9 @@ export const routes: Routes = [
   // ==========================================================================
   //  New Legal Link Routes Redirecting to Fallback
   // ==========================================================================
-  { path: 'privacy-policy', component: UnderConstructionComponent },
+  { path: 'privacy-policy', component: PrivacyPolicyComponent },
+  { path: 'account-deletion', component: AccountDeletionComponent },
+  { path: 'help-center', component: HelpCenterComponent },
   { path: 'terms-of-service', component: UnderConstructionComponent },
   { path: 'cookie-policy', component: UnderConstructionComponent },
   { path: 'under-construction', component: UnderConstructionComponent },
