@@ -1,6 +1,7 @@
-import { Injectable, signal, WritableSignal } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 import {
   createLocalTracks,
+  createLocalScreenTracks,
   LocalAudioTrack,
   LocalTrack,
   LocalVideoTrack,
@@ -14,7 +15,9 @@ import {
   VideoPresets,
 } from 'livekit-client';
 
-type TrackInfo = {
+export type MediaMode = 'idle' | 'preview' | 'in-meeting';
+
+export type TrackInfo = {
   trackPublication: RemoteTrackPublication;
   participantIdentity: string;
 };
@@ -23,292 +26,592 @@ type TrackInfo = {
   providedIn: 'root',
 })
 export class CameraService {
-  room = signal<Room | undefined>(undefined);
-  private roomInstance!: Room;
-  private screenTrack?: MediaStreamTrack; // for screen share lifecycle
-  remoteTracksMap = signal<Map<string, TrackInfo>>(new Map());
+  // ==================== Reactive State (Single Source of Truth) ====================
+  public room = signal<Room | undefined>(undefined);
+  public remoteTracksMap = signal<Map<string, TrackInfo>>(new Map());
 
-  constructor() {
-    this.roomInstance = new Room();
+  // Media mode & loading states
+  public mediaMode = signal<MediaMode>('idle');
+  public isMediaLoading = signal<boolean>(false);
+  public mediaError = signal<string | null>(null);
+
+  // Active track & stream signals
+  public isCameraOn = signal<boolean>(false);
+  public isMicOn = signal<boolean>(false);
+  public isScreenSharing = signal<boolean>(false);
+
+  public previewStream = signal<MediaStream | undefined>(undefined);
+  public localCameraTrack = signal<LocalVideoTrack | undefined>(undefined);
+  public localScreenTrack = signal<LocalVideoTrack | undefined>(undefined);
+
+  // Device selections
+  public selectedCameraId = signal<string | null>(null);
+  public selectedMicId = signal<string | null>(null);
+  public selectedSpeakerId = signal<string | null>(null);
+
+  // Concurrency Lock: Prevents rapid-click race conditions and WebRTC SDP collisions
+  private operationQueue: Promise<any> = Promise.resolve();
+  private screenTrack?: MediaStreamTrack;
+
+  constructor() {}
+
+  // ==================== Concurrency & Lock Helpers ====================
+
+  /**
+   * Execute an async media action through a serialized lock to eliminate race conditions
+   */
+  private async withMediaLock<T>(action: () => Promise<T>): Promise<T> {
+    this.isMediaLoading.set(true);
+    this.mediaError.set(null);
+
+    const runAction = async (): Promise<T> => {
+      try {
+        return await action();
+      } catch (err: any) {
+        console.error('[CameraService] Media operation failed:', err);
+        this.mediaError.set(err?.message || 'Media operation failed');
+        throw err;
+      } finally {
+        this.isMediaLoading.set(false);
+      }
+    };
+
+    // Chain onto existing queue
+    this.operationQueue = this.operationQueue.then(runAction, runAction);
+    return this.operationQueue;
+  }
+
+  // ==================== Session & Mode Lifecycle ====================
+
+  /**
+   * Initialize preview session before joining a meeting
+   */
+  async initPreviewSession(
+    enableVideo: boolean = true,
+    cameraDeviceId?: string,
+    micDeviceId?: string
+  ): Promise<MediaStream | undefined> {
+    return this.withMediaLock(async () => {
+      // Clean up any existing preview stream first
+      this.stopMediaPreviewInternal();
+
+      this.mediaMode.set('preview');
+      this.selectedCameraId.set(cameraDeviceId || null);
+      this.selectedMicId.set(micDeviceId || null);
+
+      const constraints: MediaStreamConstraints = {
+        video: enableVideo
+          ? (cameraDeviceId ? { deviceId: { exact: cameraDeviceId } } : { width: { ideal: 1280 }, height: { ideal: 720 } })
+          : false,
+        audio: micDeviceId ? { deviceId: { exact: micDeviceId } } : true,
+      };
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        this.previewStream.set(stream);
+        this.isCameraOn.set(enableVideo && stream.getVideoTracks().length > 0);
+        this.isMicOn.set(stream.getAudioTracks().length > 0);
+        console.log('[CameraService] Preview session initialized successfully');
+        return stream;
+      } catch (error: any) {
+        // Fallback: If exact device constraints fail, try relaxed constraints
+        console.warn('[CameraService] Exact constraint preview failed, attempting relaxed constraints...', error);
+        try {
+          const fallbackConstraints: MediaStreamConstraints = {
+            video: enableVideo ? true : false,
+            audio: true,
+          };
+          const stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+          this.previewStream.set(stream);
+          this.isCameraOn.set(enableVideo && stream.getVideoTracks().length > 0);
+          this.isMicOn.set(stream.getAudioTracks().length > 0);
+          return stream;
+        } catch (fallbackError) {
+          console.error('[CameraService] Preview stream acquisition completely failed:', fallbackError);
+          this.isCameraOn.set(false);
+          this.isMicOn.set(false);
+          return undefined;
+        }
+      }
+    });
   }
 
   /**
-   * Central camera track creation with standardized quality settings.
-   * All camera creation paths should go through this method.
-  */
-  private async createCameraTrack(deviceId?: string): Promise<LocalVideoTrack> {
-    const tracks = await createLocalTracks({
+   * Stop preview stream and release hardware
+   */
+  stopMediaPreview(): void {
+    this.stopMediaPreviewInternal();
+    if (this.mediaMode() === 'preview') {
+      this.mediaMode.set('idle');
+    }
+  }
+
+  private stopMediaPreviewInternal(): void {
+    const stream = this.previewStream();
+    if (stream) {
+      stream.getTracks().forEach((track) => {
+        track.stop();
+        console.log(`[CameraService] Stopped preview track: ${track.kind}`);
+      });
+      this.previewStream.set(undefined);
+    }
+  }
+
+  /**
+   * Bind an active LiveKit room to the controller
+   */
+  bindLiveKitRoom(activeRoom: Room): void {
+    this.room.set(activeRoom);
+    this.mediaMode.set('in-meeting');
+
+    // Sync initial track states from room participant
+    const videoPub = [...activeRoom.localParticipant.videoTrackPublications.values()].find(
+      (p) => p.source === Track.Source.Camera
+    );
+    if (videoPub?.track) {
+      this.localCameraTrack.set(videoPub.track as LocalVideoTrack);
+      this.isCameraOn.set(!videoPub.isMuted);
+    }
+
+    const audioPub = [...activeRoom.localParticipant.audioTrackPublications.values()][0];
+    if (audioPub) {
+      this.isMicOn.set(!audioPub.isMuted);
+    }
+
+    console.log('[CameraService] LiveKit Room bound to controller');
+  }
+
+  /**
+   * Unbind active LiveKit room
+   */
+  unbindLiveKitRoom(): void {
+    this.room.set(undefined);
+    this.localCameraTrack.set(undefined);
+    this.localScreenTrack.set(undefined);
+    this.isCameraOn.set(false);
+    this.isMicOn.set(false);
+    this.isScreenSharing.set(false);
+    if (this.mediaMode() === 'in-meeting') {
+      this.mediaMode.set('idle');
+    }
+    console.log('[CameraService] LiveKit Room unbound');
+  }
+
+  // ==================== Camera Track Creation & Controls ====================
+
+  /**
+   * Central camera track creation with standardized resolution and fallbacks
+   */
+  public async createCameraTrack(deviceId?: string): Promise<LocalVideoTrack> {
+    try {
+      // Primary attempt: Standard 720p HD preset
+      const tracks = await createLocalTracks({
+        video: {
+          deviceId: deviceId || undefined,
+          resolution: VideoPresets.h720.resolution,
+        },
+      });
+
+      const videoTrack = tracks.find((t) => t.kind === 'video') as LocalVideoTrack;
+      if (videoTrack) {
+        this.logTrackSettings(videoTrack);
+        return videoTrack;
+      }
+    } catch (primaryErr) {
+      console.warn('[CameraService] 720p preset failed, attempting unconstrained fallback...', primaryErr);
+    }
+
+    // Fallback attempt: Unconstrained video
+    const fallbackTracks = await createLocalTracks({
       video: {
         deviceId: deviceId || undefined,
-        resolution: VideoPresets.h720.resolution,
       },
     });
 
-    const videoTrack = tracks.find((t) => t.kind === 'video') as LocalVideoTrack;
-    if (!videoTrack) {
-      throw new Error('Failed to create camera track');
+    const fallbackTrack = fallbackTracks.find((t) => t.kind === 'video') as LocalVideoTrack;
+    if (!fallbackTrack) {
+      throw new Error('Failed to create camera track with all available constraints');
     }
+    this.logTrackSettings(fallbackTrack);
+    return fallbackTrack;
+  }
 
-    // Diagnostic log — safe for production
+  private logTrackSettings(videoTrack: LocalVideoTrack): void {
     const settings = videoTrack.mediaStreamTrack?.getSettings();
-    console.log('[CameraService] Track created:', {
+    console.log('[CameraService] Camera Track Created:', {
       width: settings?.width,
       height: settings?.height,
       frameRate: settings?.frameRate,
       deviceId: settings?.deviceId,
     });
-
-    return videoTrack;
   }
 
-  async enableCamera(room: Room, deviceId?: string) {
-    const videoTrack = await this.createCameraTrack(deviceId);
-    if (videoTrack) {
-      console.log('Publishing video track');
-      await room.localParticipant.publishTrack(videoTrack);
-    }
-    // Find camera track only (exclude screen share)
-    // let existingCameraTrack: LocalVideoTrack | undefined;
-    // room.localParticipant.videoTrackPublications.forEach((pub) => {
-    //   if (pub.source === Track.Source.Camera && pub.track) {
-    //     existingCameraTrack = pub.track as LocalVideoTrack;
-    //   }
-    // });
+  /**
+   * Enable/Turn ON camera (Mode-aware)
+   */
+  async enableCamera(roomOrDeviceId?: Room | string, maybeDeviceId?: string): Promise<void> {
+    return this.withMediaLock(async () => {
+      const activeRoom = this.resolveRoom(roomOrDeviceId);
+      const targetDeviceId = typeof roomOrDeviceId === 'string' ? roomOrDeviceId : maybeDeviceId || this.selectedCameraId();
 
-    // if (existingCameraTrack) {
-    //   // If camera track exists but is muted, unmute it
-    //   await existingCameraTrack.unmute();
-    // } else {
-    //   // If no camera track exists, create and publish one
-    //   const tracks = await createLocalTracks({
-    //     video: { deviceId: deviceId || undefined },
-    //   });
-    //   const videoTrack = tracks.find((t) => t.kind === 'video');
-    //   if (videoTrack) {
-    //     await room.localParticipant.publishTrack(videoTrack);
-    //   }
-    // }
+      if (this.mediaMode() === 'preview' || !activeRoom) {
+        // Preview Mode
+        await this.initPreviewSession(true, targetDeviceId ?? undefined, this.selectedMicId() ?? undefined);
+        return;
+      }
+
+      // In-Meeting Mode
+      const existingCameraPub = [...activeRoom.localParticipant.videoTrackPublications.values()].find(
+        (pub) => pub.source === Track.Source.Camera
+      );
+
+      if (existingCameraPub?.track) {
+        console.log('[CameraService] Unmuting existing camera track...');
+        await existingCameraPub.track.unmute();
+        await activeRoom.localParticipant.setCameraEnabled(true);
+        this.localCameraTrack.set(existingCameraPub.track as LocalVideoTrack);
+      } else {
+        console.log('[CameraService] Creating and publishing new camera track...');
+        const videoTrack = await this.createCameraTrack(targetDeviceId ?? undefined);
+        await activeRoom.localParticipant.publishTrack(videoTrack);
+        this.localCameraTrack.set(videoTrack);
+      }
+
+      this.isCameraOn.set(true);
+      if (targetDeviceId) this.selectedCameraId.set(targetDeviceId);
+      console.log('[CameraService] Camera enabled successfully');
+    });
   }
 
-  async disableCamera(room: Room) {
-    // Only stop camera tracks, not screen share
-    // room.localParticipant.videoTrackPublications.forEach((trackPub: LocalTrackPublication) => {
-    //   if (trackPub.source === Track.Source.Camera && trackPub.track) {
-    //     trackPub.track.stop();
-    //     room.localParticipant.unpublishTrack(trackPub.track);
-    //   }
-    // });
-    await room.localParticipant.setCameraEnabled(false);
-  }
+  /**
+   * Disable/Turn OFF camera (Mode-aware)
+   */
+  async disableCamera(room?: Room): Promise<void> {
+    return this.withMediaLock(async () => {
+      const activeRoom = this.resolveRoom(room);
 
-  async switchCamera(room: Room, deviceId: string) {
-    // await this.disableCamera(room);
-    // await this.enableCamera(room, deviceId);
-    const videoTrack = await this.createCameraTrack(deviceId);
-    if (videoTrack) {
-      console.log('Publishing video track');
-      await room.localParticipant.publishTrack(videoTrack);
-    }
-  }
-
-  async enableMic(room: Room, deviceId?: string) {
-    // First check if we already have an audio track published
-    const existingAudioTrack = room.localParticipant.audioTrackPublications.values().next().value?.track;
-    console.log('[enableMic] Existing audio track:', !!existingAudioTrack);
-
-    if (existingAudioTrack) {
-      // If track exists but is muted, unmute it
-      console.log('[enableMic] Unmuting existing track');
-      await existingAudioTrack.unmute();
-    } else {
-      // If no audio track exists, use LiveKit's built-in method
-      // This handles WebRTC complexities better, especially during screen share
-      console.log('[enableMic] No audio track exists, using setMicrophoneEnabled...');
-
-      try {
-        // Use LiveKit's built-in method which handles track creation internally
-        await room.localParticipant.setMicrophoneEnabled(true, {
-          deviceId: deviceId || undefined
-        });
-        console.log('[enableMic] setMicrophoneEnabled completed');
-
-        // Verify publication
-        const pubCount = room.localParticipant.audioTrackPublications.size;
-        console.log('[enableMic] Audio track publications count:', pubCount);
-
-        // Log all audio publications
-        room.localParticipant.audioTrackPublications.forEach((pub, key) => {
-          console.log('[enableMic] Audio publication:', {
-            sid: pub.trackSid,
-            source: pub.source,
-            isMuted: pub.isMuted,
-            trackExists: !!pub.track
+      if (this.mediaMode() === 'preview' || !activeRoom) {
+        // Preview Mode
+        const stream = this.previewStream();
+        if (stream) {
+          stream.getVideoTracks().forEach((track) => {
+            track.stop();
+            stream.removeTrack(track);
           });
-        });
-      } catch (error) {
-        console.error('[enableMic] setMicrophoneEnabled failed:', error);
+        }
+        this.isCameraOn.set(false);
+        return;
+      }
 
-        // Fallback to manual track creation
-        console.log('[enableMic] Falling back to createLocalTracks...');
-        const tracks = await createLocalTracks({
-          audio: { deviceId: deviceId || undefined },
-        });
-        const audioTrack = tracks.find((t) => t.kind === 'audio');
-        console.log('[enableMic] Audio track created:', !!audioTrack);
+      // In-Meeting Mode
+      await activeRoom.localParticipant.setCameraEnabled(false);
+      this.isCameraOn.set(false);
+      console.log('[CameraService] Camera disabled successfully');
+    });
+  }
 
-        if (audioTrack) {
-          console.log('[enableMic] Publishing audio track to room...');
-          await room.localParticipant.publishTrack(audioTrack);
-          console.log('[enableMic] Audio track published successfully');
+  /**
+   * Toggle camera ON/OFF
+   */
+  async toggleCamera(room?: Room, deviceId?: string): Promise<boolean> {
+    if (this.isCameraOn()) {
+      await this.disableCamera(room);
+      return false;
+    } else {
+      await this.enableCamera(room, deviceId);
+      return true;
+    }
+  }
+
+  /**
+   * Switch camera input device in place
+   */
+  async switchCamera(roomOrDeviceId: Room | string, maybeDeviceId?: string): Promise<void> {
+    return this.withMediaLock(async () => {
+      const activeRoom = this.resolveRoom(roomOrDeviceId);
+      const newDeviceId = typeof roomOrDeviceId === 'string' ? roomOrDeviceId : maybeDeviceId;
+      if (!newDeviceId) return;
+
+      this.selectedCameraId.set(newDeviceId);
+
+      if (this.mediaMode() === 'preview' || !activeRoom) {
+        await this.initPreviewSession(this.isCameraOn(), newDeviceId, this.selectedMicId() ?? undefined);
+        return;
+      }
+
+      // In-Meeting Mode:
+      // 1. Unpublish & stop old camera track if active
+      const oldPub = [...activeRoom.localParticipant.videoTrackPublications.values()].find(
+        (p) => p.source === Track.Source.Camera
+      );
+      if (oldPub?.track) {
+        const oldTrack = oldPub.track as LocalVideoTrack;
+        try {
+          await oldTrack.stopProcessor();
+        } catch (e) {}
+        activeRoom.localParticipant.unpublishTrack(oldTrack);
+        oldTrack.stop();
+      }
+
+      // 2. Create new track with standard preset
+      const newVideoTrack = await this.createCameraTrack(newDeviceId);
+      if (newVideoTrack) {
+        console.log('[CameraService] Switching camera to device:', newDeviceId);
+        await activeRoom.localParticipant.publishTrack(newVideoTrack);
+        this.localCameraTrack.set(newVideoTrack);
+        this.isCameraOn.set(true);
+      }
+    });
+  }
+
+  // ==================== Microphone Controls ====================
+
+  /**
+   * Enable/Unmute microphone (Mode-aware)
+   */
+  async enableMic(roomOrDeviceId?: Room | string, maybeDeviceId?: string): Promise<void> {
+    return this.withMediaLock(async () => {
+      const activeRoom = this.resolveRoom(roomOrDeviceId);
+      const targetDeviceId = typeof roomOrDeviceId === 'string' ? roomOrDeviceId : maybeDeviceId || this.selectedMicId();
+
+      if (this.mediaMode() === 'preview' || !activeRoom) {
+        // Preview Mode
+        const stream = this.previewStream();
+        if (stream) {
+          stream.getAudioTracks().forEach((track) => (track.enabled = true));
+        }
+        this.isMicOn.set(true);
+        return;
+      }
+
+      // In-Meeting Mode
+      const existingAudioPub = [...activeRoom.localParticipant.audioTrackPublications.values()][0];
+      if (existingAudioPub?.track) {
+        console.log('[CameraService] Unmuting existing microphone track...');
+        await existingAudioPub.track.unmute();
+      } else {
+        console.log('[CameraService] Creating microphone track via setMicrophoneEnabled...');
+        try {
+          await activeRoom.localParticipant.setMicrophoneEnabled(true, {
+            deviceId: targetDeviceId || undefined,
+          });
+        } catch (setMicErr) {
+          console.warn('[CameraService] setMicrophoneEnabled failed, falling back to createLocalTracks...', setMicErr);
+          const tracks = await createLocalTracks({
+            audio: { deviceId: targetDeviceId || undefined },
+          });
+          const audioTrack = tracks.find((t) => t.kind === 'audio');
+          if (audioTrack) {
+            await activeRoom.localParticipant.publishTrack(audioTrack);
+          }
         }
       }
-    }
-  }
 
-  async disableMic(room: Room) {
-    room.localParticipant.audioTrackPublications.forEach((trackPub) => {
-      trackPub.track?.mute();
+      this.isMicOn.set(true);
+      if (targetDeviceId) this.selectedMicId.set(targetDeviceId);
+      console.log('[CameraService] Microphone enabled');
     });
   }
 
-  //--------------------- other code ---------------------//
+  /**
+   * Disable/Mute microphone (Mode-aware)
+   */
+  async disableMic(room?: Room): Promise<void> {
+    return this.withMediaLock(async () => {
+      const activeRoom = this.resolveRoom(room);
 
-  async listDevices() {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    return {
-      cams: devices.filter(d => d.kind === 'videoinput'),
-      mics: devices.filter(d => d.kind === 'audioinput'),
-      speakers: devices.filter(d => d.kind === 'audiooutput'),
-    };
-  }
+      if (this.mediaMode() === 'preview' || !activeRoom) {
+        const stream = this.previewStream();
+        if (stream) {
+          stream.getAudioTracks().forEach((track) => (track.enabled = false));
+        }
+        this.isMicOn.set(false);
+        return;
+      }
 
-  /** Publish camera (and optionally choose deviceId + constraints) */
-  async startCamera(room: Room, opts?: { deviceId?: string; }) {
-    const [video] = await createLocalTracks({
-      video: {
-        deviceId: opts?.deviceId,
-      },
+      // In-Meeting Mode: Mute audio tracks (maintains WebRTC peer connection for instant unmute)
+      activeRoom.localParticipant.audioTrackPublications.forEach((trackPub) => {
+        trackPub.track?.mute();
+      });
+      this.isMicOn.set(false);
+      console.log('[CameraService] Microphone muted');
     });
-
-    await room.localParticipant.publishTrack(video);
-    return video as LocalVideoTrack;
   }
 
-  /** Publish microphone (optionally choose deviceId) */
-  async startMic(room: Room, deviceId?: string) {
-    const [audio] = await createLocalTracks({
-      audio: { deviceId },
-    });
-    await room.localParticipant.publishTrack(audio);
-    return audio as LocalAudioTrack;
-  }
-
-  /** Stop (unpublish) local camera */
-  stopCamera(room: Room) {
-    // Find camera track only (not screen share)
-    const pub = [...room.localParticipant.videoTrackPublications.values()]
-      .find(p => p.source === Track.Source.Camera);
-    const track = pub?.track as LocalVideoTrack | undefined;
-    if (track) {
-      room.localParticipant.unpublishTrack(track);
-      track.stop();
-    }
-  }
-
-  /** Stop (unpublish) local mic */
-  stopMic(room: Room) {
-    const pub = [...room.localParticipant.audioTrackPublications.values()][0];
-    const track = pub?.track as LocalAudioTrack | undefined;
-    if (track) {
-      room.localParticipant.unpublishTrack(track);
-      track.stop();
-    }
-  }
-
-  /** Switch camera to another deviceId (uses setDeviceId with restartTrack fallback) */
-  async switchCamera_Old(room: Room, deviceId: string) {
-    //const pub = [...room.localParticipant.videoTrackPublications.values()][0];
-    const pub = [...room.localParticipant.videoTrackPublications.values()]
-      .find(p => p.source === Track.Source.Camera);
-    const videoTrack = pub?.track as LocalVideoTrack | undefined;
-    if (!videoTrack) throw new Error('No local video track to switch');
-
-    // setDeviceId exists in current SDK; if absent, fallback to restartTrack
-    const anyTrack = videoTrack as LocalVideoTrack & { setDeviceId?: (id: string) => Promise<void> };
-    if (typeof anyTrack.setDeviceId === 'function') {
-      await anyTrack.setDeviceId(deviceId); // switches camera in place
+  /**
+   * Toggle microphone ON/OFF
+   */
+  async toggleMic(room?: Room, deviceId?: string): Promise<boolean> {
+    if (this.isMicOn()) {
+      await this.disableMic(room);
+      return false;
     } else {
-      await videoTrack.restartTrack({ deviceId }); // fallback path
+      await this.enableMic(room, deviceId);
+      return true;
     }
   }
 
-  /** Switch microphone to another deviceId */
-  async switchMic(room: Room, deviceId: string) {
-    const pub = [...room.localParticipant.audioTrackPublications.values()][0];
-    const audioTrack = pub?.track as LocalAudioTrack | undefined;
-    if (!audioTrack) throw new Error('No local audio track to switch');
+  /**
+   * Switch microphone input device
+   */
+  async switchMic(roomOrDeviceId: Room | string, maybeDeviceId?: string): Promise<void> {
+    return this.withMediaLock(async () => {
+      const activeRoom = this.resolveRoom(roomOrDeviceId);
+      const newDeviceId = typeof roomOrDeviceId === 'string' ? roomOrDeviceId : maybeDeviceId;
+      if (!newDeviceId) return;
 
-    const anyTrack = audioTrack as LocalAudioTrack & { setDeviceId?: (id: string) => Promise<void> };
-    if (typeof anyTrack.setDeviceId === 'function') {
-      await anyTrack.setDeviceId(deviceId);
-    } else {
-      // no setDeviceId: restart the track with new device
-      await audioTrack.restartTrack({ deviceId });
-    }
-  }
+      this.selectedMicId.set(newDeviceId);
 
-  /** Start screen sharing (publishes a screen video track) */
-  async startScreenShare(room: Room) {
-    const stream = await (navigator.mediaDevices as any).getDisplayMedia({ video: true, audio: false });
-    const track = stream.getVideoTracks()[0];
-    this.screenTrack = track;
-    const local = new LocalVideoTrack(track);
-    await room.localParticipant.publishTrack(local, {
-      source: Track.Source.ScreenShare,
+      if (this.mediaMode() === 'preview' || !activeRoom) {
+        await this.initPreviewSession(this.isCameraOn(), this.selectedCameraId() ?? undefined, newDeviceId);
+        return;
+      }
+
+      // In-Meeting Mode
+      console.log('[CameraService] Switching microphone to device:', newDeviceId);
+      await activeRoom.localParticipant.setMicrophoneEnabled(this.isMicOn(), { deviceId: newDeviceId });
     });
-    // stop share if user presses "stop sharing" in browser UI
-    track.onended = () => this.stopScreenShare(room);
   }
 
-  /** Stop screen sharing */
-  stopScreenShare(room: Room) {
-    // find the screen-share publication
-    const pub = [...room.localParticipant.videoTrackPublications.values()]
-      .find(p => p.source === Track.Source.ScreenShare);
-    const track = pub?.track as LocalVideoTrack | undefined;
-    if (track) {
-      room.localParticipant.unpublishTrack(track);
-      track.stop();
+  // ==================== Screen Share Controls ====================
+
+  /**
+   * Start screen sharing with 1080p resolution and audio isolation
+   */
+  async startScreenShare(room?: Room): Promise<LocalVideoTrack | undefined> {
+    return this.withMediaLock(async () => {
+      const activeRoom = this.resolveRoom(room);
+      if (!activeRoom) {
+        console.warn('[CameraService] Cannot start screen share without an active room');
+        return undefined;
+      }
+
+      try {
+        console.log('[CameraService] Requesting screen share display media...');
+        // Audio is set to false to isolate screen share from microphone audio and prevent feedback
+        const screenTracks = await createLocalScreenTracks({
+          audio: false,
+          resolution: { width: 1920, height: 1080 },
+        });
+
+        const screenVideoTrack = screenTracks.find((t) => t.kind === 'video') as LocalVideoTrack;
+        if (!screenVideoTrack || screenVideoTrack.mediaStreamTrack.readyState === 'ended') {
+          console.warn('[CameraService] Screen share cancelled by user or no video track acquired');
+          return undefined;
+        }
+
+        this.screenTrack = screenVideoTrack.mediaStreamTrack;
+
+        // Automatically handle native browser "Stop sharing" button
+        screenVideoTrack.mediaStreamTrack.onended = () => {
+          console.log('[CameraService] Native browser Stop Sharing triggered');
+          this.stopScreenShare(activeRoom);
+        };
+
+        await activeRoom.localParticipant.publishTrack(screenVideoTrack, {
+          source: Track.Source.ScreenShare,
+        });
+
+        this.localScreenTrack.set(screenVideoTrack);
+        this.isScreenSharing.set(true);
+        console.log('[CameraService] Screen share published successfully');
+        return screenVideoTrack;
+      } catch (error: any) {
+        if (error.name === 'NotAllowedError') {
+          console.log('[CameraService] User cancelled screen share picker');
+        } else {
+          console.error('[CameraService] Failed to start screen share:', error);
+        }
+        return undefined;
+      }
+    });
+  }
+
+  /**
+   * Stop screen sharing and unpublish track
+   */
+  async stopScreenShare(room?: Room): Promise<void> {
+    return this.withMediaLock(async () => {
+      const activeRoom = this.resolveRoom(room);
+
+      if (activeRoom) {
+        const publications = activeRoom.localParticipant.videoTrackPublications;
+        publications.forEach(async (pub: LocalTrackPublication) => {
+          if (pub.source === Track.Source.ScreenShare && pub.track) {
+            const track = pub.track;
+            await activeRoom.localParticipant.unpublishTrack(track);
+            track.stop();
+          }
+        });
+      }
+
+      if (this.screenTrack) {
+        this.screenTrack.stop();
+        this.screenTrack = undefined;
+      }
+
+      this.localScreenTrack.set(undefined);
+      this.isScreenSharing.set(false);
+      console.log('[CameraService] Screen share stopped');
+    });
+  }
+
+  /**
+   * Toggle screen share ON/OFF
+   */
+  async toggleScreenShare(room?: Room): Promise<boolean> {
+    if (this.isScreenSharing()) {
+      await this.stopScreenShare(room);
+      return false;
+    } else {
+      const track = await this.startScreenShare(room);
+      return !!track;
     }
-    if (this.screenTrack) {
-      this.screenTrack.stop();
-      this.screenTrack = undefined;
-    }
   }
 
-  /** Attach a local video track to a <video> element */
-  attachLocalVideo(room: Room, el: HTMLVideoElement) {
-    //const pub = [...room.localParticipant.videoTrackPublications.values()][0];
-    const pub = [...room.localParticipant.videoTrackPublications.values()]
-      .find(p => p.source === Track.Source.Camera);
-    const track = pub?.track as LocalVideoTrack | undefined;
-    if (!track) return;
-    track.attach(el);
+  // ==================== Complete Hardware Teardown ====================
+
+  /**
+   * Stop all active tracks and release all hardware resources
+   */
+  async releaseAllMedia(room?: Room): Promise<void> {
+    return this.withMediaLock(async () => {
+      console.log('[CameraService] Releasing all media resources...');
+
+      // 1. Stop preview stream
+      this.stopMediaPreviewInternal();
+
+      // 2. Stop room tracks if room exists
+      const activeRoom = this.resolveRoom(room);
+      if (activeRoom) {
+        this.stopAllTracks(activeRoom);
+      }
+
+      // 3. Stop screen share track
+      if (this.screenTrack) {
+        this.screenTrack.stop();
+        this.screenTrack = undefined;
+      }
+
+      // 4. Reset all signals to IDLE defaults
+      this.isCameraOn.set(false);
+      this.isMicOn.set(false);
+      this.isScreenSharing.set(false);
+      this.localCameraTrack.set(undefined);
+      this.localScreenTrack.set(undefined);
+      this.mediaMode.set('idle');
+
+      console.log('[CameraService] All media resources successfully released');
+    });
   }
 
-  /** Detach a local video track from a <video> element */
-  detachLocalVideo(room: Room, el: HTMLVideoElement) {
-    // const pub = [...room.localParticipant.videoTrackPublications.values()][0];
-    const pub = [...room.localParticipant.videoTrackPublications.values()]
-      .find(p => p.source === Track.Source.Camera);
-    const track = pub?.track as LocalVideoTrack | undefined;
-    if (!track) return;
-    track.detach(el);
-  }
+  /**
+   * Stop all tracks published in a LiveKit room
+   */
+  stopAllTracks(room: Room): void {
+    if (!room?.localParticipant) return;
 
-  /** Stop all local tracks (camera, mic, screen share) - comprehensive cleanup */
-  stopAllTracks(room: Room) {
-    // Stop all video tracks
+    // Stop all video tracks (camera & screen share)
     room.localParticipant.videoTrackPublications.forEach((trackPub) => {
       if (trackPub.track) {
         trackPub.track.stop();
@@ -324,10 +627,86 @@ export class CameraService {
       }
     });
 
-    // Stop screen share if active
     if (this.screenTrack) {
       this.screenTrack.stop();
       this.screenTrack = undefined;
     }
+  }
+
+  // ==================== Device Enumeration Helper ====================
+
+  async listDevices(): Promise<{ cams: MediaDeviceInfo[]; mics: MediaDeviceInfo[]; speakers: MediaDeviceInfo[] }> {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    return {
+      cams: devices.filter((d) => d.kind === 'videoinput'),
+      mics: devices.filter((d) => d.kind === 'audioinput'),
+      speakers: devices.filter((d) => d.kind === 'audiooutput'),
+    };
+  }
+
+  // ==================== Legacy Compatibility Aliases ====================
+
+  async startCamera(room: Room, opts?: { deviceId?: string }): Promise<LocalVideoTrack> {
+    const videoTrack = await this.createCameraTrack(opts?.deviceId);
+    await room.localParticipant.publishTrack(videoTrack);
+    this.localCameraTrack.set(videoTrack);
+    this.isCameraOn.set(true);
+    return videoTrack;
+  }
+
+  async startMic(room: Room, deviceId?: string): Promise<LocalAudioTrack> {
+    const [audio] = await createLocalTracks({ audio: { deviceId } });
+    await room.localParticipant.publishTrack(audio);
+    this.isMicOn.set(true);
+    return audio as LocalAudioTrack;
+  }
+
+  stopCamera(room: Room): void {
+    const pub = [...room.localParticipant.videoTrackPublications.values()].find(
+      (p) => p.source === Track.Source.Camera
+    );
+    const track = pub?.track as LocalVideoTrack | undefined;
+    if (track) {
+      room.localParticipant.unpublishTrack(track);
+      track.stop();
+    }
+    this.isCameraOn.set(false);
+  }
+
+  stopMic(room: Room): void {
+    const pub = [...room.localParticipant.audioTrackPublications.values()][0];
+    const track = pub?.track as LocalAudioTrack | undefined;
+    if (track) {
+      room.localParticipant.unpublishTrack(track);
+      track.stop();
+    }
+    this.isMicOn.set(false);
+  }
+
+  attachLocalVideo(room: Room, el: HTMLVideoElement): void {
+    const pub = [...room.localParticipant.videoTrackPublications.values()].find(
+      (p) => p.source === Track.Source.Camera
+    );
+    const track = pub?.track as LocalVideoTrack | undefined;
+    if (!track) return;
+    track.attach(el);
+  }
+
+  detachLocalVideo(room: Room, el: HTMLVideoElement): void {
+    const pub = [...room.localParticipant.videoTrackPublications.values()].find(
+      (p) => p.source === Track.Source.Camera
+    );
+    const track = pub?.track as LocalVideoTrack | undefined;
+    if (!track) return;
+    track.detach(el);
+  }
+
+  // ==================== Private Helpers ====================
+
+  private resolveRoom(roomOrOther?: Room | any): Room | undefined {
+    if (roomOrOther && typeof roomOrOther === 'object' && 'localParticipant' in roomOrOther) {
+      return roomOrOther as Room;
+    }
+    return this.room();
   }
 }

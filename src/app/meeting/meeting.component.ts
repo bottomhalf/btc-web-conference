@@ -31,6 +31,7 @@ import { NotificationService } from '../notifications/services/notification.serv
 import { ChatService } from '../chat/chat.service';
 import { Conversation } from '../components/global-search/search.models';
 import { ViewPortService } from '../providers/services/view-port.service';
+import { DeviceService } from '../layout/device.service';
 
 @Component({
     selector: 'app-meeting',
@@ -106,6 +107,8 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     private modalInstance: any;
     private videoModalInstance: any;
     private shareLinkModalInstance: any;
+    public deviceService = inject(DeviceService);
+    isPlayingTestAudio = false;
     currentBrowser: string = "";
     textMessage: string = "";
     /** Get video track for a participant */
@@ -586,9 +589,7 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     async activeMic() {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        // Stop the stream immediately - we only needed it to trigger permission prompt
-        stream.getTracks().forEach(track => track.stop());
+        await this.cameraService.enableMic(this.room());
     }
 
     showUseCameraActivePopup() {
@@ -691,17 +692,18 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     async changeMicrophone(deviceId: string) {
-        if (!this.room) return;
-
+        this.selectedMic = deviceId;
+        this.deviceService.selectedMic.set(deviceId);
         try {
-            // Replace mic with the new selected device
-            await this.room()?.localParticipant.setMicrophoneEnabled(true, { deviceId });
+            await this.cameraService.switchMic(this.room() || deviceId, deviceId);
         } catch (err) {
             console.error('Failed to change microphone', err);
         }
     }
 
     async changeSpeaker(deviceId: string) {
+        this.selectedSpeaker = deviceId;
+        this.deviceService.selectedSpeaker.set(deviceId);
         if (this.remoteAudio && (this.remoteAudio as any).setSinkId) {
             try {
                 await (this.remoteAudio as any).setSinkId(deviceId);
@@ -712,6 +714,46 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
         } else {
             console.warn('setSinkId not supported in this browser');
         }
+    }
+
+    async changeCamera(deviceId: string) {
+        this.selectedCamera = deviceId;
+        this.deviceService.selectedCamera.set(deviceId);
+        try {
+            await this.cameraService.switchCamera(this.room() || deviceId, deviceId);
+            const activeTrack = this.cameraService.localCameraTrack();
+            if (activeTrack) {
+                this.meetingService.localTrack.set(activeTrack);
+            }
+        } catch (err) {
+            console.error('Failed to change camera', err);
+        }
+    }
+
+    testSpeakerAudio() {
+        if (this.isPlayingTestAudio) return;
+        this.isPlayingTestAudio = true;
+        const audio = new Audio('assets/notification-tone.wav');
+        if ((audio as any).setSinkId && this.selectedSpeaker) {
+            (audio as any).setSinkId(this.selectedSpeaker).catch(() => {});
+        }
+        audio.play()
+            .then(() => {
+                setTimeout(() => {
+                    this.isPlayingTestAudio = false;
+                }, 1400);
+            })
+            .catch(err => {
+                console.log('Audio test error:', err);
+                this.isPlayingTestAudio = false;
+            });
+    }
+
+    switchToVirtualBackground() {
+        this.closeSeetingOffCanvas();
+        setTimeout(() => {
+            this.openVirtualBackgroundOffcanvas();
+        }, 300);
     }
 
     private attachScreen(track: RemoteVideoTrack) {

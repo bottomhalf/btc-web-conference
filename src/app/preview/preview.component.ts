@@ -490,7 +490,7 @@ export class PreviewComponent implements OnDestroy {
 
         // Re-attach stream to video element
         const stream = this.meetingService.previewStream();
-        if (stream) {
+        if (stream && this.meetingService.isCameraOn()) {
             this.attachStreamToVideo(stream);
         } else {
             this.clearVideoElement();

@@ -37,42 +37,52 @@ export class DeviceService implements OnInit {
 
             // Request permission ONLY if needed and device exists
             if ((camPerm.state === 'prompt' && hasVideoDevice) || (micPerm.state === 'prompt' && hasAudioDevice)) {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: camPerm.state !== 'denied' && hasVideoDevice,
-                    audio: micPerm.state !== 'denied' && hasAudioDevice
-                });
-            }
-            else if (camPerm.state === 'denied' || micPerm.state === 'denied') {
-                // Don't spam getUserMedia if blocked
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: camPerm.state !== 'denied' && hasVideoDevice,
+                        audio: micPerm.state !== 'denied' && hasAudioDevice
+                    });
+                } catch (permErr) {
+                    console.warn('Camera/microphone prompt cancelled or denied during device load:', permErr);
+                }
+            } else if (camPerm.state === 'denied' || micPerm.state === 'denied') {
                 console.warn('Camera or microphone permission denied');
             }
 
-            // Now enumerate devices - after permission granted, we get real device IDs
-            const devices = await navigator.mediaDevices.enumerateDevices();
+            try {
+                // Now enumerate devices - after permission granted, we get real device IDs and labels
+                const devices = await navigator.mediaDevices.enumerateDevices();
 
-            this.cameras.set(devices.filter(d => d.kind === 'videoinput'));
-            this.microphones.set(devices.filter(d => d.kind === 'audioinput'));
-            this.speakers.set(devices.filter(d => d.kind === 'audiooutput'));
+                this.cameras.set(devices.filter(d => d.kind === 'videoinput'));
+                this.microphones.set(devices.filter(d => d.kind === 'audioinput'));
+                this.speakers.set(devices.filter(d => d.kind === 'audiooutput'));
 
+                if (stream) {
+                    const videoTrack = stream.getVideoTracks()[0];
+                    const audioTrack = stream.getAudioTracks()[0];
 
-            if (stream) {
-                // Get the device IDs from the active tracks (these are the default devices)
-                const videoTrack = stream.getVideoTracks()[0];
-                const audioTrack = stream.getAudioTracks()[0];
+                    this.selectedCamera.set(videoTrack?.getSettings().deviceId || this.cameras()[0]?.deviceId || null);
+                    this.selectedMic.set(audioTrack?.getSettings().deviceId || this.microphones()[0]?.deviceId || null);
+                } else {
+                    if (!this.selectedCamera() && this.cameras()?.length) {
+                        this.selectedCamera.set(this.cameras()[0]?.deviceId ?? null);
+                    }
+                    if (!this.selectedMic() && this.microphones()?.length) {
+                        this.selectedMic.set(this.microphones()[0]?.deviceId ?? null);
+                    }
+                }
 
-                // Set selected devices from the active stream tracks (these are the actual defaults)
-                this.selectedCamera.set(videoTrack?.getSettings().deviceId || this.cameras()[0]?.deviceId || null);
-                this.selectedMic.set(audioTrack?.getSettings().deviceId || this.microphones()[0]?.deviceId || null);
-
-                // ⚠️ THIS IS MISSING - Add this to stop the camera!
-                stream.getTracks().forEach(track => track.stop());
-            } else {
-                // No permission yet → select first available device logically
-                this.selectedCamera.set(this.cameras()[0]?.deviceId ?? null);
-                this.selectedMic.set(this.microphones()[0]?.deviceId ?? null);
+                if (!this.selectedSpeaker() && this.speakers()?.length) {
+                    this.selectedSpeaker.set(this.speakers()[0]?.deviceId ?? null);
+                }
+            } finally {
+                // CRITICAL: Stop probe stream immediately in finally block so camera LED does not stick!
+                if (stream) {
+                    stream.getTracks().forEach(track => {
+                        track.stop();
+                    });
+                }
             }
-
-            this.selectedSpeaker.set(this.speakers()[0]?.deviceId ?? null);
         } catch (err) {
             // Fallback: try to enumerate without permission (will have empty deviceIds)
             console.error('Error accessing media devices', err);
