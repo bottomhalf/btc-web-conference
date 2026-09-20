@@ -136,20 +136,36 @@ export class ChatService {
         return this.http.post('storage/multipart/start', payload);
     }
 
-    updateUserStatus(userId: string, status: string): void {
+    updateUserStatus(userId: string, status: string, lastSeen?: number): void {
         this.searchResults.update(results => {
             return results.map(res => {
-                const parts = res.participants?.map(p => p.userId === userId ? { ...p, status: status } : p) || [];
+                const parts = res.participants?.map(p => p.userId === userId ? { ...p, status: status, ...(lastSeen !== undefined ? { lastSeen } : {}) } : p) || [];
                 return { ...res, participants: parts as any };
             });
         });
 
         this.meetingRooms.update(rooms => {
             return rooms.map(room => {
-                const parts = room.participants?.map(p => p.userId === userId ? { ...p, status: status } : p) || [];
+                const parts = room.participants?.map(p => p.userId === userId ? { ...p, status: status, ...(lastSeen !== undefined ? { lastSeen } : {}) } : p) || [];
                 return { ...room, participants: parts as any };
             });
         });
+
+        const currentConv = this.ws.currentConversation();
+        if (currentConv && currentConv.participants) {
+            const hasUser = currentConv.participants.some(p => p.userId === userId);
+            if (hasUser) {
+                const updatedParticipants = currentConv.participants.map(p =>
+                    p.userId === userId
+                        ? { ...p, status: status, ...(lastSeen !== undefined ? { lastSeen } : {}) }
+                        : p
+                );
+                this.ws.currentConversation.set({
+                    ...currentConv,
+                    participants: updatedParticipants
+                });
+            }
+        }
     }
 
     async getMultipartPreSignedUrl(payload: { fileKey: string, uploadId: string, partNumber: number }): Promise<any> {
@@ -627,7 +643,20 @@ export class ChatService {
                 };
             });
 
-            this.meetingRooms.set(mappedRooms);
+            // Deduplicate rooms by ID
+            const uniqueRooms: Conversation[] = [];
+            const seenIds = new Set<string>();
+            for (const room of mappedRooms) {
+                const roomKey = room.id || room.conversationId;
+                if (roomKey && !seenIds.has(roomKey)) {
+                    seenIds.add(roomKey);
+                    uniqueRooms.push(room);
+                } else if (!roomKey) {
+                    uniqueRooms.push(room);
+                }
+            }
+
+            this.meetingRooms.set(uniqueRooms);
         }
 
         let chatUsers: User[] = [];

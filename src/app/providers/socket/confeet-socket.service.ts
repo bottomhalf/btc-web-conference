@@ -24,6 +24,7 @@ export class ConfeetSocketService {
     initUserList$: Observable<User[]>;
     messageReacted$: Observable<any>;
     userStatus$: Observable<any>;
+    checkStatus$: Observable<any>;
     //--------------------------------------------------------------
     currentConversation = signal<Conversation | null>(null);
     currentConversationId = signal<string | null>(null);
@@ -48,6 +49,7 @@ export class ConfeetSocketService {
         this.initUserList$ = this.onEvent<User[]>(WsEvents.INIT_USERLIST);
         this.messageReacted$ = this.onEvent<any>(WsEvents.MESSAGE_REACTED);
         this.userStatus$ = this.onEvent<any>(WsEvents.USER_STATUS);
+        this.checkStatus$ = this.onEvent<any>(WsEvents.CHECK_STATUS);
         console.log(this.initUserList$)
     }
 
@@ -140,6 +142,10 @@ export class ConfeetSocketService {
 
     updateStatus(status: string): void {
         this.send(WsEvents.UPDATE_STATUS, { status });
+    }
+
+    checkStatus(userId: string): void {
+        this.send(WsEvents.CHECK_STATUS, { userId });
     }
 
     // Mark as delivered
@@ -316,6 +322,7 @@ export const WsEvents = {
     HEARTBEAT: 'heartbeat', // Client sends ping for heartbeat
     INIT_USERLIST: 'init_userlist',
     UPDATE_STATUS: 'update_status',
+    CHECK_STATUS: 'check_status',
 
     // Server -> Client
     NEW_MESSAGE: 'new_message',

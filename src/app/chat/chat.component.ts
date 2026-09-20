@@ -7,7 +7,7 @@ import { Subscription } from 'rxjs';
 import { Conversation, Participant, SearchResult, UserDetail } from '../components/global-search/search.models';
 import { ChatService } from './chat.service';
 import { Router } from '@angular/router';
-import { ResponseModel, User } from '../models/model';
+import { GetStatusName, ResponseModel, User } from '../models/model';
 
 import { NotificationService } from '../notifications/services/notification.service';
 import { ServerEventService } from '../providers/socket/server-events/server-event.service';
@@ -16,6 +16,7 @@ import { TestSignalService } from '../providers/socket/client-events/call/test-s
 import { MultiUserAutocompleteComponent } from '../shared/components/multi-user-autocomplete/multi-user-autocomplete.component';
 import { NotifyGroupCreatedService } from '../providers/socket/client-events/group/notify-group-created.service';
 import { MobileChatComponent } from './mobile-chat/mobile-chat.component';
+import { UserStatusUpdate } from '../components/global-search/event.models';
 
 @Component({
     selector: 'app-chat',
@@ -124,25 +125,63 @@ export class ChatComponent implements OnInit, OnDestroy {
             })
         );
 
+        this.subscriptions.add(
+            this.ws.checkStatus$.subscribe((res: any) => {
+                console.log("Received check status update:", res);
+                if (res) {
+                    const statusUpdate: UserStatusUpdate = {
+                        userId: res.user_id || res.userId || '',
+                        status: typeof res.status === 'number' ? GetStatusName(res.status) : (res.status || ''),
+                        lastSeen: res.last_seen !== undefined ? Number(res.last_seen) : (res.lastSeen !== undefined ? Number(res.lastSeen) : undefined)
+                    };
+
+                    if (statusUpdate.userId) {
+                        if (statusUpdate.userId === this.currentUserId) {
+                            const norm = (statusUpdate.status || '').toLowerCase();
+                            if (norm === 'online' || norm === 'available') {
+                                this.userStatus = 'available';
+                            } else if (norm === 'busy') {
+                                this.userStatus = 'busy';
+                            } else if (norm === 'dnd' || norm === 'do not disturb') {
+                                this.userStatus = 'dnd';
+                            } else if (norm === 'away' || norm === 'brb') {
+                                this.userStatus = 'away';
+                            } else if (norm === 'offline' || norm === 'invisible') {
+                                this.userStatus = 'offline';
+                            }
+                        }
+
+                        this.chatService.updateUserStatus(statusUpdate.userId, statusUpdate.status || '', statusUpdate.lastSeen);
+                    }
+                }
+            })
+        );
+
         // Listen for user status updates from other users
         this.subscriptions.add(
             this.ws.userStatus$.subscribe((statusUpdate: any) => {
                 console.log("Received status update:", statusUpdate);
-                // The payload from Go is currently model.UserStatus { UserID string, Status string }
-                if (statusUpdate && statusUpdate.user_id && statusUpdate.status) {
-                    const userId = statusUpdate.user_id;
-                    const status = statusUpdate.status;
+                if (statusUpdate && (statusUpdate.user_id || statusUpdate.userId)) {
+                    const userId = statusUpdate.user_id || statusUpdate.userId;
+                    const status = typeof statusUpdate.status === 'number' ? GetStatusName(statusUpdate.status) : (statusUpdate.status || '');
+                    const lastSeen = statusUpdate.last_seen !== undefined ? Number(statusUpdate.last_seen) : (statusUpdate.lastSeen !== undefined ? Number(statusUpdate.lastSeen) : undefined);
 
-                    // Update user's status in the current search results or contact list if needed
-                    // Usually we might need a centralized presence service, but for now we can update 
-                    // the current user's local state if it's them, or rely on avatar status bindings.
-                    // If it's the current user:
                     if (userId === this.currentUserId) {
-                        this.userStatus = status;
+                        const norm = (status || '').toLowerCase();
+                        if (norm === 'online' || norm === 'available') {
+                            this.userStatus = 'available';
+                        } else if (norm === 'busy') {
+                            this.userStatus = 'busy';
+                        } else if (norm === 'dnd' || norm === 'do not disturb') {
+                            this.userStatus = 'dnd';
+                        } else if (norm === 'away' || norm === 'brb') {
+                            this.userStatus = 'away';
+                        } else if (norm === 'offline' || norm === 'invisible') {
+                            this.userStatus = 'offline';
+                        }
                     }
-                    // For other users, if you have a local list, update it.
-                    // This can be expanded based on how you store remote user statuses.
-                    this.chatService.updateUserStatus(userId, status);
+
+                    this.chatService.updateUserStatus(userId, status, lastSeen);
                 }
             })
         );
@@ -393,6 +432,15 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.chatService.isMessagesLoading.set(true);
         this.ws.currentConversation.set(conversation);
         this.ws.currentConversationId.set(targetId || null);
+
+        if (conversation.type !== 'GROUP' && conversation.conversationType !== 'group') {
+            const otherParticipant = (conversation.participants || []).find(p => p && p.userId !== this.currentUserId);
+            if (otherParticipant?.userId) {
+                this.ws.checkStatus(otherParticipant.userId);
+            }
+        } else {
+            this.ws.checkStatus(this.user.userId);
+        }
 
         this.chatService.messages.set([]); // Clear existing messages
 

@@ -197,7 +197,7 @@
                                 <!-- Search Results -->
                                 @if (memberSearchResults.length > 0) {
                                 <div class="member-search-results">
-                                    @for (result of memberSearchResults; track result.conversationId; let idx =
+                                    @for (result of memberSearchResults; track result.userId || result.conversationId || $index; let idx =
                                     $index) {
                                     <div class="member-search-item" [class.selected]="memberSearchSelectedIndex === idx"
                                         (click)="addMemberToGroup(result)"
@@ -240,7 +240,7 @@
                                 <!-- Search Results -->
                                 @if (memberSearchResults.length > 0) {
                                 <div class="member-search-results">
-                                    @for (result of memberSearchResults; track result.conversationId; let idx = $index)
+                                    @for (result of memberSearchResults; track result.userId || result.conversationId || $index; let idx = $index)
                                     {
                                     <div class="member-search-item" [class.selected]="memberSearchSelectedIndex === idx"
                                         (click)="addMemberToExistingGroup(result)"
