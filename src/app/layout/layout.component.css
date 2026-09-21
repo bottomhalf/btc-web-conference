@@ -13,10 +13,12 @@
     width: 4rem;
     flex-shrink: 0;
     background-color: var(--theme-sidebar-bg);
-    /* height: calc(100vh - 3rem); */
+    height: 100vh;
     position: fixed;
     left: 0;
-    /* top: 3rem; */
+    top: 0;
+    bottom: 0;
+    border-right: 0px solid var(--theme-border, rgba(0, 0, 0, 0.08));
     z-index: 1000;
     transition: background-color 0.3s ease;
 }

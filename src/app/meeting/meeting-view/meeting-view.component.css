@@ -19,7 +19,7 @@
    ===================================================== */
 .meet-container {
     width: 100%;
-    height: calc(100vh - 64px);
+    height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -31,9 +31,9 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    padding: 8px;
+    padding: 0px;
     min-height: 0;
-    max-height: calc(100vh - 64px);
+    max-height: 100%;
     overflow: hidden;
     align-items: stretch;
     align-content: center;

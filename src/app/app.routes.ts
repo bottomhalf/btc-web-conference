@@ -72,6 +72,11 @@ export const routes: Routes = [
           import('./meeting/meeting.component').then(c => c.MeetingComponent),
       },
       {
+        path: 'meeting-room/:id',
+        loadComponent: () =>
+          import('./meeting-room/meeting-room.component').then(c => c.MeetingRoomComponent),
+      },
+      {
         path: 'chat',
         loadComponent: () =>
           import('./chat/chat.component').then(c => c.ChatComponent),

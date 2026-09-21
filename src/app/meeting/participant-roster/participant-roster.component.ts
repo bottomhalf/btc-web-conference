@@ -46,6 +46,12 @@ export class ParticipantRosterComponent implements OnInit {
     // Invited participants not in the call (can be array or use invitedParticipantsArray)
     @Input() invitedParticipants: InvitedParticipant[] = [];
 
+    // Output to close sidebar
+    @Output() closeRoster = new EventEmitter<void>();
+
+    // Search query tracking
+    searchQuery = signal<string>('');
+
     // Track which participants are currently being called
     callingParticipants = signal<Set<string>>(new Set());
 
@@ -54,6 +60,17 @@ export class ParticipantRosterComponent implements OnInit {
 
     // Timeout duration in milliseconds (60 seconds)
     private readonly CALLING_TIMEOUT = 60000;
+
+    onSearchInput(event: Event): void {
+        const value = (event.target as HTMLInputElement).value || '';
+        this.searchQuery.set(value);
+        this.meetingService.filterParticipants(event);
+    }
+
+    clearSearch(): void {
+        this.searchQuery.set('');
+        this.meetingService.filterParticipants({ target: { value: '' } } as any);
+    }
 
     ngOnInit() {
         // If we are the ones who initiated the call, we want to immediately show "Ringing..."

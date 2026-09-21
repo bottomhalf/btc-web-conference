@@ -101,9 +101,9 @@ export class CameraService {
 
       const constraints: MediaStreamConstraints = {
         video: enableVideo
-          ? (cameraDeviceId ? { deviceId: { exact: cameraDeviceId } } : { width: { ideal: 1280 }, height: { ideal: 720 } })
+          ? (cameraDeviceId ? { deviceId: { ideal: cameraDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } } : { width: { ideal: 1280 }, height: { ideal: 720 } })
           : false,
-        audio: micDeviceId ? { deviceId: { exact: micDeviceId } } : true,
+        audio: micDeviceId ? { deviceId: { ideal: micDeviceId } } : true,
       };
 
       try {
@@ -255,8 +255,65 @@ export class CameraService {
       const targetDeviceId = typeof roomOrDeviceId === 'string' ? roomOrDeviceId : maybeDeviceId || this.selectedCameraId();
 
       if (this.mediaMode() === 'preview' || !activeRoom) {
-        // Preview Mode
-        await this.initPreviewSession(true, targetDeviceId ?? undefined, this.selectedMicId() ?? undefined);
+        // Preview Mode: Acquire or enable video track directly on previewStream
+        const stream = this.previewStream();
+        const existingVideoTrack = stream?.getVideoTracks()[0];
+
+        if (existingVideoTrack && existingVideoTrack.readyState === 'live') {
+          existingVideoTrack.enabled = true;
+          this.isCameraOn.set(true);
+          console.log('[CameraService] Preview camera re-enabled from existing live track');
+          return;
+        }
+
+        const videoConstraints: MediaStreamConstraints = {
+          video: targetDeviceId
+            ? { deviceId: { ideal: targetDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+            : { width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        };
+
+        try {
+          const videoStream = await navigator.mediaDevices.getUserMedia(videoConstraints);
+          const newVideoTrack = videoStream.getVideoTracks()[0];
+          if (newVideoTrack) {
+            if (stream) {
+              // Stop & remove any dead video tracks
+              stream.getVideoTracks().forEach((t) => {
+                t.stop();
+                stream.removeTrack(t);
+              });
+              stream.addTrack(newVideoTrack);
+            } else {
+              this.previewStream.set(videoStream);
+            }
+            this.isCameraOn.set(true);
+            if (targetDeviceId) this.selectedCameraId.set(targetDeviceId);
+            console.log('[CameraService] Preview camera track acquired and enabled');
+          }
+        } catch (err) {
+          console.warn('[CameraService] Failed to acquire preview camera with ideal constraints, trying fallback...', err);
+          try {
+            const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            const fallbackTrack = fallbackStream.getVideoTracks()[0];
+            if (fallbackTrack) {
+              if (stream) {
+                stream.getVideoTracks().forEach((t) => {
+                  t.stop();
+                  stream.removeTrack(t);
+                });
+                stream.addTrack(fallbackTrack);
+              } else {
+                this.previewStream.set(fallbackStream);
+              }
+              this.isCameraOn.set(true);
+              console.log('[CameraService] Preview camera track acquired via fallback');
+            }
+          } catch (fallbackErr) {
+            console.error('[CameraService] Preview camera acquisition failed completely:', fallbackErr);
+            this.isCameraOn.set(false);
+          }
+        }
         return;
       }
 
@@ -291,7 +348,7 @@ export class CameraService {
       const activeRoom = this.resolveRoom(room);
 
       if (this.mediaMode() === 'preview' || !activeRoom) {
-        // Preview Mode
+        // Preview Mode: Stop all video tracks and remove from previewStream
         const stream = this.previewStream();
         if (stream) {
           stream.getVideoTracks().forEach((track) => {
@@ -300,6 +357,7 @@ export class CameraService {
           });
         }
         this.isCameraOn.set(false);
+        console.log('[CameraService] Preview camera disabled');
         return;
       }
 
@@ -335,7 +393,30 @@ export class CameraService {
       this.selectedCameraId.set(newDeviceId);
 
       if (this.mediaMode() === 'preview' || !activeRoom) {
-        await this.initPreviewSession(this.isCameraOn(), newDeviceId, this.selectedMicId() ?? undefined);
+        if (this.isCameraOn()) {
+          const videoConstraints: MediaStreamConstraints = {
+            video: { deviceId: { ideal: newDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false,
+          };
+          try {
+            const videoStream = await navigator.mediaDevices.getUserMedia(videoConstraints);
+            const newTrack = videoStream.getVideoTracks()[0];
+            if (newTrack) {
+              const stream = this.previewStream();
+              if (stream) {
+                stream.getVideoTracks().forEach((t) => {
+                  t.stop();
+                  stream.removeTrack(t);
+                });
+                stream.addTrack(newTrack);
+              } else {
+                this.previewStream.set(videoStream);
+              }
+            }
+          } catch (e) {
+            console.warn('[CameraService] Error switching preview camera device:', e);
+          }
+        }
         return;
       }
 
@@ -377,10 +458,28 @@ export class CameraService {
       if (this.mediaMode() === 'preview' || !activeRoom) {
         // Preview Mode
         const stream = this.previewStream();
-        if (stream) {
+        if (stream && stream.getAudioTracks().length > 0) {
           stream.getAudioTracks().forEach((track) => (track.enabled = true));
+          this.isMicOn.set(true);
+        } else {
+          try {
+            const audioStream = await navigator.mediaDevices.getUserMedia({
+              audio: targetDeviceId ? { deviceId: { ideal: targetDeviceId } } : true,
+              video: false,
+            });
+            const audioTrack = audioStream.getAudioTracks()[0];
+            if (audioTrack) {
+              if (stream) {
+                stream.addTrack(audioTrack);
+              } else {
+                this.previewStream.set(audioStream);
+              }
+              this.isMicOn.set(true);
+            }
+          } catch (e) {
+            console.warn('[CameraService] Failed to acquire preview audio track:', e);
+          }
         }
-        this.isMicOn.set(true);
         return;
       }
 
@@ -463,7 +562,28 @@ export class CameraService {
       this.selectedMicId.set(newDeviceId);
 
       if (this.mediaMode() === 'preview' || !activeRoom) {
-        await this.initPreviewSession(this.isCameraOn(), this.selectedCameraId() ?? undefined, newDeviceId);
+        try {
+          const audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: { deviceId: { ideal: newDeviceId } },
+            video: false,
+          });
+          const newAudioTrack = audioStream.getAudioTracks()[0];
+          if (newAudioTrack) {
+            newAudioTrack.enabled = this.isMicOn();
+            const stream = this.previewStream();
+            if (stream) {
+              stream.getAudioTracks().forEach((t) => {
+                t.stop();
+                stream.removeTrack(t);
+              });
+              stream.addTrack(newAudioTrack);
+            } else {
+              this.previewStream.set(audioStream);
+            }
+          }
+        } catch (e) {
+          console.warn('[CameraService] Error switching preview microphone device:', e);
+        }
         return;
       }
 
@@ -534,23 +654,37 @@ export class CameraService {
     return this.withMediaLock(async () => {
       const activeRoom = this.resolveRoom(room);
 
-      if (activeRoom) {
-        const publications = activeRoom.localParticipant.videoTrackPublications;
-        publications.forEach(async (pub: LocalTrackPublication) => {
-          if (pub.source === Track.Source.ScreenShare && pub.track) {
-            const track = pub.track;
-            await activeRoom.localParticipant.unpublishTrack(track);
-            track.stop();
+      if (activeRoom && activeRoom.localParticipant) {
+        const screenPubs = Array.from(activeRoom.localParticipant.videoTrackPublications.values()).filter(
+          (pub) => pub.source === Track.Source.ScreenShare
+        );
+
+        for (const pub of screenPubs) {
+          if (pub.track) {
+            try {
+              await activeRoom.localParticipant.unpublishTrack(pub.track);
+              pub.track.stop();
+            } catch (e) {
+              console.warn('[CameraService] Error unpublishing screen track:', e);
+            }
           }
-        });
+        }
+      }
+
+      if (this.localScreenTrack()) {
+        try {
+          this.localScreenTrack()?.stop();
+        } catch (e) {}
+        this.localScreenTrack.set(undefined);
       }
 
       if (this.screenTrack) {
-        this.screenTrack.stop();
+        try {
+          this.screenTrack.stop();
+        } catch (e) {}
         this.screenTrack = undefined;
       }
 
-      this.localScreenTrack.set(undefined);
       this.isScreenSharing.set(false);
       console.log('[CameraService] Screen share stopped');
     });
@@ -575,30 +709,57 @@ export class CameraService {
    * Stop all active tracks and release all hardware resources
    */
   async releaseAllMedia(room?: Room): Promise<void> {
+    // Reset operation lock to ensure releaseAllMedia never gets blocked
+    this.operationQueue = Promise.resolve();
+
     return this.withMediaLock(async () => {
       console.log('[CameraService] Releasing all media resources...');
 
       // 1. Stop preview stream
-      this.stopMediaPreviewInternal();
+      try {
+        this.stopMediaPreviewInternal();
+      } catch (e) {
+        console.warn('[CameraService] Error stopping preview stream:', e);
+      }
 
       // 2. Stop room tracks if room exists
       const activeRoom = this.resolveRoom(room);
       if (activeRoom) {
-        this.stopAllTracks(activeRoom);
+        try {
+          this.stopAllTracks(activeRoom);
+        } catch (e) {
+          console.warn('[CameraService] Error stopping room tracks:', e);
+        }
       }
 
       // 3. Stop screen share track
       if (this.screenTrack) {
-        this.screenTrack.stop();
+        try {
+          this.screenTrack.stop();
+        } catch (e) {}
         this.screenTrack = undefined;
       }
 
-      // 4. Reset all signals to IDLE defaults
+      // 4. Stop local camera track if any
+      if (this.localCameraTrack()) {
+        try {
+          this.localCameraTrack()?.stop();
+        } catch (e) {}
+        this.localCameraTrack.set(undefined);
+      }
+
+      // 5. Stop local screen track if any
+      if (this.localScreenTrack()) {
+        try {
+          this.localScreenTrack()?.stop();
+        } catch (e) {}
+        this.localScreenTrack.set(undefined);
+      }
+
+      // 6. Reset all signals to IDLE defaults
       this.isCameraOn.set(false);
       this.isMicOn.set(false);
       this.isScreenSharing.set(false);
-      this.localCameraTrack.set(undefined);
-      this.localScreenTrack.set(undefined);
       this.mediaMode.set('idle');
 
       console.log('[CameraService] All media resources successfully released');
@@ -612,23 +773,39 @@ export class CameraService {
     if (!room?.localParticipant) return;
 
     // Stop all video tracks (camera & screen share)
-    room.localParticipant.videoTrackPublications.forEach((trackPub) => {
-      if (trackPub.track) {
-        trackPub.track.stop();
-        room.localParticipant.unpublishTrack(trackPub.track);
-      }
-    });
+    try {
+      room.localParticipant.videoTrackPublications.forEach((trackPub) => {
+        try {
+          if (trackPub.track) {
+            trackPub.track.stop();
+          }
+        } catch (e) {
+          console.warn('[CameraService] Error stopping video track:', e);
+        }
+      });
+    } catch (e) {
+      console.warn('[CameraService] Error in videoTrackPublications iteration:', e);
+    }
 
     // Stop all audio tracks
-    room.localParticipant.audioTrackPublications.forEach((trackPub) => {
-      if (trackPub.track) {
-        trackPub.track.stop();
-        room.localParticipant.unpublishTrack(trackPub.track);
-      }
-    });
+    try {
+      room.localParticipant.audioTrackPublications.forEach((trackPub) => {
+        try {
+          if (trackPub.track) {
+            trackPub.track.stop();
+          }
+        } catch (e) {
+          console.warn('[CameraService] Error stopping audio track:', e);
+        }
+      });
+    } catch (e) {
+      console.warn('[CameraService] Error in audioTrackPublications iteration:', e);
+    }
 
     if (this.screenTrack) {
-      this.screenTrack.stop();
+      try {
+        this.screenTrack.stop();
+      } catch (e) {}
       this.screenTrack = undefined;
     }
   }

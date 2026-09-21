@@ -89,27 +89,44 @@
     background: var(--teams-bg-primary);
     overflow: hidden;
     position: relative;
+    padding: 10px 12px 10px 12px;
+    gap: 12px;
 }
 
 .main-conference-area {
     flex: 1 1 auto;
     min-width: 0;
     height: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    background: var(--teams-bg-primary);
     transition: flex 320ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .roster-sidebar-container {
-    flex: 0 0 auto;
+    flex: 0 0 360px;
+    width: 360px;
     height: 100%;
-    border-left: 1px solid var(--teams-border);
+    border-radius: 12px;
+    border: 1px solid var(--teams-border);
     background: var(--teams-bg-secondary);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
     z-index: 20;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .chat-window {
-    width: 30%;
-    height: calc(100vh - var(--teams-meeting-footer-size));
+    width: 360px;
+    height: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--teams-border);
+    background: var(--teams-bg-secondary);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    z-index: 20;
 }
 
 /* Conference Section - Main Video Area */
@@ -125,21 +142,23 @@
 
 .meet-container {
     width: 100%;
-    height: calc(100vh - 64px);
+    height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding: 8px;
+    padding: 0px !important;
+    margin: 0px !important;
 }
 
 .grid-container {
     flex: 1;
+    height: 100%;
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    padding: 8px;
+    gap: 10px;
+    padding: 0;
     min-height: 0;
-    max-height: 87vh;
+    max-height: 100%;
     overflow: hidden;
     align-items: stretch;
     align-content: center;
@@ -260,19 +279,22 @@
 }
 
 /* =====================================================
-   Footer Control Bar - Modern Teams/Meet Style
+   Footer Control Bar - Modern Teams/Meet Style (3-Zone Balanced)
    ===================================================== */
 .footer-section {
-    height: 64px;
+    height: 68px;
+    min-height: 68px;
     background: var(--teams-bg-secondary);
     backdrop-filter: blur(20px);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 16px;
+    padding: 0 24px;
     border-top: 1px solid var(--teams-border);
     position: relative;
     z-index: 30;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
+    flex-shrink: 0;
 }
 
 @media (max-width: 767.98px) {
@@ -360,154 +382,222 @@
     }
 
     .footer-section {
-        padding: 8px !important;
+        padding: 8px 12px !important;
+        height: auto;
     }
 
-    .footer-left,
-    .footer-right {
-        min-width: 0 !important;
+    .footer-left {
+        display: none !important;
     }
 
-    .footer-left .btn-danger {
+    .footer-center-controls {
+        justify-content: space-around !important;
+        width: 100% !important;
+    }
+
+    .btn-leave {
         padding: 6px 10px !important;
         font-size: 0;
-        /* Hides the text on mobile */
     }
 
-    .footer-left .btn-danger svg {
+    .btn-leave svg {
         margin: 0 !important;
     }
 }
 
-/* Footer Left - Leave Button & Recording Info */
+/* Footer Left - Meeting Info Pill */
 .footer-left {
     display: flex;
     align-items: center;
-    gap: 2px;
-    flex: 1;
-    min-width: 0;
+    min-width: 160px;
+    max-width: 260px;
+    flex-shrink: 0;
 }
 
-/* Footer Center - Time Display */
-.footer-center {
-    display: flex;
+.meeting-info-pill {
+    display: inline-flex;
     align-items: center;
-    justify-content: flex-end;
     gap: 8px;
-    color: var(--teams-text-secondary);
+    background: var(--teams-bg-tertiary);
+    border: 1px solid var(--teams-border);
+    border-radius: 20px;
+    padding: 6px 14px;
     font-size: 13px;
     font-weight: 500;
-    min-width: 80px;
+    color: var(--teams-text-primary);
+    max-width: 100%;
 }
 
-.footer-center .time {
-    opacity: 0.8;
+.pulse-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.7);
+    flex-shrink: 0;
+    animation: livePulse 2s infinite ease-in-out;
 }
 
-/* =====================================================
-   Control Buttons - Modern Rounded Style
-   ===================================================== */
-.footer-left a {
+@keyframes livePulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.25);
+        opacity: 0.6;
+    }
+}
+
+.meeting-name-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Footer Center - All Action Controls */
+.footer-center-controls {
     display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+}
+
+/* Leave Button - Modern Red Pill */
+.btn-leave {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #c4314b;
+    color: #ffffff;
+    border: none;
+    border-radius: 20px;
+    padding: 7px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    margin-right: 4px;
+    box-shadow: 0 2px 6px rgba(196, 49, 75, 0.25);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.btn-leave:hover {
+    background: #a82a40;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(196, 49, 75, 0.35);
+}
+
+.btn-leave:active {
+    transform: scale(0.97);
+}
+
+/* Control Buttons - Modern Circular Style */
+.footer-ctrl-btn {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 40px;
     height: 40px;
     border-radius: 50%;
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
     color: var(--teams-text-primary);
-}
-
-.footer-left a:hover {
-    background: var(--teams-bg-tertiary);
-}
-
-.footer-left a:active {
-    background: var(--teams-bg-tertiary);
-    transform: scale(0.95);
-}
-
-/* Control Button Group - Visual Grouping */
-.control-group {
-    display: flex;
-    align-items: center;
-    background: var(--teams-bg-tertiary);
-    border-radius: 24px;
-    padding: 4px;
-    gap: 2px;
-    margin: 0 4px;
-}
-
-.control-group a,
-.control-group .btn-group>a {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-}
-
-.control-group a:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-/* Leave Button - Red Pill */
-.footer-left .btn-danger {
-    background: var(--teams-danger) !important;
-    border: none !important;
-    border-radius: 24px !important;
-    padding: 0 16px !important;
-    height: 40px !important;
-    font-weight: 600 !important;
-    font-size: 13px !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    transition: all 0.2s ease !important;
-    white-space: nowrap;
+    position: relative;
+    text-decoration: none;
     flex-shrink: 0;
 }
 
-.footer-left .btn-danger:hover {
-    background: var(--teams-danger-hover) !important;
-    transform: scale(1.02);
+.footer-ctrl-btn:hover {
+    background: var(--teams-bg-tertiary);
+    color: var(--teams-text-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
-.footer-left .btn-danger svg {
-    width: 18px;
-    height: 18px;
+.footer-ctrl-btn:active {
+    transform: scale(0.95);
 }
 
-/* Remove ms-3 margin override for tighter spacing */
-.footer-left a.ms-3,
-.footer-left .btn-group.ms-3 {
-    margin-left: 0.5rem !important;
+.footer-ctrl-btn.active,
+.footer-ctrl-btn.hand-raised {
+    background: rgba(91, 95, 199, 0.15);
+    color: var(--teams-accent);
+    border-color: rgba(91, 95, 199, 0.3);
 }
 
-/* Separator - Subtle Vertical Line */
-.footer-left span.mx-3 {
-    color: var(--teams-border);
-    font-size: 18px;
-    opacity: 0.5;
-    margin: 0 8px !important;
+/* Vertical Separator Divider */
+.footer-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--teams-border);
+    margin: 0 4px;
+    flex-shrink: 0;
 }
 
 /* Participant Count Badge */
-.user-count {
+.user-count-badge {
     position: absolute;
-    top: -4px;
-    right: -4px;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--teams-accent);
+    top: 1px;
+    right: 1px;
+    background: #c4314b;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 17px;
+    height: 17px;
+    border-radius: 9px;
+    padding: 0 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 9px;
-    font-weight: 700;
-    color: #fff;
+    border: 2px solid var(--teams-bg-secondary);
+    line-height: 1;
+}
+
+/* Footer Right - Status, Presenter & Time */
+.footer-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    min-width: 160px;
+    flex-shrink: 0;
+}
+
+.recording-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.25);
+    border-radius: 16px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.presenter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--teams-bg-tertiary);
+    border: 1px solid var(--teams-border);
+    border-radius: 16px;
+    padding: 4px 12px;
+    color: var(--teams-text-primary);
+    font-size: 12px;
+}
+
+.footer-time {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--teams-text-secondary);
 }
 
 /* =====================================================
@@ -2122,24 +2212,7 @@ textarea:focus {
     cursor: pointer !important;
 }
 
-/* =====================================================
-   FOOTER SECTION - Full Width
-   ===================================================== */
 
-.footer-section {
-    display: flex;
-    width: 100% !important;
-    position: relative;
-    background: var(--meet-bg-secondary, #1e1e1e);
-    align-items: center;
-    min-height: 60px;
-}
-
-.footer-left {
-    display: flex;
-    gap: 0.75rem;
-    align-items: center;
-}
 
 
 /* Full meeting container */
@@ -2150,6 +2223,7 @@ textarea:focus {
     right: 0;
     bottom: 0;
     background: var(--meet-bg-primary);
+    border-left: 1px solid var(--teams-border);
     animation: fadeIn 0.2s ease-out;
     z-index: 20 !important;
     transition: background-color 0.3s ease;
@@ -2168,28 +2242,44 @@ textarea:focus {
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(circle at center, #1a1f2c 0%, #0d1017 100%);
+    background: radial-gradient(circle at 50% 30%, var(--theme-bg-secondary, #ffffff) 0%, var(--theme-bg-primary, #f5f5f7) 100%);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
-    padding: 20px;
+    padding: 24px;
+    transition: background 0.3s ease;
+}
+
+body[data-theme="dark"] .joining-overlay,
+:host-context([data-theme="dark"]) .joining-overlay,
+:host-context(.dark-mode) .joining-overlay {
+    background: radial-gradient(circle at 50% 30%, #1f222b 0%, #11141c 100%);
 }
 
 .joining-card {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--theme-bg-secondary, #ffffff);
+    border: 1px solid var(--theme-border, rgba(0, 0, 0, 0.08));
     border-radius: 24px;
-    padding: 48px 40px;
+    padding: 44px 36px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     max-width: 440px;
     width: 100%;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    box-shadow: 0 16px 48px -8px var(--theme-shadow, rgba(0, 0, 0, 0.1)), 0 4px 16px rgba(0, 0, 0, 0.04);
     backdrop-filter: blur(20px);
     animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+body[data-theme="dark"] .joining-card,
+:host-context([data-theme="dark"]) .joining-card,
+:host-context(.dark-mode) .joining-card {
+    background: rgba(30, 34, 46, 0.85);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes fadeInScale {
@@ -2211,19 +2301,19 @@ textarea:focus {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
 }
 
 .joining-icon {
     width: 72px;
     height: 72px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, #5b5fc7 0%, #464eb8 100%);
     color: #ffffff;
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 12px 28px rgba(79, 70, 229, 0.4);
+    box-shadow: 0 10px 24px rgba(91, 95, 199, 0.35);
     z-index: 2;
 }
 
@@ -2232,7 +2322,7 @@ textarea:focus {
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    border: 2px solid rgba(99, 102, 241, 0.5);
+    border: 2px solid rgba(91, 95, 199, 0.4);
     animation: pulseRingAnim 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
 }
 
@@ -2254,32 +2344,47 @@ textarea:focus {
 }
 
 .joining-title {
-    color: #ffffff;
-    font-size: 24px;
+    color: var(--theme-text-primary, #242424);
+    font-size: 22px;
     font-weight: 700;
-    margin: 0 0 8px 0;
-    letter-spacing: -0.5px;
+    margin: 0 0 6px 0;
+    letter-spacing: -0.3px;
+}
+
+body[data-theme="dark"] .joining-title,
+:host-context([data-theme="dark"]) .joining-title {
+    color: #ffffff;
 }
 
 .joining-subtitle {
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--theme-text-secondary, #616161);
     font-size: 14px;
-    margin: 0 0 28px 0;
+    margin: 0 0 24px 0;
+}
+
+body[data-theme="dark"] .joining-subtitle,
+:host-context([data-theme="dark"]) .joining-subtitle {
+    color: rgba(255, 255, 255, 0.65);
 }
 
 .joining-progress {
     width: 100%;
     height: 4px;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--theme-bg-tertiary, #e8e8e8);
     border-radius: 4px;
     overflow: hidden;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
+}
+
+body[data-theme="dark"] .joining-progress,
+:host-context([data-theme="dark"]) .joining-progress {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .progress-bar-animated {
     width: 40%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, #6366f1, #a855f7, transparent);
+    background: linear-gradient(90deg, transparent, #5b5fc7, #7c3aed, transparent);
     border-radius: 4px;
     animation: progressIndeterminate 1.5s ease-in-out infinite;
 }
@@ -2296,20 +2401,77 @@ textarea:focus {
 
 .joining-badges {
     display: flex;
-    gap: 16px;
+    gap: 12px;
     justify-content: center;
     flex-wrap: wrap;
+    margin-bottom: 8px;
 }
 
 .badge-item {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--theme-text-muted, #707070);
     font-size: 12px;
     font-weight: 500;
-    background: rgba(255, 255, 255, 0.03);
-    padding: 6px 12px;
+    background: var(--theme-bg-tertiary, #f0f0f2);
+    padding: 6px 14px;
     border-radius: 100px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--theme-border, rgba(0, 0, 0, 0.06));
+}
+
+body[data-theme="dark"] .badge-item,
+:host-context([data-theme="dark"]) .badge-item {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.6);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Cancel Button on Joining Screen */
+.joining-action-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.btn-cancel-joining {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--theme-bg-tertiary, #edebe9);
+    border: 1px solid var(--theme-border, rgba(0, 0, 0, 0.1));
+    color: var(--theme-text-primary, #323130);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-cancel-joining:hover {
+    background: #c4314b;
+    border-color: #c4314b;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(196, 49, 75, 0.25);
+    transform: translateY(-1px);
+}
+
+.btn-cancel-joining:active {
+    transform: translateY(0);
+}
+
+body[data-theme="dark"] .btn-cancel-joining,
+:host-context([data-theme="dark"]) .btn-cancel-joining {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+body[data-theme="dark"] .btn-cancel-joining:hover,
+:host-context([data-theme="dark"]) .btn-cancel-joining:hover {
+    background: #c4314b;
+    border-color: #c4314b;
+    color: #ffffff;
 }
