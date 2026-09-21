@@ -1,4 +1,4 @@
-import { Component, ElementRef, inject, OnDestroy, signal, ViewChild } from '@angular/core';
+import { Component, ElementRef, inject, OnDestroy, signal, ViewChild, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MediaPermissions, MediaPermissionsService } from '../providers/services/media-permission.service';
@@ -215,14 +215,29 @@ export class PreviewComponent implements OnDestroy {
         };
     }
 
-    ngOnDestroy() {
-        // Use centralized cleanup
+    @HostListener('window:beforeunload')
+    onBeforeUnload(): void {
         if (!this.meetingService.inMeeting()) {
-            this.meetingService.releaseAllMedia();
+            try {
+                this.meetingService.releaseAllMedia();
+            } catch (e) {}
+        }
+    }
+
+    ngOnDestroy() {
+        // Use centralized cleanup if not transitioning into an active meeting
+        if (!this.meetingService.inMeeting()) {
+            this.meetingService.releaseAllMedia().catch((err) => {
+                console.warn('[PreviewComponent] Error in releaseAllMedia during ngOnDestroy:', err);
+            });
         }
         this.clearVideoElement();
-        this.subscription?.unsubscribe();
-        this.subscriptions.unsubscribe();
+        try {
+            this.subscription?.unsubscribe();
+        } catch (e) {}
+        try {
+            this.subscriptions.unsubscribe();
+        } catch (e) {}
         this.destroyPermission();
     }
 

@@ -53,7 +53,165 @@ export class CameraService {
   private operationQueue: Promise<any> = Promise.resolve();
   private screenTrack?: MediaStreamTrack;
 
-  constructor() {}
+  constructor() {
+    this.setupLifecycleListeners();
+  }
+
+  // ==================== Lifecycle & Hardware Edge Cases ====================
+
+  /**
+   * Set up global listeners for device change, tab visibility, and browser teardown
+   */
+  private setupLifecycleListeners(): void {
+    if (typeof window === 'undefined') return;
+
+    // 1. Hardware Hot-Plugging: Device change listener (USB webcam/mic plug or unplug)
+    if (navigator?.mediaDevices?.addEventListener) {
+      navigator.mediaDevices.addEventListener('devicechange', async () => {
+        console.log('[CameraService] Device change detected (hot-plugging event)');
+        await this.handleDeviceChange();
+      });
+    }
+
+    // 2. Tab Background / Visibility Change
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('visibilitychange', () => {
+        this.handleVisibilityChange();
+      });
+    }
+
+    // 3. Browser Back / Refresh / Close Synchronous Teardown
+    window.addEventListener('beforeunload', () => {
+      this.synchronousTeardown();
+    });
+
+    window.addEventListener('pagehide', () => {
+      this.synchronousTeardown();
+    });
+  }
+
+  /**
+   * Handle dynamic device change (hot-plugging / unplugging)
+   */
+  private async handleDeviceChange(): Promise<void> {
+    try {
+      const { cams, mics } = await this.listDevices();
+
+      // Check Camera fallback if active camera was unplugged
+      if (this.isCameraOn()) {
+        const activeCamId = this.selectedCameraId();
+        const camStillConnected = cams.some((c) => c.deviceId === activeCamId);
+
+        if (!camStillConnected && activeCamId) {
+          console.warn('[CameraService] Active camera unplugged! Falling back to default system camera...');
+          if (cams.length > 0) {
+            const fallbackCamId = cams[0].deviceId;
+            await this.switchCamera(this.room() || fallbackCamId, fallbackCamId);
+          } else {
+            console.warn('[CameraService] No other camera available, disabling camera');
+            await this.disableCamera();
+          }
+        }
+      }
+
+      // Check Microphone fallback if active mic was unplugged
+      if (this.isMicOn()) {
+        const activeMicId = this.selectedMicId();
+        const micStillConnected = mics.some((m) => m.deviceId === activeMicId);
+
+        if (!micStillConnected && activeMicId) {
+          console.warn('[CameraService] Active microphone unplugged! Falling back to default system mic...');
+          if (mics.length > 0) {
+            const fallbackMicId = mics[0].deviceId;
+            await this.switchMic(this.room() || fallbackMicId, fallbackMicId);
+          } else {
+            console.warn('[CameraService] No other microphone available, disabling mic');
+            await this.disableMic();
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[CameraService] Error handling device change:', err);
+    }
+  }
+
+  /**
+   * Handle tab visibility changes
+   */
+  private handleVisibilityChange(): void {
+    if (document.visibilityState === 'hidden') {
+      console.log('[CameraService] Tab switched to background - preserving audio and active connections');
+    } else if (document.visibilityState === 'visible') {
+      console.log('[CameraService] Tab switched to foreground - verifying live media tracks');
+      // Verify preview video track is still active if preview mode is on
+      if (this.mediaMode() === 'preview') {
+        const previewStream = this.previewStream();
+        if (previewStream) {
+          const videoTrack = previewStream.getVideoTracks()[0];
+          if (videoTrack && videoTrack.readyState === 'ended' && this.isCameraOn()) {
+            console.warn('[CameraService] Preview track ended while backgrounded, re-acquiring...');
+            this.enableCamera();
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Synchronous track disposal for browser exit / reload / beforeunload
+   */
+  private synchronousTeardown(): void {
+    try {
+      // 1. Stop preview stream tracks synchronously
+      const stream = this.previewStream();
+      if (stream) {
+        stream.getTracks().forEach((track) => {
+          try {
+            track.stop();
+          } catch (e) {}
+        });
+      }
+
+      // 2. Stop local camera track
+      const camTrack = this.localCameraTrack();
+      if (camTrack) {
+        try {
+          camTrack.stop();
+        } catch (e) {}
+      }
+
+      // 3. Stop local screen track
+      const screenTrack = this.localScreenTrack();
+      if (screenTrack) {
+        try {
+          screenTrack.stop();
+        } catch (e) {}
+      }
+
+      if (this.screenTrack) {
+        try {
+          this.screenTrack.stop();
+        } catch (e) {}
+      }
+
+      // 4. Stop room participant tracks synchronously
+      const activeRoom = this.room();
+      if (activeRoom?.localParticipant) {
+        activeRoom.localParticipant.videoTrackPublications.forEach((p) => {
+          try {
+            p.track?.stop();
+          } catch (e) {}
+        });
+        activeRoom.localParticipant.audioTrackPublications.forEach((p) => {
+          try {
+            p.track?.stop();
+          } catch (e) {}
+        });
+      }
+    } catch (e) {
+      console.warn('[CameraService] Error during synchronous teardown:', e);
+    }
+  }
 
   // ==================== Concurrency & Lock Helpers ====================
 
@@ -706,7 +864,7 @@ export class CameraService {
   // ==================== Complete Hardware Teardown ====================
 
   /**
-   * Stop all active tracks and release all hardware resources
+   * Stop all active tracks, dispose processors, and release all hardware resources
    */
   async releaseAllMedia(room?: Room): Promise<void> {
     // Reset operation lock to ensure releaseAllMedia never gets blocked
@@ -726,7 +884,7 @@ export class CameraService {
       const activeRoom = this.resolveRoom(room);
       if (activeRoom) {
         try {
-          this.stopAllTracks(activeRoom);
+          await this.stopAllTracksAsync(activeRoom);
         } catch (e) {
           console.warn('[CameraService] Error stopping room tracks:', e);
         }
@@ -741,17 +899,22 @@ export class CameraService {
       }
 
       // 4. Stop local camera track if any
-      if (this.localCameraTrack()) {
+      const camTrack = this.localCameraTrack();
+      if (camTrack) {
         try {
-          this.localCameraTrack()?.stop();
+          await camTrack.stopProcessor();
+        } catch (e) {}
+        try {
+          camTrack.stop();
         } catch (e) {}
         this.localCameraTrack.set(undefined);
       }
 
       // 5. Stop local screen track if any
-      if (this.localScreenTrack()) {
+      const scrTrack = this.localScreenTrack();
+      if (scrTrack) {
         try {
-          this.localScreenTrack()?.stop();
+          scrTrack.stop();
         } catch (e) {}
         this.localScreenTrack.set(undefined);
       }
@@ -767,12 +930,55 @@ export class CameraService {
   }
 
   /**
-   * Stop all tracks published in a LiveKit room
+   * Stop and unpublish all tracks published in a LiveKit room asynchronously
+   */
+  private async stopAllTracksAsync(room: Room): Promise<void> {
+    if (!room?.localParticipant) return;
+
+    // Stop all video tracks (camera & screen share)
+    const videoPubs = Array.from(room.localParticipant.videoTrackPublications.values());
+    for (const pub of videoPubs) {
+      if (pub.track) {
+        try {
+          const videoTrack = pub.track as LocalVideoTrack;
+          await videoTrack.stopProcessor();
+        } catch (e) {}
+        try {
+          room.localParticipant.unpublishTrack(pub.track);
+          pub.track.stop();
+        } catch (e) {
+          console.warn('[CameraService] Error unpublishing/stopping video track:', e);
+        }
+      }
+    }
+
+    // Stop all audio tracks
+    const audioPubs = Array.from(room.localParticipant.audioTrackPublications.values());
+    for (const pub of audioPubs) {
+      if (pub.track) {
+        try {
+          room.localParticipant.unpublishTrack(pub.track);
+          pub.track.stop();
+        } catch (e) {
+          console.warn('[CameraService] Error unpublishing/stopping audio track:', e);
+        }
+      }
+    }
+
+    if (this.screenTrack) {
+      try {
+        this.screenTrack.stop();
+      } catch (e) {}
+      this.screenTrack = undefined;
+    }
+  }
+
+  /**
+   * Stop all tracks published in a LiveKit room (synchronous safe version)
    */
   stopAllTracks(room: Room): void {
     if (!room?.localParticipant) return;
 
-    // Stop all video tracks (camera & screen share)
     try {
       room.localParticipant.videoTrackPublications.forEach((trackPub) => {
         try {
@@ -787,7 +993,6 @@ export class CameraService {
       console.warn('[CameraService] Error in videoTrackPublications iteration:', e);
     }
 
-    // Stop all audio tracks
     try {
       room.localParticipant.audioTrackPublications.forEach((trackPub) => {
         try {

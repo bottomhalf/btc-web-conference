@@ -530,23 +530,6 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
 
-    // ==================== Lifecycle Cleanup ====================
-
-    async ngOnDestroy() {
-        // CRITICAL: Stop all tracks and leave room before destroying component
-        await this.leaveRoom();
-        if (this.timerSubscription) {
-            this.timerSubscription.unsubscribe();
-        }
-        if (this.subscription) {
-            this.subscription.unsubscribe();
-        }
-        this.mediaPerm.destroy();
-        this.subscriptions.unsubscribe();
-        this.subs.forEach(s => s.unsubscribe());
-        this.detachScreen();
-        this.stopTimer();
-    }
 
     async selectBackground(option: BackgroundOption) {
         if (this.isProcessing) return;
@@ -983,7 +966,66 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
 
     toggleParticipants() {
         this.isChatEnabled = false;
-        this.isViewParticipant = !this.isViewParticipant
+        this.isViewParticipant = !this.isViewParticipant;
+    }
+
+    // ========================================
+    // LIFECYCLE & TEARDOWN
+    // ========================================
+
+    @HostListener('window:beforeunload')
+    onBeforeUnload(): void {
+        if (this.meetingService.inMeeting()) {
+            try {
+                this.meetingService.releaseAllMedia();
+            } catch (e) {}
+        }
+    }
+
+    ngOnDestroy(): void {
+        console.log('[MeetingComponent] ngOnDestroy triggered - executing teardown');
+
+        // If still in meeting, perform complete room and media teardown
+        if (this.meetingService.inMeeting()) {
+            this.meetingService.leaveRoom(false).catch((err) => {
+                console.warn('[MeetingComponent] Error in leaveRoom during ngOnDestroy:', err);
+            });
+        } else {
+            this.meetingService.releaseAllMedia().catch((err) => {
+                console.warn('[MeetingComponent] Error in releaseAllMedia during ngOnDestroy:', err);
+            });
+        }
+
+        // Clean up all subscriptions and auxiliary timers/screens
+        try {
+            this.mediaPerm.destroy();
+        } catch (e) {}
+        try {
+            this.detachScreen();
+        } catch (e) {}
+        try {
+            this.stopTimer();
+        } catch (e) {}
+        try {
+            this.timerSubscription?.unsubscribe();
+        } catch (e) {}
+        try {
+            this.subscription?.unsubscribe();
+        } catch (e) {}
+        try {
+            this.subscriptions?.unsubscribe();
+        } catch (e) {}
+        try {
+            this.subs?.forEach((s) => s?.unsubscribe());
+        } catch (e) {}
+        try {
+            this.watchSubscription?.unsubscribe();
+        } catch (e) {}
+
+        // Remove window popstate listener
+        try {
+            window.removeEventListener('popstate', this.popStateListener);
+        } catch (e) {}
     }
 }
 

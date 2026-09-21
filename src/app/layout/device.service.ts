@@ -13,7 +13,15 @@ export class DeviceService implements OnInit {
     microphones = signal<MediaDeviceInfo[] | null>(null);
     speakers = signal<MediaDeviceInfo[] | null>(null);
 
-    constructor(private http: HttpService) { }
+    constructor(private http: HttpService) {
+        this.loadDevices();
+        if (typeof window !== 'undefined' && navigator?.mediaDevices?.addEventListener) {
+            navigator.mediaDevices.addEventListener('devicechange', () => {
+                console.log('[DeviceService] Hardware device change detected, refreshing device list...');
+                this.loadDevices();
+            });
+        }
+    }
 
     ngOnInit(): void {
         this.loadDevices();
