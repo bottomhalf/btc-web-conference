@@ -454,24 +454,38 @@ export class RoomService {
   }
 
   async leaveRoom() {
-    // Stop all local tracks before disconnecting
-    const room = this.room();
-    if (room) {
-      // Stop all published tracks (camera, mic, screen share)
-      room.localParticipant.trackPublications.forEach((publication) => {
-        if (publication.track) {
-          publication.track.stop();
-          console.log(`Stopped track: ${publication.track.kind}`);
+    try {
+      // Stop all local tracks before disconnecting
+      const room = this.room();
+      if (room) {
+        // Stop all published tracks (camera, mic, screen share)
+        try {
+          room.localParticipant.trackPublications.forEach((publication) => {
+            if (publication.track) {
+              try {
+                publication.track.stop();
+                console.log(`Stopped track: ${publication.track.kind}`);
+              } catch (e) {}
+            }
+          });
+        } catch (e) {
+          console.warn('[RoomService] Error stopping local tracks:', e);
         }
-      });
+
+        try {
+          await room.disconnect();
+        } catch (e) {
+          console.warn('[RoomService] Error disconnecting LiveKit room:', e);
+        }
+      }
+    } finally {
+      this.room.set(undefined);
+      this.remoteTracksMap.set(new Map());
+      this.remoteParticipants.set(new Map());
+      this.participantMediaStatus.set(new Map());
+      this.activeSpeakers.set(new Set());
+      this.lastActiveSpeaker.set(null);
     }
-    await this.room()?.disconnect();
-    this.room.set(undefined);
-    this.remoteTracksMap.set(new Map());
-    this.remoteParticipants.set(new Map());
-    this.participantMediaStatus.set(new Map());
-    this.activeSpeakers.set(new Set());
-    this.lastActiveSpeaker.set(null);
   }
 
   private clearAfterDelay() {

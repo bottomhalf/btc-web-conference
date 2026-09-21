@@ -1,13 +1,12 @@
-import { Component, ElementRef, inject, OnDestroy, signal, ViewChild } from '@angular/core';
+import { Component, ElementRef, inject, OnDestroy, signal, ViewChild, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { LocalVideoTrack, Room } from 'livekit-client';
 import { MediaPermissions, MediaPermissionsService } from '../providers/services/media-permission.service';
 import { Subscription } from 'rxjs';
 import { LocalService } from '../providers/services/local.service';
 import { iNavigation } from '../providers/services/iNavigation';
 import { AjaxService } from '../providers/services/ajax.service';
-import { Dashboard, MeetingId } from '../models/constant';
+import { ChatPage, Dashboard, MeetingId } from '../models/constant';
 import { ResponseModel, User } from '../models/model';
 import { DeviceService } from '../layout/device.service';
 import { CallType } from '../models/conference_call/call_model';
@@ -34,14 +33,10 @@ export class PreviewComponent implements OnDestroy {
     selectedMic: string | null = null;
     selectedSpeaker: string | null = null;
 
-    // Room state
-    room = signal<Room | undefined>(undefined);
-    localTrack = signal<LocalVideoTrack | undefined>(undefined);
-
     // Meeting details
     meetingId: string | null = null;
     meetingTitle: string = "";
-    callType: string = CallType.AUDIO;
+    callType: string = CallType.VIDEO;
 
     // Media state - now managed by MeetingService
     private subscription?: Subscription;
@@ -58,15 +53,14 @@ export class PreviewComponent implements OnDestroy {
     isValidMeetingId: boolean = false;
     autoJoin: boolean = false;
     private autoJoinTriggered: boolean = false;
+    isCopiedMeetingId: boolean = false;
+    isPlayingTestSound: boolean = false;
 
     // Permission Modal State
     showPermissionDeniedModal: boolean = false;
     selectedBrowser: string = 'chrome'; // Default to chrome
     accessToken: string = "";
     queryMeetingId: string | null = null;
-
-    // Guest Lobby State
-    isWaitingInLobby: boolean = false;
     private subscriptions = new Subscription();
     private conversationId: string = null;
     readonly isMobileView = inject(ViewPortService).isMobileView;
@@ -76,10 +70,10 @@ export class PreviewComponent implements OnDestroy {
         private route: ActivatedRoute,
         private router: Router,
         private mediaPerm: MediaPermissionsService,
-        private local: LocalService,
-        private meetingService: MeetingService,
+        public local: LocalService,
+        public meetingService: MeetingService,
         private http: AjaxService,
-        private deviceService: DeviceService,
+        public deviceService: DeviceService,
         private ws: ConfeetSocketService,
         private serverEventService: ServerEventService,
         private initiateAudioJoiningRequestService: InitiateAudioJoiningRequestService
@@ -91,27 +85,24 @@ export class PreviewComponent implements OnDestroy {
         });
     }
 
-    // ==================== Lifecycle ====================
-
     async ngOnInit() {
         this.initializeDeviceSelection();
+        this.permissions = this.mediaPerm.getCurrentPermissions();
+        // this.subscribeToPermissions();
 
         if (this.isLoggedIn) {
             this.readRoutedMeetingDetail();
-            if (this.meetingId) {
-                this.subscribeToPermissions();
-            } else if (this.queryMeetingId) {
+            if (this.queryMeetingId && !this.meetingId) {
                 this.meetingId = this.queryMeetingId;
                 await this.validatMeetingId();
             } else {
                 await this.initializeMediaStream();
-                this.subscribeToPermissions();
             }
         } else {
             if (this.queryMeetingId && !this.meetingId) {
                 this.meetingId = this.queryMeetingId;
             }
-            if (this.permissions.camera !== 'granted' || this.permissions.microphone !== 'granted') {
+            if (this.permissions.camera === 'denied' || this.permissions.microphone === 'denied') {
                 try {
                     await this.mediaPerm.requestPermissions(true, true);
                     await this.deviceService.loadDevices();
@@ -122,6 +113,59 @@ export class PreviewComponent implements OnDestroy {
             this.autoSelectDevices();
             await this.validatMeetingId();
         }
+    }
+
+    hasPermissionDenied(): boolean {
+        if (this.isAudioOnlyCall()) {
+            return this.permissions.microphone === 'denied';
+        }
+        return this.permissions.camera === 'denied' || this.permissions.microphone === 'denied';
+    }
+
+    getUserDisplayName(): string {
+        if (this.isLoggedIn) {
+            const u = this.local.getUser();
+            return u ? (u.firstName + (u.lastName ? ' ' + u.lastName : '')) : 'You';
+        }
+        return this.userName || 'Guest User';
+    }
+
+    getUserInitials(): string {
+        const name = this.getUserDisplayName();
+        if (!name) return 'U';
+        const parts = name.trim().split(' ');
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[1][0]).toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    }
+
+    copyMeetingId(): void {
+        if (!this.meetingId) return;
+        navigator.clipboard.writeText(this.meetingId);
+        this.isCopiedMeetingId = true;
+        setTimeout(() => {
+            this.isCopiedMeetingId = false;
+        }, 2000);
+    }
+
+    testSpeakerSound(): void {
+        if (this.isPlayingTestSound) return;
+        this.isPlayingTestSound = true;
+        const audio = new Audio('assets/notification-tone.wav');
+        if ((audio as any).setSinkId && this.selectedSpeaker) {
+            (audio as any).setSinkId(this.selectedSpeaker).catch(() => { });
+        }
+        audio.play()
+            .then(() => {
+                setTimeout(() => {
+                    this.isPlayingTestSound = false;
+                }, 1400);
+            })
+            .catch(err => {
+                console.log('Audio test error:', err);
+                this.isPlayingTestSound = false;
+            });
     }
 
     /** Validate meeting ID for non-logged-in users or query links */
@@ -171,16 +215,30 @@ export class PreviewComponent implements OnDestroy {
         };
     }
 
-    ngOnDestroy() {
-        // Use centralized cleanup
+    @HostListener('window:beforeunload')
+    onBeforeUnload(): void {
         if (!this.meetingService.inMeeting()) {
-            this.meetingService.releaseAllMedia();
+            try {
+                this.meetingService.releaseAllMedia();
+            } catch (e) {}
+        }
+    }
+
+    ngOnDestroy() {
+        // Use centralized cleanup if not transitioning into an active meeting
+        if (!this.meetingService.inMeeting()) {
+            this.meetingService.releaseAllMedia().catch((err) => {
+                console.warn('[PreviewComponent] Error in releaseAllMedia during ngOnDestroy:', err);
+            });
         }
         this.clearVideoElement();
-        this.subscription?.unsubscribe();
-        this.subscriptions.unsubscribe();
+        try {
+            this.subscription?.unsubscribe();
+        } catch (e) {}
+        try {
+            this.subscriptions.unsubscribe();
+        } catch (e) {}
         this.destroyPermission();
-        this.mediaPerm.destroy();
     }
 
     // ==================== Permission Modal Methods ====================
@@ -369,6 +427,8 @@ export class PreviewComponent implements OnDestroy {
 
         if (stream) {
             this.attachStreamToVideo(stream);
+            if (stream.getVideoTracks().length > 0) this.permissions.camera = 'granted';
+            if (stream.getAudioTracks().length > 0) this.permissions.microphone = 'granted';
         }
     }
 
@@ -382,6 +442,8 @@ export class PreviewComponent implements OnDestroy {
 
         if (stream) {
             this.attachStreamToVideo(stream);
+            if (stream.getVideoTracks().length > 0) this.permissions.camera = 'granted';
+            if (stream.getAudioTracks().length > 0) this.permissions.microphone = 'granted';
         }
     }
 
@@ -393,11 +455,15 @@ export class PreviewComponent implements OnDestroy {
 
     private attachStreamToVideo(stream?: MediaStream) {
         const mediaStream = stream || this.meetingService.previewStream();
-        if (this.previewVideo?.nativeElement && mediaStream) {
-            this.previewVideo.nativeElement.srcObject = mediaStream;
-            this.previewVideo.nativeElement.muted = true;
-            this.previewVideo.nativeElement.play();
-        }
+        if (!mediaStream) return;
+
+        setTimeout(() => {
+            if (this.previewVideo?.nativeElement && mediaStream) {
+                this.previewVideo.nativeElement.srcObject = mediaStream;
+                this.previewVideo.nativeElement.muted = true;
+                this.previewVideo.nativeElement.play().catch(e => console.warn('Preview video play warning:', e));
+            }
+        }, 50);
     }
 
     private clearVideoElement() {
@@ -435,22 +501,17 @@ export class PreviewComponent implements OnDestroy {
         this.meetingService.userJoinRoom();
     }
 
-    cancelLobbyRequest() {
-        this.isWaitingInLobby = false;
-        this.startPreview();
-    }
-
     private validatePermissions(): boolean {
         const hasCamera = (this.deviceService.cameras()?.length || 0) > 0;
         const wantsVideo = this.meetingService.isCameraOn();
 
-        if (this.isVideoCall() && wantsVideo && hasCamera && this.permissions.camera !== 'granted') {
-            alert("Please allow camera access for video calls.");
+        if (this.isVideoCall() && wantsVideo && hasCamera && this.permissions.camera === 'denied') {
+            alert("Please allow camera access in your browser to join with video.");
             return false;
         }
 
-        if (this.permissions.microphone !== 'granted') {
-            alert("Please allow microphone access.");
+        if (this.permissions.microphone === 'denied') {
+            alert("Please allow microphone access in your browser to join.");
             return false;
         }
 
@@ -482,15 +543,12 @@ export class PreviewComponent implements OnDestroy {
 
     /** Toggle camera - uses centralized MeetingService */
     async toggleCamera() {
-        if (!this.isVideoCall()) {
-            return; // Cannot toggle camera in audio-only calls
-        }
-
+        this.callType = CallType.VIDEO;
         await this.meetingService.togglePreviewCamera(this.selectedCamera ?? undefined);
 
         // Re-attach stream to video element
         const stream = this.meetingService.previewStream();
-        if (stream) {
+        if (stream && this.meetingService.isCameraOn()) {
             this.attachStreamToVideo(stream);
         } else {
             this.clearVideoElement();
@@ -498,8 +556,8 @@ export class PreviewComponent implements OnDestroy {
     }
 
     /** Toggle mic - uses centralized MeetingService */
-    toggleMic() {
-        this.meetingService.togglePreviewMic();
+    async toggleMic() {
+        await this.meetingService.togglePreviewMic(this.selectedMic ?? undefined);
     }
 
     // ==================== User Management ====================
@@ -507,20 +565,20 @@ export class PreviewComponent implements OnDestroy {
     private saveUser() {
         let user: User;
 
-        // Use centralized state from MeetingService
-        const isCameraOn = this.meetingService.isCameraOn();
-        const isMicOn = this.meetingService.isMicOn();
+        // By default when joining room/meeting: camera disabled (false) and mic enabled (true)
+        const isCameraOn = false;
+        const isMicOn = true;
 
         if (this.local.isLoggedIn()) {
             user = this.local.getUser();
-            user.isCameraOn = this.isVideoCall() && isCameraOn;
+            user.isCameraOn = isCameraOn;
             user.isMicOn = isMicOn;
         } else {
             const existingUser = this.local.getUser();
             user = {
                 userId: existingUser?.userId || ('guest_' + Math.random().toString(36).substring(2, 9)),
                 isMicOn: isMicOn,
-                isCameraOn: this.isVideoCall() && isCameraOn,
+                isCameraOn: isCameraOn,
                 firstName: this.userName,
                 isLogin: false,
             };
@@ -532,6 +590,6 @@ export class PreviewComponent implements OnDestroy {
     // ==================== Navigation ====================
 
     navToDahsboard() {
-        this.nav.navigate(Dashboard, null);
+        this.nav.navigate(ChatPage, null);
     }
 }

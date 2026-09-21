@@ -31,6 +31,7 @@ import { NotificationService } from '../notifications/services/notification.serv
 import { ChatService } from '../chat/chat.service';
 import { Conversation } from '../components/global-search/search.models';
 import { ViewPortService } from '../providers/services/view-port.service';
+import { DeviceService } from '../layout/device.service';
 
 @Component({
     selector: 'app-meeting',
@@ -106,6 +107,8 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     private modalInstance: any;
     private videoModalInstance: any;
     private shareLinkModalInstance: any;
+    public deviceService = inject(DeviceService);
+    isPlayingTestAudio = false;
     currentBrowser: string = "";
     textMessage: string = "";
     /** Get video track for a participant */
@@ -118,8 +121,12 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     isProcessing = false;
     // Subscriptions - consolidated for cleanup
     private subscriptions = new Subscription();
-    isMyshareScreen: boolean = false;
-    localScreenTrack: LocalVideoTrack | null = null;
+    get isMyshareScreen(): boolean {
+        return this.meetingService.isScreenSharing();
+    }
+    get localScreenTrack(): LocalVideoTrack | null {
+        return this.meetingService.localScreenTrack() || null;
+    }
     mediaRecorder!: MediaRecorder;
     recordedChunks: BlobPart[] = [];
     meetingUrl = window.location.href;
@@ -154,6 +161,10 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     memberSearchQuery: string = '';
     memberSearchResults: any[] = [];
     memberSearchSelectedIndex: number = -1;
+
+    async cancelJoining(): Promise<void> {
+        await this.meetingService.leaveRoom(true);
+    }
 
     toggleParticipanatsList() {
         this.isViewParticipant = !this.isViewParticipant;
@@ -487,96 +498,19 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
 
     async shareScreen() {
         try {
-            if (!this.room()) return;
-
-            // Save current mic state before screen share
-            const wasMicOn = this.meetingService.isMicOn();
-            console.log('=== SCREEN SHARE START ===');
-            console.log('Mic state before screen share:', wasMicOn);
-
-            // IMPORTANT: If no audio track exists, create one BEFORE screen share
-            // This ensures WebRTC SDP renegotiation happens with audio already in place
-            const existingAudioPub = this.room()?.localParticipant.audioTrackPublications.values().next().value;
-            if (!existingAudioPub?.track) {
-                console.log('No audio track exists - creating one BEFORE screen share...');
-                await this.room()?.localParticipant.setMicrophoneEnabled(true);
-                console.log('Audio track created');
-
-                // If mic was supposed to be off, mute it
-                if (!wasMicOn) {
-                    console.log('Muting audio track since mic was off...');
-                    const newAudioPub = this.room()?.localParticipant.audioTrackPublications.values().next().value;
-                    if (newAudioPub?.track) {
-                        await newAudioPub.track.mute();
-                        console.log('Audio track muted');
-                    }
-                }
-            }
-
-            // Log current audio track state before screen share
-            const audioTrackBefore = this.room()?.localParticipant.audioTrackPublications.values().next().value?.track;
-            console.log('Audio track before screen share:', {
-                exists: !!audioTrackBefore,
-                isMuted: audioTrackBefore?.isMuted,
-                mediaStreamTrackEnabled: audioTrackBefore?.mediaStreamTrack?.enabled,
-                mediaStreamTrackReadyState: audioTrackBefore?.mediaStreamTrack?.readyState
-            });
-
-            // FIXED: Set audio to false to prevent system audio from conflicting with microphone
-            // If you want screen audio, you would need to handle it separately and publish it
-            const screenTracks = await createLocalScreenTracks({
-                audio: false, // Changed from true - prevents mic conflict
-                resolution: { width: 1920, height: 1080 },
-            });
-
-            // Get only the video track
-            const screenTrack = screenTracks.find(t => t.kind === 'video');
-
-            if (!screenTrack || screenTrack.mediaStreamTrack.readyState === 'ended') {
-                console.warn('User cancelled screen share or no video track');
-                return;
-            }
-
-            this.isMyshareScreen = true;
-            this.localScreenTrack = screenTrack as LocalVideoTrack;
-
-            // Detect when user presses "Stop sharing" in browser UI
-            screenTrack.mediaStreamTrack.onended = () => {
-                this.stopScreenShare();
-            };
-
-            console.log('Publishing screen track...');
-            await this.room()?.localParticipant.publishTrack(screenTrack);
-
-            // Attach to the screenshare component's preview element
-            const previewElement = this.screenshareComponent?.getScreenPreviewElement();
-            if (previewElement) {
-                screenTrack.attach(previewElement);
-            }
-            console.log('Screen track published');
-
-            console.log('=== SCREEN SHARE END ===');
+            await this.meetingService.startScreenShare();
         } catch (error) {
-            console.warn('Screen share cancelled or failed:', error);
+            console.warn('Screen share failed:', error);
         }
     }
 
     async stopScreenShare() {
-        if (!this.room) return;
-
-        this.isMyshareScreen = false;
-        this.localScreenTrack = null;
-
-        const publications = this.room()?.localParticipant.videoTrackPublications;
-        publications?.forEach(async (pub: LocalTrackPublication) => {
-            if (pub.source === Track.Source.ScreenShare && pub.track) {
-                const track = pub.track;
-                await this.room()?.localParticipant.unpublishTrack(track);
-                track.stop();
-            }
-        });
-
-        this.roomService.latestScreenShare.next(null);
+        try {
+            await this.meetingService.stopScreenShare();
+            this.roomService.latestScreenShare.next(null);
+        } catch (error) {
+            console.warn('Stop screen share failed:', error);
+        }
     }
 
     showUserMicActivePopup() {
@@ -586,9 +520,7 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     async activeMic() {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        // Stop the stream immediately - we only needed it to trigger permission prompt
-        stream.getTracks().forEach(track => track.stop());
+        await this.cameraService.enableMic(this.room());
     }
 
     showUseCameraActivePopup() {
@@ -598,23 +530,6 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
 
-    // ==================== Lifecycle Cleanup ====================
-
-    async ngOnDestroy() {
-        // CRITICAL: Stop all tracks and leave room before destroying component
-        await this.leaveRoom();
-        if (this.timerSubscription) {
-            this.timerSubscription.unsubscribe();
-        }
-        if (this.subscription) {
-            this.subscription.unsubscribe();
-        }
-        this.mediaPerm.destroy();
-        this.subscriptions.unsubscribe();
-        this.subs.forEach(s => s.unsubscribe());
-        this.detachScreen();
-        this.stopTimer();
-    }
 
     async selectBackground(option: BackgroundOption) {
         if (this.isProcessing) return;
@@ -691,17 +606,18 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     async changeMicrophone(deviceId: string) {
-        if (!this.room) return;
-
+        this.selectedMic = deviceId;
+        this.deviceService.selectedMic.set(deviceId);
         try {
-            // Replace mic with the new selected device
-            await this.room()?.localParticipant.setMicrophoneEnabled(true, { deviceId });
+            await this.cameraService.switchMic(this.room() || deviceId, deviceId);
         } catch (err) {
             console.error('Failed to change microphone', err);
         }
     }
 
     async changeSpeaker(deviceId: string) {
+        this.selectedSpeaker = deviceId;
+        this.deviceService.selectedSpeaker.set(deviceId);
         if (this.remoteAudio && (this.remoteAudio as any).setSinkId) {
             try {
                 await (this.remoteAudio as any).setSinkId(deviceId);
@@ -712,6 +628,46 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
         } else {
             console.warn('setSinkId not supported in this browser');
         }
+    }
+
+    async changeCamera(deviceId: string) {
+        this.selectedCamera = deviceId;
+        this.deviceService.selectedCamera.set(deviceId);
+        try {
+            await this.cameraService.switchCamera(this.room() || deviceId, deviceId);
+            const activeTrack = this.cameraService.localCameraTrack();
+            if (activeTrack) {
+                this.meetingService.localTrack.set(activeTrack);
+            }
+        } catch (err) {
+            console.error('Failed to change camera', err);
+        }
+    }
+
+    testSpeakerAudio() {
+        if (this.isPlayingTestAudio) return;
+        this.isPlayingTestAudio = true;
+        const audio = new Audio('assets/notification-tone.wav');
+        if ((audio as any).setSinkId && this.selectedSpeaker) {
+            (audio as any).setSinkId(this.selectedSpeaker).catch(() => {});
+        }
+        audio.play()
+            .then(() => {
+                setTimeout(() => {
+                    this.isPlayingTestAudio = false;
+                }, 1400);
+            })
+            .catch(err => {
+                console.log('Audio test error:', err);
+                this.isPlayingTestAudio = false;
+            });
+    }
+
+    switchToVirtualBackground() {
+        this.closeSeetingOffCanvas();
+        setTimeout(() => {
+            this.openVirtualBackgroundOffcanvas();
+        }, 300);
     }
 
     private attachScreen(track: RemoteVideoTrack) {
@@ -737,8 +693,6 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
             }
             this.currentScreenTrack = null;
         }
-        // Always reset the local screen share flag
-        this.isMyshareScreen = false;
     }
 
     // Screen Recording Methods
@@ -1012,7 +966,66 @@ export class MeetingComponent implements OnInit, AfterViewInit, OnDestroy {
 
     toggleParticipants() {
         this.isChatEnabled = false;
-        this.isViewParticipant = !this.isViewParticipant
+        this.isViewParticipant = !this.isViewParticipant;
+    }
+
+    // ========================================
+    // LIFECYCLE & TEARDOWN
+    // ========================================
+
+    @HostListener('window:beforeunload')
+    onBeforeUnload(): void {
+        if (this.meetingService.inMeeting()) {
+            try {
+                this.meetingService.releaseAllMedia();
+            } catch (e) {}
+        }
+    }
+
+    ngOnDestroy(): void {
+        console.log('[MeetingComponent] ngOnDestroy triggered - executing teardown');
+
+        // If still in meeting, perform complete room and media teardown
+        if (this.meetingService.inMeeting()) {
+            this.meetingService.leaveRoom(false).catch((err) => {
+                console.warn('[MeetingComponent] Error in leaveRoom during ngOnDestroy:', err);
+            });
+        } else {
+            this.meetingService.releaseAllMedia().catch((err) => {
+                console.warn('[MeetingComponent] Error in releaseAllMedia during ngOnDestroy:', err);
+            });
+        }
+
+        // Clean up all subscriptions and auxiliary timers/screens
+        try {
+            this.mediaPerm.destroy();
+        } catch (e) {}
+        try {
+            this.detachScreen();
+        } catch (e) {}
+        try {
+            this.stopTimer();
+        } catch (e) {}
+        try {
+            this.timerSubscription?.unsubscribe();
+        } catch (e) {}
+        try {
+            this.subscription?.unsubscribe();
+        } catch (e) {}
+        try {
+            this.subscriptions?.unsubscribe();
+        } catch (e) {}
+        try {
+            this.subs?.forEach((s) => s?.unsubscribe());
+        } catch (e) {}
+        try {
+            this.watchSubscription?.unsubscribe();
+        } catch (e) {}
+
+        // Remove window popstate listener
+        try {
+            window.removeEventListener('popstate', this.popStateListener);
+        } catch (e) {}
     }
 }
 

@@ -1,0 +1,16 @@
+.meeting-room-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.lobby-container {
+  min-height: 80vh;
+}
+
+.lobby-card {
+  max-width: 480px;
+  background: var(--teams-bg-secondary, #242429);
+  border: 1px solid var(--teams-border, rgba(255, 255, 255, 0.08));
+  color: var(--teams-text-primary, #ffffff);
+}
