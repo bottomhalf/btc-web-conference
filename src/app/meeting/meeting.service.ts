@@ -1,4 +1,5 @@
-import { computed, Injectable, signal } from '@angular/core';
+import { computed, Injectable, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { RoomService } from './../providers/services/room.service';
 import { LocalService } from './../providers/services/local.service';
 import { iNavigation } from './../providers/services/iNavigation';
@@ -11,7 +12,7 @@ import { InitiateAudioCallService } from '../providers/socket/client-events/call
 import { InviteCallEventService } from '../providers/socket/client-events/call/invite-call.service';
 import { EndCallService } from '../providers/socket/client-events/call/end-call.service';
 import { User } from '../models/model';
-import { Dashboard, Login } from '../models/constant';
+import { ChatPage, Dashboard, Login } from '../models/constant';
 import { CallParticipant, ParticipantStatus } from '../models/conference_call/call_model';
 import { InvitedParticipant } from './meeting.component';
 import { NotificationService } from '../notifications/services/notification.service';
@@ -69,13 +70,18 @@ export class MeetingService {
   });
 
 
-  /** Preview stream for camera preview before joining */
-  private _previewStream = signal<MediaStream | undefined>(undefined);
-  previewStream = this._previewStream.asReadonly();
+  private cameraService = inject(CameraService);
+  private router = inject(Router);
+  private isLeavingRoom = false;
 
-  /** Media state - defaults to false until set by user preferences */
-  isCameraOn = signal(false);
-  isMicOn = signal(false);
+  /** Preview stream for camera preview before joining (delegated to unified CameraService) */
+  previewStream = this.cameraService.previewStream;
+
+  /** Media state - delegated to unified CameraService */
+  isCameraOn = this.cameraService.isCameraOn;
+  isMicOn = this.cameraService.isMicOn;
+  isScreenSharing = this.cameraService.isScreenSharing;
+  localScreenTrack = this.cameraService.localScreenTrack;
 
   /** Meeting details */
   meetingId: string = "";
@@ -87,7 +93,6 @@ export class MeetingService {
     public roomService: RoomService,
     private local: LocalService,
     private nav: iNavigation,
-    private cameraService: CameraService,
     private deviceService: DeviceService,
     private serverEventService: ServerEventService,
     private initiateAudioCallService: InitiateAudioCallService,
@@ -243,7 +248,7 @@ export class MeetingService {
       // Load user preferences
       this.user = this.local.getUser();
       this.isCameraOn.set(this.user?.isCameraOn ?? false);
-      this.isMicOn.set(this.user?.isMicOn ?? false);
+      this.isMicOn.set(this.user?.isMicOn ?? true);
 
       // Check available devices
       const devices = await navigator.mediaDevices.enumerateDevices();
@@ -255,6 +260,8 @@ export class MeetingService {
       const joinedRoom = await this.roomService.joinRoom(this.meetingId, participantName);
 
       this.room.set(joinedRoom);
+      this.cameraService.room.set(joinedRoom);
+      this.cameraService.mediaMode.set('in-meeting');
       this.maximize();
       this._inMeeting.set(true);
 
@@ -263,12 +270,16 @@ export class MeetingService {
 
       // Enable microphone if user wants it and device is available
       if (this.isMicOn() && hasMic) {
-        await this.enableMicInternal(joinedRoom);
+        await this.cameraService.enableMic(joinedRoom, this.deviceService.selectedMic() ?? undefined);
       }
 
       // Enable camera only if user explicitly wants it (respects audio-only calls)
       if (this.isCameraOn() && hasCam) {
-        await this.enableCameraInternal(joinedRoom);
+        await this.cameraService.enableCamera(joinedRoom, this.deviceService.selectedCamera() ?? undefined);
+        const camTrack = this.cameraService.localCameraTrack();
+        if (camTrack) {
+          this.localTrack.set(camTrack);
+        }
       } else {
         this.localTrack.set(undefined);
         console.log('Camera not enabled:', { isCameraOn: this.isCameraOn(), hasCam });
@@ -286,45 +297,75 @@ export class MeetingService {
    * Leave the meeting room and cleanup all media resources
    */
   async leaveRoom(isNavigate: boolean = false): Promise<void> {
-    const room = this.room();
+    if (this.isLeavingRoom) {
+      console.log('[MeetingService] leaveRoom already in progress, skipping duplicate');
+      if (isNavigate) {
+        this.navigateAfterLeave();
+      }
+      return;
+    }
+    this.isLeavingRoom = true;
 
-    if (room) {
-      try {
-        // Remove any video background effects first
-        const track = this.localTrack();
-        if (track) {
-          await this.videoBackgroundService.removeBackground(track);
+    try {
+      const room = this.room();
+
+      if (room) {
+        try {
+          // Remove any video background effects first
+          const track = this.localTrack();
+          if (track) {
+            await this.videoBackgroundService.removeBackground(track);
+          }
+        } catch (error) {
+          console.warn('[MeetingService] Error during background removal:', error);
         }
 
-        // Disable camera and mic via LiveKit API
-        await room.localParticipant.setCameraEnabled(false);
-        await room.localParticipant.setMicrophoneEnabled(false);
-
-        // Stop all tracks as safety measure
-        this.cameraService.stopAllTracks(room);
-
-        console.log('Camera and mic disabled before leaving room');
-      } catch (error) {
-        console.warn('Error during media cleanup:', error);
+        try {
+          // Release all media resources via CameraService
+          await this.cameraService.releaseAllMedia(room);
+          console.log('[MeetingService] Camera and mic disabled before leaving room');
+        } catch (error) {
+          console.warn('[MeetingService] Error during media cleanup:', error);
+        }
+      } else {
+        try {
+          await this.cameraService.releaseAllMedia();
+        } catch (error) {
+          console.warn('[MeetingService] Error during fallback media cleanup:', error);
+        }
       }
+
+      // Stop diagnostics
+      try {
+        this.diagnosticsService.stop();
+      } catch (error) {
+        console.warn('[MeetingService] Error stopping diagnostics:', error);
+      }
+
+      // Disconnect from room
+      try {
+        await this.roomService.leaveRoom();
+      } catch (error) {
+        console.warn('[MeetingService] Error leaving LiveKit room:', error);
+      }
+
+      // Notify call service
+      try {
+        this.endCallService.execute();
+      } catch (error) {
+        console.warn('[MeetingService] Error in endCallService:', error);
+      }
+
+      // Reset all state
+      this.resetState();
+
+      // Navigate if requested
+      if (isNavigate) {
+        this.navigateAfterLeave();
+      }
+    } finally {
+      this.isLeavingRoom = false;
     }
-
-    // Stop diagnostics
-    this.diagnosticsService.stop();
-
-    // Disconnect from room
-    await this.roomService.leaveRoom();
-
-    // Reset all state
-    this.resetState();
-
-    // Navigate if requested
-    if (isNavigate) {
-      this.navigateAfterLeave();
-    }
-
-    // Notify call service
-    this.endCallService.execute();
   }
 
   // ==================== Media Controls ====================
@@ -336,21 +377,26 @@ export class MeetingService {
     const room = this.room();
     if (!room) return;
 
-    const newState = !this.isCameraOn();
-    this.isCameraOn.set(newState);
-
     try {
-      if (newState) {
-        await this.turnCameraOn(room);
+      const wasOn = this.isCameraOn();
+      if (wasOn) {
+        const track = this.localTrack();
+        if (track) {
+          await this.videoBackgroundService.removeBackground(track);
+        }
+        await this.cameraService.disableCamera(room);
+        this.localTrack.set(undefined);
       } else {
-        await this.turnCameraOff(room);
+        await this.cameraService.enableCamera(room, this.deviceService.selectedCamera() ?? undefined);
+        const camTrack = this.cameraService.localCameraTrack();
+        if (camTrack) {
+          this.localTrack.set(camTrack);
+        }
       }
 
-      this.local.setCameraStatus(newState);
+      this.local.setCameraStatus(this.isCameraOn());
     } catch (error) {
       console.error('Error toggling camera:', error);
-      // Revert state on error
-      this.isCameraOn.set(!newState);
     }
   }
 
@@ -361,36 +407,48 @@ export class MeetingService {
     const room = this.room();
     if (!room) return;
 
-    const newState = !this.isMicOn();
-    console.log('=== TOGGLE MIC ===');
-    console.log('Current mic state:', this.isMicOn(), '-> New state:', newState);
-
     try {
-      if (newState) {
-        console.log('Enabling mic via cameraService...');
-        await this.cameraService.enableMic(room);
-        console.log('cameraService.enableMic completed');
-
-        // Log the audio track after enabling
-        const audioTrackPub = room.localParticipant.audioTrackPublications.values().next().value;
-        console.log('Audio track after enableMic:', {
-          exists: !!audioTrackPub?.track,
-          isMuted: audioTrackPub?.track?.isMuted,
-          mediaStreamTrackEnabled: audioTrackPub?.track?.mediaStreamTrack?.enabled,
-          mediaStreamTrackReadyState: audioTrackPub?.track?.mediaStreamTrack?.readyState
-        });
-      } else {
-        console.log('Disabling mic via cameraService...');
+      if (this.isMicOn()) {
         await this.cameraService.disableMic(room);
-        console.log('cameraService.disableMic completed');
+      } else {
+        await this.cameraService.enableMic(room, this.deviceService.selectedMic() ?? undefined);
       }
 
-      this.isMicOn.set(newState);
-      this.local.setMicStatus(newState);
-      console.log('=== TOGGLE MIC END ===');
+      this.local.setMicStatus(this.isMicOn());
     } catch (error) {
       console.error('Error toggling mic:', error);
     }
+  }
+
+  // ==================== Screen Share Controls ====================
+
+  /**
+   * Start screen sharing in active meeting
+   */
+  async startScreenShare(): Promise<LocalVideoTrack | undefined> {
+    const room = this.room();
+    if (!room) {
+      console.warn('[MeetingService] Cannot share screen without active room');
+      return undefined;
+    }
+    return this.cameraService.startScreenShare(room);
+  }
+
+  /**
+   * Stop screen sharing in active meeting
+   */
+  async stopScreenShare(): Promise<void> {
+    const room = this.room();
+    await this.cameraService.stopScreenShare(room);
+  }
+
+  /**
+   * Toggle screen sharing in active meeting
+   */
+  async toggleScreenShare(): Promise<boolean> {
+    const room = this.room();
+    if (!room) return false;
+    return this.cameraService.toggleScreenShare(room);
   }
 
   // ==================== Preview Media Management ====================
@@ -407,86 +465,28 @@ export class MeetingService {
     cameraDeviceId?: string,
     micDeviceId?: string
   ): Promise<MediaStream | undefined> {
-    try {
-      // Stop any existing preview stream first
-      this.stopMediaPreview();
-
-      const constraints: MediaStreamConstraints = {
-        video: enableCamera
-          ? (cameraDeviceId ? { deviceId: cameraDeviceId } : true)
-          : false,
-        audio: micDeviceId ? { deviceId: micDeviceId } : true
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      this._previewStream.set(stream);
-
-      // Update media state
-      this.isCameraOn.set(enableCamera);
-      this.isMicOn.set(true);
-
-      console.log('Preview media stream acquired:', { enableCamera, hasVideo: stream.getVideoTracks().length > 0 });
-      return stream;
-    } catch (error) {
-      console.error('Error requesting media preview:', error);
-      return undefined;
-    }
+    return this.cameraService.initPreviewSession(enableCamera, cameraDeviceId, micDeviceId);
   }
 
   /**
    * Stop the preview stream and release camera/mic hardware
    */
   stopMediaPreview(): void {
-    const stream = this._previewStream();
-    if (stream) {
-      stream.getTracks().forEach(track => {
-        track.stop();
-        console.log(`Stopped preview track: ${track.kind}`);
-      });
-      this._previewStream.set(undefined);
-    }
+    this.cameraService.stopMediaPreview();
   }
 
   /**
    * Toggle camera in preview mode (before joining meeting)
    */
   async togglePreviewCamera(cameraDeviceId?: string): Promise<void> {
-    const stream = this._previewStream();
-    const newCameraState = !this.isCameraOn();
-
-    if (!stream) {
-      // No stream exists - create one if turning camera on
-      if (newCameraState) {
-        await this.requestMediaPreview(true, cameraDeviceId);
-      }
-      return;
-    }
-
-    if (newCameraState) {
-      // Turning camera ON - need to get a new stream with video
-      await this.requestMediaPreview(true, cameraDeviceId);
-    } else {
-      // Turning camera OFF - stop video tracks only
-      stream.getVideoTracks().forEach(track => {
-        track.stop();
-        stream.removeTrack(track);
-      });
-      this.isCameraOn.set(false);
-    }
+    await this.cameraService.toggleCamera(undefined, cameraDeviceId);
   }
 
   /**
    * Toggle microphone in preview mode
    */
-  togglePreviewMic(): void {
-    const stream = this._previewStream();
-    if (!stream) return;
-
-    const newMicState = !this.isMicOn();
-    stream.getAudioTracks().forEach(track => {
-      track.enabled = newMicState;
-    });
-    this.isMicOn.set(newMicState);
+  async togglePreviewMic(micDeviceId?: string): Promise<void> {
+    await this.cameraService.toggleMic(undefined, micDeviceId);
   }
 
   /**
@@ -494,95 +494,12 @@ export class MeetingService {
    * Call this when completely leaving the meeting flow
    */
   async releaseAllMedia(): Promise<void> {
-    // Stop preview stream
-    this.stopMediaPreview();
-
-    // Stop room tracks if in meeting
-    const room = this.room();
-    if (room) {
-      try {
-        await room.localParticipant.setCameraEnabled(false);
-        await room.localParticipant.setMicrophoneEnabled(false);
-        this.cameraService.stopAllTracks(room);
-      } catch (error) {
-        console.warn('Error releasing room media:', error);
-      }
-    }
-
-    // Reset media state
-    this.isCameraOn.set(false);
-    this.isMicOn.set(false);
+    await this.cameraService.releaseAllMedia(this.room());
     this.localTrack.set(undefined);
-
     console.log('All media resources released');
   }
 
   // ==================== Private Helpers ====================
-
-  /**
-   * Enable camera and set local track for display
-   */
-  private async enableCameraInternal(room: Room): Promise<void> {
-    await this.cameraService.enableCamera(room);
-
-    // const videoPub = room.localParticipant.videoTrackPublications.values().next().value;
-    const videoPub = [...room.localParticipant.videoTrackPublications.values()]
-      .find(p => p.source === Track.Source.Camera);
-    if (videoPub?.track) {
-      this.localTrack.set(videoPub.track as LocalVideoTrack);
-    }
-  }
-
-  /**
-   * Enable microphone 
-   */
-  private async enableMicInternal(room: Room): Promise<void> {
-    await this.cameraService.enableMic(room);
-    // Note: Don't call setMicrophoneEnabled - cameraService.enableMic handles the track directly
-  }
-
-  /**
-   * Turn camera on - creates track if needed
-   */
-  private async turnCameraOn(room: Room): Promise<void> {
-    //  const existingTrack = room.localParticipant.videoTrackPublications.values().next().value;
-    const existingTrack = [...room.localParticipant.videoTrackPublications.values()]
-      .find(p => p.source === Track.Source.Camera);
-
-    if (!existingTrack) {
-      // No track exists (audio-only call) - create and publish one
-      await this.cameraService.enableCamera(room, this.deviceService.selectedCamera());
-
-      // const videoPub = room.localParticipant.videoTrackPublications.values().next().value;
-      const videoPub = [...room.localParticipant.videoTrackPublications.values()]
-        .find(p => p.source === Track.Source.Camera);
-      if (videoPub?.track) {
-        this.localTrack.set(videoPub.track as LocalVideoTrack);
-      }
-    } else {
-      // Track exists - just enable it
-      await room.localParticipant.setCameraEnabled(true);
-      // Also update localTrack signal in case it wasn't set
-      // const videoPub = room.localParticipant.videoTrackPublications.values().next().value;
-      const videoPub = [...room.localParticipant.videoTrackPublications.values()]
-        .find(p => p.source === Track.Source.Camera);
-      if (videoPub?.track) {
-        this.localTrack.set(videoPub.track as LocalVideoTrack);
-      }
-    }
-  }
-
-  /**
-   * Turn camera off and remove background effects
-   */
-  private async turnCameraOff(room: Room): Promise<void> {
-    await room.localParticipant.setCameraEnabled(false);
-
-    const track = this.localTrack();
-    if (track) {
-      await this.videoBackgroundService.removeBackground(track);
-    }
-  }
 
   /**
    * Reset all state to initial values
@@ -591,8 +508,9 @@ export class MeetingService {
     this.room.set(undefined);
     this.localTrack.set(undefined);
     this._inMeeting.set(false);
-    this.isCameraOn.set(false);
-    this.isMicOn.set(false);
+    try {
+      this.cameraService.releaseAllMedia();
+    } catch (e) {}
     this.meetingId = "";
     this.user = null;
     this.maximize();
@@ -602,11 +520,32 @@ export class MeetingService {
    * Navigate to appropriate page after leaving meeting
    */
   private navigateAfterLeave(): void {
-    if (this.local.isLoggedIn()) {
-      this.nav.navigate(Dashboard, null);
-    } else {
-      this.nav.navigate(Login, null);
-      localStorage.clear();
+    try {
+      if (this.local.isLoggedIn()) {
+        this.router.navigate(['/btc/chat']).then((navigated) => {
+          if (!navigated) {
+            this.nav.navigate(ChatPage, null);
+          }
+        }).catch(() => {
+          this.nav.navigate(ChatPage, null);
+        });
+      } else {
+        localStorage.clear();
+        this.router.navigate(['/login']).then((navigated) => {
+          if (!navigated) {
+            this.nav.navigate(Login, null);
+          }
+        }).catch(() => {
+          this.nav.navigate(Login, null);
+        });
+      }
+    } catch (err) {
+      console.error('[MeetingService] Error during navigateAfterLeave:', err);
+      try {
+        this.nav.navigate(this.local.isLoggedIn() ? ChatPage : Login, null);
+      } catch (navErr) {
+        console.error('[MeetingService] Fallback navigation error:', navErr);
+      }
     }
   }
 

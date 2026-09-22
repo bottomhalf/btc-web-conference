@@ -1,0 +1,18 @@
+<div class="meeting-room-wrapper">
+  @if (isWaitingInLobby) {
+    <div class="lobby-container d-flex flex-column align-items-center justify-content-center py-5">
+      <div class="lobby-card text-center p-5 rounded-4 shadow-sm">
+        <div class="spinner-border text-primary mb-4" style="width: 3.5rem; height: 3.5rem;" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <h3 class="fw-bold mb-2">Waiting to be let in...</h3>
+        <p class="fs-6 text-muted mb-4">We've notified the meeting host that you're waiting in the lobby.</p>
+        <button class="btn btn-outline-danger px-4 py-2 rounded-pill" (click)="cancelLobbyRequest()">
+          Leave Lobby
+        </button>
+      </div>
+    </div>
+  } @else {
+    <app-meeting></app-meeting>
+  }
+</div>

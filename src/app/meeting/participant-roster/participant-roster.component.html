@@ -1,134 +1,199 @@
 <!-- Shared Participant Roster Component -->
 <div class="participant-roster">
-    <!-- Roster Header -->
+    <!-- Header -->
     <div class="roster-header">
-        <span class="roster-title">People</span>
-        <span class="roster-count">{{meetingService.remoteUsersCount + 1}}</span>
-        <button class="btn btn-sm btn-outline-primary ms-auto border-0" data-bs-toggle="modal" data-bs-target="#addPeopleModal" title="Add People">
-             <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
-                <path d="M720-400v-120H600v-80h120v-120h80v120h120v80H800v120h-80Zm-360-80q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM40-160v-112q0-34 17.5-62.5T104-378q62-31 126-46.5T360-440q66 0 130 15.5T616-378q29 15 46.5 43.5T680-272v112H40Zm80-80h480v-32q0-11-5.5-20T580-306q-54-27-109-40.5T360-360q-56 0-111 13.5T140-306q-9 5-14.5 14t-5.5 20v32Zm240-320q33 0 56.5-23.5T440-640q0-33-23.5-56.5T360-720q-33 0-56.5 23.5T280-640q0 33 23.5 56.5T360-560Zm0-80Zm0 400Z"/>
-            </svg>
-            Add
-        </button>
-    </div>
-    <!-- Filter Search Box -->
-    <div class="roster-filter">
-        <div class="filter-input-wrapper">
-            <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px"
-                fill="currentColor" class="filter-icon">
-                <path
-                    d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z" />
-            </svg>
-            <input type="text" class="filter-input" placeholder="Search participants..."
-                (input)="meetingService.filterParticipants($event)">
-        </div>
-    </div>
-    <!-- Participant List -->
-    <div class="roster-list">
-        <!-- Section: In this call -->
-        <!-- Section: In this call -->
-        <div class="roster-section-header">
-            <span>In this call ({{inMeetingParticipants().length}})</span>
-        </div>
-        <!-- In-Meeting Participants (Local & Remote) -->
-        @for (participant of inMeetingParticipants(); track participant.id) {
-        <div class="participant-item">
-            <div class="participant-media-wrapper" [class.has-video]="hasVideoTrack(participant)">
-                @if (hasVideoTrack(participant)) {
-                <div class="participant-video-thumb">
-                    <video-component [track]="getVideoTrack(participant)!"
-                        [participantIdentity]="participant.identity"
-                        [local]="participant.isLocal"
-                        [isMute]="!isAudioEnabled(participant)">
-                    </video-component>
-                </div>
-                } @else {
-                <div class="participant-avatar"
-                    [ngStyle]="{'background-color': meetingService.getColorFromName(participant.name)}">
-                    {{meetingService.getUserInitiaLetter(participant.name)}}
-                </div>
-                }
-                <span class="status-dot" [class.online]="participant.isInLiveKit" [class.away]="!participant.isInLiveKit" [title]="participant.isInLiveKit ? 'In Call' : 'Connecting...'"></span>
+        <div class="roster-header-left">
+            <div class="roster-icon-bubble">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
             </div>
-            <div class="participant-info">
-                <span class="participant-name">{{participant.name}}</span>
-                <span class="participant-status-text">
-                    @if (participant.isLocal) {
-                        In this meeting (You)
-                    } @else if (participant.isInLiveKit) {
-                        In this meeting
+            <div class="roster-title-group">
+                <span class="roster-title">People</span>
+                <span class="roster-count-badge">{{inMeetingParticipants().length}}</span>
+            </div>
+        </div>
+        <div class="roster-header-actions">
+            <button class="btn-add-people" data-bs-toggle="modal" data-bs-target="#addPeopleModal" title="Invite more people">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Add</span>
+            </button>
+            <button class="btn-close-roster" (click)="closeRoster.emit()" title="Close panel">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Search / Filter Bar -->
+    <div class="roster-search-section">
+        <div class="search-input-box">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" class="search-input" placeholder="Search participants..." [value]="searchQuery()" (input)="onSearchInput($event)">
+            @if (searchQuery()) {
+                <button class="search-clear-btn" (click)="clearSearch()" title="Clear search">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- Participant List Content -->
+    <div class="roster-content">
+        <!-- Section: In this call -->
+        <div class="section-title-wrapper">
+            <span class="section-badge-dot active-dot"></span>
+            <span class="section-title">IN THIS CALL</span>
+            <span class="section-count-pill">{{inMeetingParticipants().length}}</span>
+        </div>
+
+        <div class="participant-cards-group">
+            @for (participant of inMeetingParticipants(); track participant.id) {
+            <div class="participant-card" [class.is-speaking]="meetingService.isParticipantActiveSpeaker(participant.identity)">
+                <div class="avatar-col" [class.has-video]="hasVideoTrack(participant)">
+                    @if (hasVideoTrack(participant)) {
+                    <div class="participant-video-thumb">
+                        <video-component [track]="getVideoTrack(participant)!"
+                            [participantIdentity]="participant.identity"
+                            [local]="participant.isLocal"
+                            [isMute]="!isAudioEnabled(participant)">
+                        </video-component>
+                    </div>
                     } @else {
-                        Connecting to call...
+                    <div class="avatar-circle" [ngStyle]="{'background-color': meetingService.getColorFromName(participant.name)}">
+                        {{meetingService.getUserInitiaLetter(participant.name)}}
+                    </div>
                     }
-                </span>
+                    <span class="status-indicator" [class.online]="participant.isInLiveKit" [class.away]="!participant.isInLiveKit" [title]="participant.isInLiveKit ? 'Active in Call' : 'Connecting...'"></span>
+                </div>
+
+                <div class="details-col">
+                    <div class="name-row">
+                        <span class="participant-name" [title]="participant.name">{{participant.name}}</span>
+                        @if (participant.isLocal) {
+                            <span class="tag-you">You</span>
+                        }
+                    </div>
+                    <div class="meta-row">
+                        <span class="status-label">
+                            @if (participant.isLocal) {
+                                In this meeting
+                            } @else if (participant.isInLiveKit) {
+                                In this meeting
+                            } @else {
+                                Connecting...
+                            }
+                        </span>
+                    </div>
+                </div>
+
+                <div class="controls-col">
+                    @if (!isAudioEnabled(participant)) {
+                    <div class="media-badge mic-muted" title="Microphone muted">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                            <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
+                            <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
+                            <line x1="12" y1="19" x2="12" y2="23"></line>
+                            <line x1="8" y1="23" x2="16" y2="23"></line>
+                        </svg>
+                    </div>
+                    } @else {
+                    <div class="media-badge mic-active" [class.speaking]="meetingService.isParticipantActiveSpeaker(participant.identity)" title="Microphone active">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                            <line x1="12" y1="19" x2="12" y2="23"></line>
+                            <line x1="8" y1="23" x2="16" y2="23"></line>
+                        </svg>
+                    </div>
+                    }
+
+                    @if (!isCameraEnabled(participant)) {
+                    <div class="media-badge camera-off" title="Camera off">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                            <path d="M21 21l-3.6-3.6M16 16.2a5 5 0 0 1-4.2 1.8 5 5 0 0 1-5-5c0-1.7.9-3.2 2.3-4.1"></path>
+                            <path d="M2 2l20 20"></path>
+                            <path d="M15 10l5-3v8l-2-1.2"></path>
+                            <rect x="2" y="6" width="14" height="12" rx="2"></rect>
+                        </svg>
+                    </div>
+                    }
+                </div>
             </div>
-            <div class="participant-actions">
-                @if (!isAudioEnabled(participant)) {
-                <span class="action-icon muted" title="Microphone off">
-                    <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px"
-                        fill="currentColor">
-                        <path
-                            d="m710-362-58-58q14-23 21-48t7-52h80q0 44-13 83.5T710-362ZM480-594Zm112 112-72-72v-206q0-17-11.5-28.5T480-800q-17 0-28.5 11.5T440-760v126l-80-80v-46q0-50 35-85t85-35q50 0 85 35t35 85v240q0 11-2.5 20t-5.5 18ZM440-120v-123q-104-14-172-93t-68-184h80q0 83 57.5 141.5T480-320q34 0 64.5-10.5T600-360l57 57q-29 23-63.5 39T520-243v123h-80Zm352 64L56-792l56-56 736 736-56 56Z" />
-                    </svg>
-                </span>
-                }
-                @if (!isCameraEnabled(participant)) {
-                <span class="action-icon camera-off" title="Camera off">
-                    <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px"
-                        fill="currentColor">
-                        <path
-                            d="M880-260 720-420v67l-80-80v-287H353l-80-80h367q33 0 56.5 23.5T720-720v180l160-160v440ZM822-26 26-822l56-56L878-82l-56 56ZM498-575ZM382-464ZM160-800l80 80h-80v480h480v-80l80 80q0 33-23.5 56.5T640-160H160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800Z" />
-                    </svg>
-                </span>
-                }
-            </div>
+            }
         </div>
-        }
-        <!-- Section Divider -->
-        @if (getOthersInvited().length > 0) {
-        <div class="roster-divider"></div>
+
         <!-- Section: Others invited -->
-        <div class="roster-section-header">
-            <span>Others invited ({{getOthersInvited().length}})</span>
+        @if (getOthersInvited().length > 0) {
+        <div class="section-title-wrapper mt-4">
+            <span class="section-badge-dot invited-dot"></span>
+            <span class="section-title">OTHERS INVITED</span>
+            <span class="section-count-pill">{{getOthersInvited().length}}</span>
         </div>
-        @for (invited of getOthersInvited(); track invited.userId) {
-        <div class="participant-item not-in-call">
-            <div class="participant-avatar-wrapper">
-                <div class="participant-avatar"
-                    [ngStyle]="{'background-color': meetingService.getColorFromName(invited.name)}">
-                    {{meetingService.getUserInitiaLetter(invited.name)}}
+
+        <div class="participant-cards-group">
+            @for (invited of getOthersInvited(); track invited.userId) {
+            <div class="participant-card invited-card">
+                <div class="avatar-col">
+                    <div class="avatar-circle invited-avatar" [ngStyle]="{'background-color': meetingService.getColorFromName(invited.name)}">
+                        {{meetingService.getUserInitiaLetter(invited.name)}}
+                    </div>
+                    <span class="status-indicator offline"></span>
                 </div>
-                <span class="status-dot offline"></span>
-            </div>
-            <div class="participant-info">
-                <span class="participant-name">{{invited.name}}</span>
-                <span class="participant-status-text" [ngClass]="{'text-danger': isNoResponseParticipant(invited.userId)}">
+
+                <div class="details-col">
+                    <div class="name-row">
+                        <span class="participant-name" [title]="invited.name">{{invited.name}}</span>
+                    </div>
+                    <div class="meta-row">
+                        @if (isCallingParticipant(invited.userId)) {
+                            <span class="status-badge-calling">
+                                <span class="pulse-ring-sm"></span>
+                                Calling...
+                            </span>
+                        } @else if (isNoResponseParticipant(invited.userId)) {
+                            <span class="status-badge-no-response">No response</span>
+                        } @else {
+                            <span class="status-label email" [title]="invited.email">{{invited.email}}</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="controls-col">
                     @if (isCallingParticipant(invited.userId)) {
-                        Calling...
-                    } @else if (isNoResponseParticipant(invited.userId)) {
-                        No response
+                    <button class="btn-action-call calling" disabled title="Ringing participant...">
+                        <svg class="calling-spinner" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                        </svg>
+                    </button>
                     } @else {
-                        {{invited.email}}
+                    <button class="btn-action-call" (click)="requestToJoin(invited)" title="Ask to join meeting">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                        </svg>
+                        <span>Ring</span>
+                    </button>
                     }
-                </span>
+                </div>
             </div>
-            <div class="participant-actions">
-                @if (isCallingParticipant(invited.userId)) {
-                <button class="request-join-btn calling border-0 bg-transparent text-muted" disabled title="Calling...">
-                    <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
-                        <path d="M798-120q-125 0-247-54.5T329-329Q229-429 174.5-551T120-798q0-18 12-30t30-12h162q14 0 25 9.5t13 22.5l26 140q2 16-1 27t-11 19l-97 98q20 37 47.5 71.5T387-386q31 31 65 57.5t72 48.5l94-94q9-9 23.5-13.5T670-390l138 28q14 4 23 14.5t9 23.5v162q0 18-12 30t-30 12Z" />
-                    </svg>
-                </button>
-                } @else {
-                <button class="request-join-btn border-0 bg-transparent text-primary" (click)="requestToJoin(invited)" title="Ask to join">
-                    <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor">
-                        <path d="M798-120q-125 0-247-54.5T329-329Q229-429 174.5-551T120-798q0-18 12-30t30-12h162q14 0 25 9.5t13 22.5l26 140q2 16-1 27t-11 19l-97 98q20 37 47.5 71.5T387-386q31 31 65 57.5t72 48.5l94-94q9-9 23.5-13.5T670-390l138 28q14 4 23 14.5t9 23.5v162q0 18-12 30t-30 12Z" />
-                    </svg>
-                </button>
-                }
-            </div>
+            }
         </div>
-        }
         }
     </div>
 </div>
