@@ -24,16 +24,13 @@ export class InitiateAudioCallService {
         const ids = Array.isArray(calleeIds) ? calleeIds : [calleeIds];
         const user = this.local.getUser();
         const callerId = user?.userId || '';
-        const callerName = ((user?.firstName || '') + ' ' + (user?.lastName || '')).trim() || user?.email || 'Unknown';
-        const callerAvatar = '';
 
         this.ws.sendEvent(CallEvents.CALL_INITIATE, <CallInitiatePayload>{
-            callId: crypto.randomUUID(),
-            callerId: callerId,
-            callerName: callerName,
-            callerAvatar: callerAvatar,
             conversationId: conversationId,
+            senderId: callerId,
+            receiverId: '',
             calleeIds: ids,
+            isGroup: !isDirectCall,
             callType: CallType.AUDIO,
             timeout: CallConfig.DEFAULT_TIMEOUT
         });
@@ -44,7 +41,7 @@ export class InitiateAudioCallService {
             // Check if call is still ringing/initiated (hasn't been accepted/rejected/ended)
             if (this.serverEventService.callStatus() === CallStatus.INITIATED || this.serverEventService.callStatus() === CallStatus.RINGING) {
                 // Time's up! No one answered.
-                
+
                 // Notify the server/callee to stop ringing
                 // Note: For multiple callees, this just sends to the room or first callee
                 const targetId = ids.length > 0 ? ids[0] : '';
