@@ -20,6 +20,8 @@ export class LoginComponent implements OnInit {
   password: string = '';
   isLoading: boolean = false;
   rememberMe: boolean = false;
+  errorMessage: string = '';
+
   constructor(
     private nav: iNavigation,
     private httpService: HttpService
@@ -28,10 +30,14 @@ export class LoginComponent implements OnInit {
   ngOnInit(): void {
     const storedCreds = localStorage.getItem('creds');
     if (storedCreds) {
-      const { email, password } = JSON.parse(storedCreds);
-      this.email = email;
-      this.password = password;
-      this.rememberMe = true;
+      try {
+        const { email, password } = JSON.parse(storedCreds);
+        this.email = email || "";
+        this.password = password || "";
+        this.rememberMe = true;
+      } catch (e) {
+        localStorage.removeItem('creds');
+      }
     }
   }
 
@@ -39,8 +45,29 @@ export class LoginComponent implements OnInit {
     this.nav.navigate('home', null);
   }
 
+  goToRegister() {
+    this.nav.navigate('register', null);
+  }
+
+  loginWithGoogle() {
+    alert("Google sign-in is coming soon!");
+  }
+
+  forgotPassword() {
+    alert("Password reset feature is coming soon! Please contact your administrator.");
+  }
+
+  onInputChange() {
+    if (this.errorMessage) {
+      this.errorMessage = '';
+    }
+  }
+
   login() {
+    this.errorMessage = '';
     this.isSubmitted = true;
+    this.isValidEmail();
+
     if (!this.email || !this.isEmailValid)
       return;
 
@@ -61,9 +88,12 @@ export class LoginComponent implements OnInit {
           localStorage.removeItem('creds');
         }
         this.nav.navigate(ChatPage, null);
+      } else {
+        this.errorMessage = res.message || "Invalid email or password. Please try again.";
       }
     }).catch(e => {
       this.isLoading = false;
+      this.errorMessage = e?.error?.message || e?.message || "Login failed. Please check your credentials.";
     })
   }
 

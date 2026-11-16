@@ -96,8 +96,8 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   navigateToRegister(): void {
-    // For now, navigate to login. Registration can be added later.
-    this.router.navigate(['/login']);
+    // For now, navigate to register. Registration can be added later.
+    this.router.navigate(['/register']);
   }
 
   navigateToLeadership(role: string): void {

@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { iNavigation } from '../providers/services/iNavigation';
 import { HttpService } from '../providers/services/http.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-register',
@@ -19,7 +20,8 @@ export class RegisterComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private nav: iNavigation,
-    private httpService: HttpService
+    private httpService: HttpService,
+    private router: Router
   ) { }
 
   ngOnInit(): void {
@@ -44,10 +46,11 @@ export class RegisterComponent implements OnInit {
     this.isLoading = true;
     const user = this.registerForm.value;
 
-    this.httpService.post("user/register", user).then((res: any) => {
+    this.httpService.post("users/register", user).then((res: any) => {
       this.isLoading = false;
       if (res.httpStatusCode == 200 || res.httpStatusCode == 201) {
         alert("Registration successful. Check your email for login details.");
+        this.router.navigate(['/login']);
       } else {
         alert(res.message || "Registration failed. Please try again.");
       }
