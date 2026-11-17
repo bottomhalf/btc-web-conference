@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  sfuBaseUrl: "www.confeet.com",
+  sfuBaseUrl: "sfu.confeet.com",
   appServerBaseUrl: `https://www.confeet.com/api/`,
   goApiGateway: `https://www.confeet.com/v1/`,
   socketBaseUrl: "wss://www.confeet.com/v1/cfgs/cf-sesion",
